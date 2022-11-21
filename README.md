@@ -1,7 +1,7 @@
 # sled
 Sled System Emulator
 
-Sled (SLow Emulated Device) is a library intended to make full system emulation simple. It includes an emulated CPU and emulated devices. The intention of this project is to build a development and debug environment for low-level system software, where debugging capabilities are otherwise limited.
+Sled (SLow Emulated Device) is a library intended to make full system emulation of embedded products simple. It includes an emulated CPU and emulated devices. The intention of this project is to build a development and debug environment for low-level system software, where debugging capabilities are otherwise limited.
 
 ## Simple Machine
 
@@ -11,11 +11,11 @@ The default project builds an app named __sled__, which constructs a simple mach
 
 ### Machine
 
-The __machine__ component is the user API for sled, allowing a user to create and configure a machine. A base machine includes only a __bus__ device. The cores, devices, memory, and the associated base addresses for these components are configurable by the user.
+The __machine__ component allows a user to create and configure a machine. A base machine includes only a __bus__ device. The cores, devices, memory, and the associated base addresses for these components are configurable by the user.
 
 ### Core
 
-The __core__ component is an ISA-level software emulator of a CPU core. Currently RISCV (rv32 and rv64) is implemented, as well as a few extensions. A user defines the core configuration they need and the machine will create it. They can then manipulate the core's register state, memory, and direct it to execute instructions.
+The __core__ component is an ISA-level software emulator of a CPU core. Currently RISCV (rv32 and rv64) is implemented, as well as a few extensions. A user defines the core configuration they desire and the machine will create it. They can then manipulate the core's register state, memory, and direct it to execute instructions.
 
 ### Bus and Memory
 
