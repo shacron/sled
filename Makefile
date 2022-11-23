@@ -98,6 +98,7 @@ define build_app
 $(1): $(BLD_HOST_BINDIR)/$(1)
 
 $(BLD_HOST_BINDIR)/$(1): $($(1)_OBJS) $(BLD_HOST_LIBDIR)/libsled.a
+	@mkdir -p $$(dir $$@)
 	@echo " [ld]" $$(notdir $$@)
 	@$(BLD_HOST_LD) $(CFLAGS) $(LDFLAGS) -o $$@ $$^
 
