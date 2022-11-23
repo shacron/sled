@@ -7,6 +7,64 @@ Sled (SLow Emulated Device) is a library intended to make full system emulation 
 
 The default project builds an app named __sled__, which constructs a simple machine. The machine instantiates a core, loads an ELF binary of any supported architecture, and executes it. More complex machines can be defined programatically.
 
+## Status
+
+### RISCV
+
+RISCV cores are an advanced state. They are able to run standalone binaries (i.e., things that don't require mode changes or generally access CSRs).
+
+Supported:
+
+* rv32i
+* rv64i
+* M, C extensions
+* machine mode
+* interrupts
+
+In progress:
+
+* system and user modes
+* A extension
+* exceptions
+* most of the CSRs
+* timers
+* MMU/MPU
+
+Long term:
+* floating point support
+* SMP
+* hypervisor mode
+
+### ARM
+
+Not started.
+
+### Devices
+
+There are few generic devices implemented.
+
+Supported:
+
+* UART (serial)
+* Interrupt Controller
+* Real-time clock
+
+In progress:
+
+* Bus identification of master
+* DMA backend and generic interface
+* MMU backend
+
+Long term goals:
+
+* iovirt-* (particularly block)
+* common embedded IP (designware, primecell, etc).
+* IOMMU
+* USB controller (device)
+
+Users can add additional devices, though the API is not yet stable.
+
+
 ## Components
 
 ### Machine
@@ -29,7 +87,7 @@ Sled includes a simple __device__ model. Devices implement MMIO functions to res
 
 Sled is not a VM and does not rely on any virtualization framework. It is purely a userspace application.
 
-In some ways this project is similar to QEMU, but is intended to serve a different purpose. QEMU will be significantly faster in almost all cases. It is intended to make whole system introspection and debugging possible, not to perform at maximum speed.
+In some ways this project is similar to QEMU, but is intended to serve a different purpose. QEMU will be significantly faster in almost all cases. Sled is intended to make whole system introspection and debugging possible, not to perform at maximum speed.
 
 That being said, sled is not that slow. At last test it could execute 35 million instructions per second on an emulated rv32 core when benchmarked on an Apple M1 processor. Scaling for multiple emulated cores should be fairly linear as long as there is a similar number of physical cores in the host machine.
 
@@ -40,11 +98,11 @@ That being said, sled is not that slow. At last test it could execute 35 million
 
 Sled can be built standalone. However, for most people it would be easier to build it through the accompanying project, __sledKit__. sledKit is intended to help bootstrap a cross-compilation environment that will allow users to easily build and run binaries with sled.
 
-SLEDKIT LINK HERE...
+https://github.com/shacron/sledkit
 
 ### Standalone
 
-    make -j <num>
+    make -j <jobs>
 
 The following build options are for people developing sled:
 
