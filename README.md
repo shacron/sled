@@ -113,3 +113,11 @@ Build the project in debug mode for a better debugging experience.
     RV_TRACE=1
 
 Enable RISCV instruction tracing. Running sled will print an instruction trace for every instruction dispatched. This significantly slows down execution.
+
+## License
+
+Sled is Copyright (c) 2022, Shac Ron.
+
+Unless otherwise stated, all code is licensed under the MIT License. The short version that you can use this code for any purpose, but should retain the copyright notice in the source.
+
+ELF header files (elf32.h and elf64.h) are Copyright (c) 1996-1998 John D. Polstra and licensed under BSD-2-Clause-FreeBSD. See the license included within these files for details.
