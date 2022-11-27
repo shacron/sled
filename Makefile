@@ -21,7 +21,7 @@ BLD_HOST_LD := clang
 BLD_HOST_AR ?= ar
 
 LDFLAGS :=
-CFLAGS  := -Wall -g -MMD -fsanitize=address,implicit-conversion,nullability,undefined -ftrivial-auto-var-init=pattern
+CFLAGS  := -Wall -g -MMD -fsanitize=address,nullability,undefined -ftrivial-auto-var-init=pattern
 DEFINES :=
 TOOLS :=
 
