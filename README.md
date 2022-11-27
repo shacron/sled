@@ -11,7 +11,7 @@ The default project builds an app named __sled__, which constructs a simple mach
 
 ### RISCV
 
-RISCV cores are an advanced state. They are able to run standalone binaries (i.e., things that don't require mode changes or generally access CSRs).
+RISCV cores are at an advanced state. They are able to run standalone binaries (i.e., things that don't require mode changes or generally access CSRs).
 
 Supported:
 
