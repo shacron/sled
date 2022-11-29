@@ -85,6 +85,7 @@ static int rtc_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, v
 
 static void rtc_destroy(device_t *dev) {
     if (dev == NULL) return;
+    dev_shutdown(dev);
     free(FROMDEV(dev));
 }
 

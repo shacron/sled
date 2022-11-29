@@ -54,4 +54,9 @@ int device_create(uint32_t type, const char *name, device_t **dev_out) {
 void dev_init(device_t *d, uint32_t type) {
     d->type = type;
     d->id = atomic_fetch_add_explicit(&device_id, 1, memory_order_relaxed);
+    lock_init(&d->lock);
+}
+
+void dev_shutdown(device_t *d) {
+    lock_destroy(&d->lock);
 }

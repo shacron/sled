@@ -22,30 +22,20 @@
 
 // SPDX-License-Identifier: MIT License
 
-#pragma once
-
-#include <stdint.h>
-
 #include <sl/lock.h>
-#include <sled/device.h>
 
-struct device {
-    uint32_t type;
-    uint32_t id;
-    uint64_t base;
-    uint32_t length;
-    const char *name;
+void lock_init(lock_t *l) {
+    pthread_mutex_init(&l->mu, NULL);
+}
 
-    lock_t lock;
+void lock_lock(lock_t *l) {
+    pthread_mutex_lock(&l->mu);
+}
 
-    int (*read)(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-    int (*write)(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-    void (*destroy)(device_t *dev);
-};
+void lock_unlock(lock_t *l) {
+    pthread_mutex_unlock(&l->mu);
+}
 
-// device API
-int device_create(uint32_t type, const char *name, device_t **dev_out);
-
-// internal device calls
-void dev_init(device_t *d, uint32_t type);
-void dev_shutdown(device_t *d);
+void lock_destroy(lock_t *l) {
+    pthread_mutex_destroy(&l->mu);
+}

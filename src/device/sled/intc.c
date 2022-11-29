@@ -127,6 +127,7 @@ static int intc_handle_irq(irq_handler_t *h, uint32_t num, bool high) {
 
 void intc_destroy(device_t *d) {
     if (d == NULL) return;
+    dev_shutdown(d);
     intc_t *ic = FROMDEV(d);
     free(ic);
 }

@@ -145,6 +145,7 @@ void uart_destroy(device_t *dev) {
     if (dev == NULL) return;
     uart_t *u = FROMDEV(dev);
     if (u->buf_pos > 0) uart_flush(u);
+    dev_shutdown(dev);
     free(u);
 }
 
