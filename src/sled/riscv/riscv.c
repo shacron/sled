@@ -108,24 +108,8 @@ static uint64_t riscv_get_reg(core_t *c, uint32_t reg) {
     }
 }
 
-static int riscv_irq_handler(irq_handler_t *h, uint32_t irq, bool high) {
-    rv_core_t *rc = containerof(h, rv_core_t, core.irq_handler);
-    if (irq > 31) return SL_ERR_ARG;
-    uint32_t irq_bit = 1u << irq;
-    for ( ; ; ) {
-        uint32_t pending = atomic_load_explicit((_Atomic uint32_t*)&rc->pending_irq, memory_order_relaxed);
-        uint32_t updated;
-        if (high) updated = pending | irq_bit;
-        else      updated = pending & ~irq_bit;
-        if (atomic_compare_exchange_strong_explicit((_Atomic uint32_t*)&rc->pending_irq, &pending, updated,
-            memory_order_relaxed, memory_order_relaxed))
-            break;
-    }
-    return 0;
-}
-
 uint32_t rv_get_pending_irq(rv_core_t *c) {
-    return atomic_load_explicit((_Atomic uint32_t*)&c->pending_irq, memory_order_relaxed);
+    return atomic_load_explicit((_Atomic uint32_t*)&c->core.pending_irq, memory_order_relaxed);
 }
 
 static int riscv_core_set_state(core_t *c, uint32_t state, bool enabled) {
@@ -169,18 +153,36 @@ static void riscv_core_next_pc(rv_core_t *c) {
     }
 }
 
+static int rv_handle_pending_irq(rv_core_t *c) {
+    irq_endpoint_t *ep = &c->core.irq_ep;
+    lock_lock(&c->core.lock);
+    const uint32_t active = ep->asserted;
+    lock_unlock(&c->core.lock);
+
+    if (active == 0) return 0;
+
+    const uint8_t irq_pri[] = {
+        RV_INT_MACHINE_EXTERNAL, RV_INT_MACHINE_TIMER, RV_INT_MACHINE_SW,
+        RV_INT_SUPER_EXTERNAL,   RV_INT_SUPER_TIMER,   RV_INT_SUPER_SW
+    };
+
+    int err = 0;
+    for (int i = 0; i < 6; i++) {
+        const uint8_t num = irq_pri[i];
+        if (active & (1u << num)) {
+            if ((err = rv_exception_enter(c, num, true))) break;
+        }
+    }
+    return err;
+}
+
 static int riscv_core_step(core_t *c, uint32_t num) {
     rv_core_t *rc = (rv_core_t *)c;
     int err = 0;
     for (uint32_t i = 0; i < num; i++) {
-        if (c->state & (1u << CORE_STATE_INTERRUPTS_EN)) {
-            uint32_t pending = rv_get_pending_irq(rc);
-            if (pending) {
-                // todo: handle interrupt cause better
-                if ((err = rv_exception_enter(rc, RV_INT_MACHINE_EXTERNAL, true))) break;
-            }
+        if ((c->state & (1u << CORE_STATE_INTERRUPTS_EN))) {
+            if ((err = rv_handle_pending_irq(rc))) break;
         }
-
         uint32_t inst;
         if ((err = rv_load_pc(rc, &inst))) break;
         rc->jump_taken = 0;
@@ -228,7 +230,6 @@ int riscv_core_create(core_params_t *p, bus_t *bus, core_t **core_out) {
     rc->core.ops.run = riscv_core_run;
     rc->core.ops.set_state = riscv_core_set_state;
     rc->core.ops.destroy = riscv_core_destroy;
-    rc->core.irq_handler.irq = riscv_irq_handler;
 
     rc->mimpid = 'sled';
     rc->mhartid = p->id;

@@ -28,9 +28,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sl/common.h>
 #include <sl/core.h>
 #include <sled/arch.h>
 #include <sled/error.h>
+
+static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
+    core_t *c = containerof(ep, core_t, irq_ep);
+
+    lock_lock(&c->lock);
+    int err = irq_endpoint_assert(ep, num, high);
+    // if (!err) c->pending_irq = irq_endpoint_get_active(ep);
+    lock_unlock(&c->lock);
+
+    return err;
+}
 
 int core_init(core_t *c, core_params_t *p, bus_t *b) {
     c->arch = p->arch;
@@ -39,10 +51,14 @@ int core_init(core_t *c, core_params_t *p, bus_t *b) {
     c->arch_options = p->arch_options;
     c->id = p->id;
     c->bus = b;
+    c->irq_ep.assert = core_accept_irq;
+    lock_init(&c->lock);
+    irq_endpoint_set_enabled(&c->irq_ep, IRQ_VEC_ALL);
     return 0;
 }
 
 int core_shutdown(core_t *c) {
+    lock_destroy(&c->lock);
     return 0;
 }
 

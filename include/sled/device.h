@@ -36,6 +36,7 @@ extern "C" {
 
 #define DEVICE_UART         128
 #define DEVICE_RTC          129
+#define DEVICE_IRQGEN       130
 
 
 #define DEVICE_RESERVED     1024

@@ -38,91 +38,66 @@
 
 #define FROMDEV(d) containerof((d), intc_t, dev)
 
-struct intc {
+typedef struct {
     device_t dev;
-    irq_handler_t self;
-    irq_handler_t *target;
-    uint32_t target_num;
-    uint32_t asserted;
-    uint32_t mask;
-    bool high;
-};
-
-static void intc_update_level(intc_t *ic) {
-    uint32_t active = ic->asserted & ~(ic->mask);
-    if (active == 0) {
-        if (ic->high == true) {
-            ic->target->irq(ic->target, ic->target_num, false);
-            ic->high = false;
-        }
-    } else {
-        if (ic->high == false) {
-            ic->target->irq(ic->target, ic->target_num, true);
-            ic->high = true;
-        }
-    }
-}
+} intc_t;
 
 static int intc_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (size != 4) return SL_ERR_BUS;
     if (count != 1) return SL_ERR_BUS;
 
-    intc_t *ic = FROMDEV(d);
     uint32_t *val = buf;
+    int err = 0;
 
+    dev_lock(d);
     switch (addr) {
     case INTC_REG_DEV_TYPE:
         *val = INTC_TYPE;
-        return 0;
+        break;
 
     case INTC_REG_DEV_VERSION:
         *val = INTC_VERSION;
-        return 0;
+        break;
 
     case INTC_REG_ASSERTED:
-        *val = ic->asserted;
-        return 0;
+        *val = d->irq_ep.retained;
+        break;
 
     case INTC_REG_MASK:
-        *val = ic->mask;
-        return 0;
+        *val = ~d->irq_ep.enabled;
+        break;
 
     default:
-        return SL_ERR_BUS;
+        err = SL_ERR_BUS;
+        break;
     }
+    dev_unlock(d);
+    return err;
 }
 
 static int intc_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (size != 4) return SL_ERR_BUS;
     if (count != 1) return SL_ERR_BUS;
 
-    intc_t *ic = FROMDEV(d);
     uint32_t val = *(uint32_t *)buf;
+    int err = 0;
 
+    dev_lock(d);
     switch (addr) {
     case INTC_REG_ASSERTED:
-        ic->asserted &= ~val;
-        intc_update_level(ic);
-        return 0;
+        err = irq_endpoint_clear(&d->irq_ep, val);
+        break;
 
     case INTC_REG_MASK:
-        ic->mask = val;
-        intc_update_level(ic);
-        return 0;
+        err = irq_endpoint_set_enabled(&d->irq_ep, ~val);
+        break;
 
     default:
-        return SL_ERR_BUS;
+        err = SL_ERR_BUS;
+        break;
     }
-}
-
-static int intc_handle_irq(irq_handler_t *h, uint32_t num, bool high) {
-    if (num > 31) return -1;
-    intc_t *ic = containerof(h, intc_t, self);
-    const uint32_t bit = (1u << num);
-    if (ic->asserted & bit) return 0;
-    ic->asserted |= bit;
-    intc_update_level(ic);
-    return 0;
+    dev_unlock(d);
+    return err;
 }
 
 void intc_destroy(device_t *d) {
@@ -138,25 +113,9 @@ int intc_create(device_t **dev_out) {
     *dev_out = &ic->dev;
 
     dev_init(&ic->dev, DEVICE_INTC);
-    ic->self.irq = intc_handle_irq;
-    ic->mask = 0xffffffff;
     ic->dev.length = INTC_APERTURE_LENGTH;
     ic->dev.read = intc_read;
     ic->dev.write = intc_write;
     ic->dev.destroy = intc_destroy;
     return 0;    
-}
-
-int intc_add_target(device_t *dev, irq_handler_t *target, uint32_t num) {
-    intc_t *ic = FROMDEV(dev);
-    if (num > 31) return -1;
-    assert(ic->target == NULL); // todo: support multiple interrupt targets
-    ic->target = target;
-    ic->target_num = num;
-    return 0;
-}
-
-irq_handler_t * intc_get_irq_handler(device_t *dev) {
-    intc_t *ic = FROMDEV(dev);
-    return &ic->self;
 }

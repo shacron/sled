@@ -69,7 +69,10 @@ struct core {
     bus_t *bus;
     itrace_t *trace;
     core_ops_t ops;
-    irq_handler_t irq_handler;
+
+    lock_t lock;
+    irq_endpoint_t irq_ep;
+    uint32_t pending_irq;       // only updated under lock
 };
 
 int core_init(core_t *c, core_params_t *p, bus_t *b);

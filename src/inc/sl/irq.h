@@ -27,8 +27,32 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct irq_handler irq_handler_t;
+#define IRQ_VEC_ALL 0xffffffff
 
-struct irq_handler {
-    int (*irq)(irq_handler_t *h, uint32_t num,  bool high);
+typedef struct irq_endpoint irq_endpoint_t;
+
+struct irq_endpoint {
+    uint32_t asserted;      // line level state
+    uint32_t retained;      // sticky version of asserted bits
+    uint32_t enabled;       // inverse mask
+
+    irq_endpoint_t *client; // client irq link
+    uint32_t client_num;    // interrupt number to use in client invocation
+    bool high;              // is the client currently asserted
+
+    // the supplied assert function, if any, should do the proper locking to
+    // protect this structure from possible concurrency
+    int (*assert)(irq_endpoint_t *ep, uint32_t num, bool high);
 };
+
+// input irq functions
+int irq_endpoint_assert(irq_endpoint_t *ep, uint32_t num, bool high);
+
+// user functions
+int irq_endpoint_set_enabled(irq_endpoint_t *ep, uint32_t vec);
+int irq_endpoint_clear(irq_endpoint_t *ep, uint32_t vec);
+uint32_t irq_endpoint_get_active(irq_endpoint_t *ep);
+
+// setup functions
+int irq_endpoint_set_client(irq_endpoint_t *ep, irq_endpoint_t *client, uint32_t num);
+

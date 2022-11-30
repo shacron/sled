@@ -25,6 +25,7 @@
 #include <stdatomic.h>
 #include <stdio.h>
 
+#include <sl/common.h>
 #include <sl/device.h>
 #include <sled/error.h>
 
@@ -33,6 +34,16 @@ int rtc_create(device_t **dev_out);
 int uart_create(device_t **dev_out);
 
 static atomic_uint_least32_t device_id = 0;
+
+// default irq handler wrapper
+static int device_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
+    if (num > 31) return SL_ERR_ARG;
+    device_t *d = containerof(ep, device_t, irq_ep);
+    dev_lock(d);
+    int err = irq_endpoint_assert(ep, num, high);
+    dev_unlock(d);
+    return err;
+}
 
 int device_create(uint32_t type, const char *name, device_t **dev_out) {
     int err;
@@ -54,6 +65,7 @@ int device_create(uint32_t type, const char *name, device_t **dev_out) {
 void dev_init(device_t *d, uint32_t type) {
     d->type = type;
     d->id = atomic_fetch_add_explicit(&device_id, 1, memory_order_relaxed);
+    d->irq_ep.assert = device_accept_irq;
     lock_init(&d->lock);
 }
 

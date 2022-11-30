@@ -41,7 +41,7 @@
 
 #include "platform.h"
 
-// #define ISSUE_INTERRUPT 1
+#define ISSUE_INTERRUPT 1
 
 typedef struct {
     int uart_io;
@@ -216,7 +216,7 @@ int simple_machine(const char *file, opts_t *o) {
 
 #if ISSUE_INTERRUPT
     // todo: set trap handler?
-    step_count = 20 * 1000; // should be enough to set up interrupts...
+    step_count = 30 * 1000; // should be enough to set up interrupts...
     err = core_step(c, step_count);
     if (err == SL_ERR_SYSCALL) goto handle_syscall;
     if (err != SL_OK) {
@@ -224,8 +224,10 @@ int simple_machine(const char *file, opts_t *o) {
         goto out_err_machine;
     }
 
-    printf("sending interrupt\n");
+    // printf("sending interrupt\n");
+    // pulse interrupt since there's no way for software to clear this
     machine_set_interrupt(m, 0, true);
+    machine_set_interrupt(m, 0, false);
 #endif
 
     step_count = 1000 * 1000;

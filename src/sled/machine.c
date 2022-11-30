@@ -127,7 +127,7 @@ int machine_add_core(machine_t *m, core_params_t *opts) {
         if (m->core_list[i] == NULL) {
             m->core_list[i] = c;
             opts->id = i;
-            intc_add_target(m->intc, &c->irq_handler, 0); // todo: get proper irq number
+            irq_endpoint_set_client(&m->intc->irq_ep, &c->irq_ep, 11); // todo: get proper irq number
             return 0;
         }
     }
@@ -146,8 +146,7 @@ device_t * machine_get_device_for_name(machine_t *m, const char *name) {
 
 int machine_set_interrupt(machine_t *m, uint32_t irq, bool high) {
     if (m->intc == NULL) return SL_ERR_NODEV;
-    irq_handler_t *h = intc_get_irq_handler(m->intc);
-    return h->irq(h, irq, high);
+    return irq_endpoint_assert(&m->intc->irq_ep, irq, high);
 }
 
 void machine_destroy(machine_t *m) {
