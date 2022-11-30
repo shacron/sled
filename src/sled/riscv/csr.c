@@ -65,11 +65,11 @@ result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t update_va
 }
 
 static uint64_t rv_status_internal_to_64(uint64_t is) {
-    return ((is & RV_SR_STATUS_SD) << 32) & ~(RV_SR_STATUS_SD);
+    return ((is & RV_SR_STATUS_SD) << 32) | (is & ~(RV_SR_STATUS_SD));
 }
 
 static uint64_t rv_status64_to_internal(uint64_t s) {
-    return ((s & RV_SR_STATUS64_SD) >> 32) & ~(RV_SR_STATUS64_SD);
+    return ((s & RV_SR_STATUS64_SD) >> 32) | (s & ~(RV_SR_STATUS64_SD));
 }
 
 static result64_t rv_mstatus_csr(rv_core_t *c, int op, uint64_t update_value) {
