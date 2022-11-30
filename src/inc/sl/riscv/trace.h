@@ -25,6 +25,9 @@
 #pragma once
 
 #ifdef RV_TRACE
+
+#include <stdio.h>
+
 #define RV_TRACE_DECL_OPSTR const char *opstr
 #define RV_TRACE_OPSTR(s) do { opstr = s; } while (0)
 #define RV_TRACE_RD(c, r, v) do { c->core.trace->rd = r; c->core.trace->rd_value = v; } while (0)
