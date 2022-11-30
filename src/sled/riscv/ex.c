@@ -32,12 +32,10 @@
 #include <sl/riscv/rv.h>
 
 static void rv_dump_core_state(rv_core_t *c) {
-    printf("pc = %" PRIx64 "\n", c->pc);
-    printf("sp = %" PRIx64 "\n", c->r[RV_SP]);
-    printf("ra = %" PRIx64 "\n\n", c->r[RV_RA]);
-
-    for (int i = 0; i < 32; i++) {
-        printf("x%i %" PRIx64 "\n", i, c->r[i]);
+    printf("pc = %"PRIx64", sp = %"PRIx64", ra = %"PRIx64"\n", c->pc, c->r[RV_SP], c->r[RV_RA]);
+    for (uint32_t i = 0; i < 32; i += 4) {
+        if (i < 10) printf(" ");
+        printf("x%u: %16"PRIx64"  %16"PRIx64"  %16"PRIx64"  %16"PRIx64"\n", i, c->r[i], c->r[i+1], c->r[i+2], c->r[i+3]);
     }
 }
 
