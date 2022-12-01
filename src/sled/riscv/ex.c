@@ -129,7 +129,9 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
             rv_dump_core_state(c);
             return status;
         } else {
-            return rv_exception_enter(c, RV_EX_LOAD_FAULT, value);
+            uint32_t fault = RV_EX_STORE_FAULT;
+            if (status == SL_ERR_IO_ALIGN) fault = RV_EX_STORE_ALIGN;
+            return rv_exception_enter(c, fault, value);
         }
 
     case EX_ABORT_WRITE:
@@ -138,7 +140,9 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
             rv_dump_core_state(c);
             return status;
         } else {
-            return rv_exception_enter(c, RV_EX_STORE_FAULT, value);
+            uint32_t fault = RV_EX_STORE_FAULT;
+            if (status == SL_ERR_IO_ALIGN) fault = RV_EX_STORE_ALIGN;
+            return rv_exception_enter(c, fault, value);
         }
 
     default:
