@@ -62,10 +62,20 @@ int device_create(uint32_t type, const char *name, device_t **dev_out) {
     return 0;
 }
 
+static int dev_dummy_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+    return SL_ERR_IO_NORD;
+}
+
+static int dev_dummy_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+    return SL_ERR_IO_NOWR;
+}
+
 void dev_init(device_t *d, uint32_t type) {
     d->type = type;
     d->id = atomic_fetch_add_explicit(&device_id, 1, memory_order_relaxed);
     d->irq_ep.assert = device_accept_irq;
+    d->read = dev_dummy_read;
+    d->write = dev_dummy_write;
     lock_init(&d->lock);
 }
 

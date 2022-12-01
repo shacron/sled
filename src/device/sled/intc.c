@@ -43,47 +43,35 @@ typedef struct {
 } intc_t;
 
 static int intc_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    if (size != 4) return SL_ERR_BUS;
-    if (count != 1) return SL_ERR_BUS;
+    if (size != 4) return SL_ERR_IO_SIZE;
+    if (count != 1) return SL_ERR_IO_COUNT;
 
     uint32_t *val = buf;
     int err = 0;
 
     dev_lock(d);
     switch (addr) {
-    case INTC_REG_DEV_TYPE:
-        *val = INTC_TYPE;
-        break;
-
-    case INTC_REG_DEV_VERSION:
-        *val = INTC_VERSION;
-        break;
-
-    case INTC_REG_ASSERTED:
-        *val = d->irq_ep.retained;
-        break;
-
-    case INTC_REG_MASK:
-        *val = ~d->irq_ep.enabled;
-        break;
-
-    default:
-        err = SL_ERR_BUS;
-        break;
+    case INTC_REG_DEV_TYPE:     *val = INTC_TYPE;           break;
+    case INTC_REG_DEV_VERSION:  *val = INTC_VERSION;        break;
+    case INTC_REG_ASSERTED:     *val = d->irq_ep.retained;  break;
+    case INTC_REG_MASK:         *val = ~d->irq_ep.enabled;  break;
+    default:                    err = SL_ERR_IO_INVALID;    break;
     }
     dev_unlock(d);
     return err;
 }
 
 static int intc_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    if (size != 4) return SL_ERR_BUS;
-    if (count != 1) return SL_ERR_BUS;
+    if (size != 4) return SL_ERR_IO_SIZE;
+    if (count != 1) return SL_ERR_IO_COUNT;
 
     uint32_t val = *(uint32_t *)buf;
     int err = 0;
 
     dev_lock(d);
     switch (addr) {
+    case INTC_REG_DEV_TYPE:     err = SL_ERR_IO_NOWR;   break;
+    case INTC_REG_DEV_VERSION:  err = SL_ERR_IO_NOWR;   break;
     case INTC_REG_ASSERTED:
         err = irq_endpoint_clear(&d->irq_ep, val);
         break;
@@ -92,9 +80,7 @@ static int intc_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count,
         err = irq_endpoint_set_enabled(&d->irq_ep, ~val);
         break;
 
-    default:
-        err = SL_ERR_BUS;
-        break;
+    default:    err = SL_ERR_IO_INVALID;    break;
     }
     dev_unlock(d);
     return err;

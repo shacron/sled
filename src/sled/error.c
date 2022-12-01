@@ -44,7 +44,15 @@ static const char *err_str[] = {
     ESTR(SL_ERR_SYSCALL),
     ESTR(SL_ERR_BREAKPOINT),
 
-    ESTR(SL_ERR_BUS),
+    // ESTR(SL_ERR_BUS),
+    ESTR(SL_ERR_IO_NODEV),
+    ESTR(SL_ERR_IO_ALIGN),
+    ESTR(SL_ERR_IO_SIZE),
+    ESTR(SL_ERR_IO_COUNT),
+    ESTR(SL_ERR_IO_PERM),
+    ESTR(SL_ERR_IO_NOWR),
+    ESTR(SL_ERR_IO_NORD),
+    ESTR(SL_ERR_IO_INVALID),
 };
 
 const char *st_err(int err) {

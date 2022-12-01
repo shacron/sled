@@ -59,8 +59,8 @@ static void uart_flush(uart_t *u) {
 }
 
 static int uart_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    if (size != 4) return SL_ERR_BUS;
-    if (count != 1) return SL_ERR_BUS;
+    if (size != 4) return SL_ERR_IO_SIZE;
+    if (count != 1) return SL_ERR_IO_COUNT;
 
     uart_t *u = FROMDEV(d);
     uint32_t *val = buf;
@@ -68,38 +68,21 @@ static int uart_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, 
 
     lock_lock(&d->lock);
     switch (addr) {
-    case UART_REG_DEV_TYPE:
-        *val = UART_TYPE;
-        break;
-
-    case UART_REG_DEV_VERSION:
-        *val = UART_VERSION;
-        break;
-
-    case UART_REG_CONFIG:
-        *val = u->config;
-        break;
-    
-    case UART_REG_STATUS:
-        *val = u->status;
-        break;
-
-    case UART_REG_FIFO_READ:
-        *val = 0;
-        break;
-
-    case UART_REG_FIFO_WRITE:
-    default:
-        err = SL_ERR_BUS;
-        break;
+    case UART_REG_DEV_TYPE:     *val = UART_TYPE;           break;
+    case UART_REG_DEV_VERSION:  *val = UART_VERSION;        break;
+    case UART_REG_CONFIG:       *val = u->config;           break;
+    case UART_REG_STATUS:       *val = u->status;           break;
+    case UART_REG_FIFO_READ:    *val = 0;                   break;
+    case UART_REG_FIFO_WRITE:   err = SL_ERR_IO_NORD;       break;
+    default:                    err = SL_ERR_IO_INVALID;    break;
     }
     lock_unlock(&d->lock);
     return err;
 }
 
 static int uart_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    if (size != 4) return SL_ERR_BUS;
-    if (count != 1) return SL_ERR_BUS;
+    if (size != 4) return SL_ERR_IO_SIZE;
+    if (count != 1) return SL_ERR_IO_COUNT;
 
     uart_t *u = FROMDEV(d);
     uint32_t val = *(uint32_t *)buf;
@@ -108,9 +91,7 @@ static int uart_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count,
 
     lock_lock(&d->lock);
     switch (addr) {
-    case UART_REG_CONFIG:
-        u->config = val;
-        break;
+    case UART_REG_CONFIG:   u->config = val;        break;
 
     case UART_REG_FIFO_WRITE:
         c = (uint8_t)val;
@@ -118,9 +99,14 @@ static int uart_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count,
         if ((c == '\n') || (u->buf_pos == BUFLEN)) uart_flush(u);
         break;
 
-    default:
-        err = SL_ERR_BUS;
+    case UART_REG_DEV_TYPE:
+    case UART_REG_DEV_VERSION:
+    case UART_REG_STATUS:
+    case UART_REG_FIFO_READ:
+        err = SL_ERR_IO_NOWR;
         break;
+
+    default:    err = SL_ERR_IO_INVALID;        break;
     }
     lock_unlock(&d->lock);
     return err;

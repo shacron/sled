@@ -76,7 +76,7 @@ int bus_read(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf) 
     }
 
     device_t *d = get_device_for_addr(b, addr);
-    if (d == NULL) return SL_ERR_BUS;
+    if (d == NULL) return SL_ERR_IO_NODEV;
     return d->read(d, addr - d->base, size, count, buf);
 }
 
@@ -91,7 +91,7 @@ int bus_write(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf)
     }
 
     device_t *d = get_device_for_addr(b, addr);
-    if (d == NULL) return SL_ERR_BUS;
+    if (d == NULL) return SL_ERR_IO_NODEV;
     return d->write(d, addr - d->base, size, count, buf);
 }
 

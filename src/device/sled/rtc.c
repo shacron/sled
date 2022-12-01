@@ -40,17 +40,17 @@ typedef struct {
 } rtc_t;
 
 static int rtc_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    if (count != 1) return SL_ERR_BUS;
+    if (count != 1) return SL_ERR_IO_COUNT;
 
     uint32_t *val = buf;
     switch (addr) {
     case RTC_REG_DEV_TYPE:
-        if (size != 4) return SL_ERR_BUS;
+        if (size != 4) return SL_ERR_IO_SIZE;
         *val = RTC_TYPE;
         return 0;
 
     case RTC_REG_DEV_VERSION:
-        if (size != 4) return SL_ERR_BUS;
+        if (size != 4) return SL_ERR_IO_SIZE;
         *val = RTC_VERSION;
         return 0;
 
@@ -64,22 +64,22 @@ static int rtc_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, v
 
     switch (addr) {
     case RTC_REG_MONOTONIC64:
-        if (size != 8) return SL_ERR_BUS;
+        if (size != 8) return SL_ERR_IO_SIZE;
         *(uint64_t *)buf = us;
         return 0;
 
     case RTC_REG_MONOTONIC_LO:
-        if (size != 4) return SL_ERR_BUS;
+        if (size != 4) return SL_ERR_IO_SIZE;
         *val = (uint32_t)us;
         return 0;
 
     case RTC_REG_MONOTONIC_HI:
-        if (size != 4) return SL_ERR_BUS;
+        if (size != 4) return SL_ERR_IO_SIZE;
         *val = (uint32_t)(us >> 32);
         return 0;
 
     default:
-        return SL_ERR_BUS;
+        return SL_ERR_IO_INVALID;
     }
 }
 

@@ -104,13 +104,13 @@ void core_memory_barrier(core_t *c, uint32_t type) {
 
 int core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     bus_t *b = c->bus;
-    if (b == NULL) return SL_ERR_BUS;
+    if (b == NULL) return SL_ERR_IO_NODEV;
     return bus_read(b, addr, size, count, buf);
 }
 
 int core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     bus_t *b = c->bus;
-    if (b == NULL) return SL_ERR_BUS;
+    if (b == NULL) return SL_ERR_IO_NODEV;
     return bus_write(b, addr, size, count, buf);
 }
 
