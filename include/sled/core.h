@@ -34,10 +34,12 @@ extern "C" {
 typedef struct core core_t;
 typedef struct core_params core_params_t;
 
-#define CORE_OPT_TRAP_SYSCALL    (1u << 0)
-#define CORE_OPT_TRAP_BREAKPOINT (1u << 1)
-#define CORE_OPT_ENDIAN_LITTLE  (1u << 30)
-#define CORE_OPT_ENDIAN_BIG     (1u << 31)
+#define CORE_OPT_TRAP_SYSCALL       (1u << 0)
+#define CORE_OPT_TRAP_BREAKPOINT    (1u << 1)
+#define CORE_OPT_TRAP_ABORT         (1u << 2)
+#define CORE_OPT_TRAP_UNDEF         (1u << 3)
+#define CORE_OPT_ENDIAN_LITTLE      (1u << 30)
+#define CORE_OPT_ENDIAN_BIG         (1u << 31)
 
 struct core_params {
     uint8_t arch;
