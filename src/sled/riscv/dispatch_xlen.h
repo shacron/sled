@@ -773,10 +773,10 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
         uint32_t val;
         err = core_mem_read(&c->core, dest, 4, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
-        c->r[rd] = (int32_t)val; // sign extend
         RV_TRACE_RD(c, rd, c->r[rd]);
         RV_TRACE_PRINT(c, "c.lw x%u, %u(x%u)", rd, imm, rs);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
+        c->r[rd] = (int32_t)val; // sign extend
         break;
     }
 
@@ -792,10 +792,10 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
         uint64_t val;
         err = core_mem_read(&c->core, dest, 8, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
-        c->r[rd] = val;
         RV_TRACE_RD(c, rd, val);
         RV_TRACE_PRINT(c, "c.ld x%u, %u(x%u)", rd, imm, rs);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
+        c->r[rd] = val;
         break;
     }
 #endif
@@ -811,9 +811,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uxlen_t dest = c->r[rs] + imm;
         uint32_t val = (uint32_t)c->r[rd];
         err = core_mem_write(&c->core, dest, 4, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
         RV_TRACE_STORE(c, dest, rd, val);
         RV_TRACE_PRINT(c, "c.sw x%u, %u(x%u)", rd, imm, rs);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
         break;
     }
 
@@ -828,9 +828,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint64_t dest = c->r[rs] + imm;
         uint64_t val = c->r[rd];
         err = core_mem_write(&c->core, dest, 8, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
         RV_TRACE_STORE(c, dest, rd, val);
         RV_TRACE_PRINT(c, "c.sd x%u, %u(x%u)" PRIx64, rd, imm, rs);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
         break;
     }
 #endif
