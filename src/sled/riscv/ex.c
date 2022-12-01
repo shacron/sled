@@ -123,9 +123,20 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
             return rv_exception_enter(c, RV_EX_INST_ILLEGAL, value);
         }
 
-    case EX_ABORT_READ:
+    case EX_ABORT_LOAD:
         if (c->core.options & CORE_OPT_TRAP_ABORT) {
-            printf("DATA ABORT (rd) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
+            printf("LOAD FAULT (rd) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
+            rv_dump_core_state(c);
+            return status;
+        } else {
+            uint32_t fault = RV_EX_LOAD_FAULT;
+            if (status == SL_ERR_IO_ALIGN) fault = RV_EX_LOAD_ALIGN;
+            return rv_exception_enter(c, fault, value);
+        }
+
+    case EX_ABORT_STORE:
+        if (c->core.options & CORE_OPT_TRAP_ABORT) {
+            printf("STORE FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
             rv_dump_core_state(c);
             return status;
         } else {
@@ -134,14 +145,14 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
             return rv_exception_enter(c, fault, value);
         }
 
-    case EX_ABORT_WRITE:
-        if (c->core.options & CORE_OPT_TRAP_ABORT) {
-            printf("DATA ABORT (wr) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
+    case EX_ABORT_INST:
+        if (c->core.options & CORE_OPT_TRAP_PREFETCH_ABORT) {
+            printf("PREFETCH FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
             rv_dump_core_state(c);
             return status;
         } else {
-            uint32_t fault = RV_EX_STORE_FAULT;
-            if (status == SL_ERR_IO_ALIGN) fault = RV_EX_STORE_ALIGN;
+            uint32_t fault = RV_EX_INST_FAULT;
+            if (status == SL_ERR_IO_ALIGN) fault = RV_EX_INST_ALIGN;
             return rv_exception_enter(c, fault, value);
         }
 

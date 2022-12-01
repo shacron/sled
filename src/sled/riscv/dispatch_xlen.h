@@ -229,7 +229,7 @@ static int XLEN_PREFIX(exec_load)(rv_core_t *c, rv_inst_t inst) {
 
     RV_TRACE_PRINT(c, "%s x%u, %d(x%u)", opstr, inst.i.rd, imm, inst.i.rs1);
 
-    if (err) return rv_synchronous_exception(c, EX_ABORT_READ, dest, err);
+    if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
 
     RV_TRACE_RD(c, inst.i.rd, x);
     if (inst.i.rd != RV_ZERO) c->r[inst.i.rd] = x;
@@ -279,7 +279,7 @@ static int XLEN_PREFIX(exec_store)(rv_core_t *c, rv_inst_t inst) {
         return rv_undef(c, inst);
     }
 
-    if (err) return rv_synchronous_exception(c, EX_ABORT_WRITE, dest, err);
+    if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
 
     RV_TRACE_STORE(c, dest, inst.s.rs2, val);
     RV_TRACE_PRINT(c, "%s x%u, %d(x%u)", opstr, inst.s.rs2, imm, inst.s.rs1);
@@ -773,7 +773,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
         uint32_t val;
         err = core_mem_read(&c->core, dest, 4, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_READ, dest, err);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
         c->r[rd] = (int32_t)val; // sign extend
         RV_TRACE_RD(c, rd, c->r[rd]);
         RV_TRACE_PRINT(c, "c.lw x%u, %u(x%u)", rd, imm, rs);
@@ -792,7 +792,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
         uint64_t val;
         err = core_mem_read(&c->core, dest, 8, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_READ, dest, err);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
         c->r[rd] = val;
         RV_TRACE_RD(c, rd, val);
         RV_TRACE_PRINT(c, "c.ld x%u, %u(x%u)", rd, imm, rs);
@@ -811,7 +811,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uxlen_t dest = c->r[rs] + imm;
         uint32_t val = (uint32_t)c->r[rd];
         err = core_mem_write(&c->core, dest, 4, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_WRITE, dest, err);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
         RV_TRACE_STORE(c, dest, rd, val);
         RV_TRACE_PRINT(c, "c.sw x%u, %u(x%u)", rd, imm, rs);
         break;
@@ -828,7 +828,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint64_t dest = c->r[rs] + imm;
         uint64_t val = c->r[rd];
         err = core_mem_write(&c->core, dest, 8, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_WRITE, dest, err);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
         RV_TRACE_STORE(c, dest, rd, val);
         RV_TRACE_PRINT(c, "c.sd x%u, %u(x%u)" PRIx64, rd, imm, rs);
         break;
@@ -976,7 +976,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
             uint32_t val;
             err = core_mem_read(&c->core, addr, 4, 1, &val);
-            if (err) return rv_synchronous_exception(c, EX_ABORT_READ, addr, err);
+            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
             c->r[ci.ci.rsd] = val;
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.lwsp x%u, %u", ci.ci.rsd, imm);
@@ -994,7 +994,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             const uint64_t addr = c->r[RV_SP] + imm;
             uint64_t val;
             err = core_mem_read(&c->core, addr, 8, 1, &val);
-            if (err) return rv_synchronous_exception(c, EX_ABORT_READ, addr, err);
+            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
             c->r[ci.ci.rsd] = val;
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.ldsp x%u, %u", ci.ci.rsd, imm);
@@ -1053,7 +1053,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uxlen_t addr = c->r[RV_SP] + imm;
         uint32_t val = c->r[ci.css.rs2];
         err = core_mem_write(&c->core, addr, 4, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_WRITE, addr, err);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
         RV_TRACE_PRINT(c, "c.swsp x%u, %u", ci.css.rs2, imm);
         break;
@@ -1068,7 +1068,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint64_t addr = c->r[RV_SP] + imm;
         uint64_t val = c->r[ci.css.rs2];
         err = core_mem_write(&c->core, addr, 8, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_WRITE, addr, err);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
         RV_TRACE_PRINT(c, "c.sdsp x%u, %u" PRIx64, ci.css.rs2, imm);
         break;
