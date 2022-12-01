@@ -206,69 +206,29 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
         // machine level
         switch (addr.raw) {
         // Machine Information Registers (MRO)
-        case 0xF11: // MRO mvendorid - Vendor ID.
-            result.value = c->mvendorid;  goto out;
-        case 0xF12: // MRO marchid - Architecture ID.
-            result.value = c->marchid;    goto out;
-        case 0xF13: // MRO mimpid - Implementation ID.
-            result.value = c->mimpid;     goto out;
-        case 0xF14: // MRO mhartid - Hardware thread ID.
-            result.value = c->mhartid;    goto out;
-        case 0xF15: // MRO mconfigptr - Pointer to configuration data structure.
-            result.value = c->mconfigptr; goto out;
-
+        case RV_CSR_MVENDORID:  result.value = c->mvendorid;  goto out;
+        case RV_CSR_MARCHID:    result.value = c->marchid;    goto out;
+        case RV_CSR_MIMPID:     result.value = c->mimpid;     goto out;
+        case RV_CSR_MHARTID:    result.value = c->mhartid;    goto out;
+        case RV_CSR_MCONFIGPTR: result.value = c->mconfigptr; goto out;
         // Machine Trap Setup (MRW)
-        case 0x300: // MRW mstatus - Machine status register.
-            result = rv_mstatus_csr(c, op, value);
-            goto out;
+        case RV_CSR_MSTATUS:    result = rv_mstatus_csr(c, op, value);              goto out;
+        case RV_CSR_MISA:       result = rv_csr_update(c, op, &m->isa, value);      goto out;
+        case RV_CSR_MEDELEG:    result = rv_csr_update(c, op, &m->edeleg, value);   goto out;
+        case RV_CSR_MIDELEG:    result = rv_csr_update(c, op, &m->ideleg, value);   goto out;
+        case RV_CSR_MIE:        result = rv_csr_update(c, op, &m->ie, value);       goto out;
+        case RV_CSR_MTVEC:      result = rv_csr_update(c, op, &m->tvec, value);     goto out;
+        case RV_CSR_MCOUNTEREN: result = rv_csr_update(c, op, &m->counteren, value);    goto out;
 
-        case 0x301: // MRW misa - ISA and extensions
-            result = rv_csr_update(c, op, &m->isa, value);
-            goto out;
-
-        case 0x302: // MRW medeleg - Machine exception delegation register.
-            result = rv_csr_update(c, op, &m->edeleg, value);
-            goto out;
-
-        case 0x303: // MRW mideleg - Machine interrupt delegation register.
-            result = rv_csr_update(c, op, &m->ideleg, value);
-            goto out;
-
-        case 0x304: // MRW mie - Machine interrupt-enable register.
-            result = rv_csr_update(c, op, &m->ie, value);
-            goto out;
-
-        case 0x305: // MRW mtvec - Machine trap-handler base address.
-            result = rv_csr_update(c, op, &m->tvec, value);
-            goto out;
-
-        case 0x306: // MRW mcounteren - Machine counter enable.
-            result = rv_csr_update(c, op, &m->counteren, value);
-            goto out;
-
-        case 0x30A: // MRW menvcfg - Machine environment configuration register.
-            result.err = SL_ERR_UNIMPLEMENTED;
-            goto out;
-
-        case 0x310: // MRW mstatush - Additional machine status register, RV32 only.
+        case RV_CSR_MSTATUSH:
             if (c->mode != RV_MODE_RV32) goto undef;
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
-        case 0x31A: // MRW menvcfgh - Additional machine env. conf. register, RV32 only.
-            if (c->mode != RV_MODE_RV32) goto undef;
-            result.err = SL_ERR_UNIMPLEMENTED;
-            goto out;
+        case RV_CSR_MSCRATCH:   result = rv_csr_update(c, op, &m->scratch, value);  goto out;
+        case RV_CSR_MEPC:       result = rv_csr_update(c, op, &m->epc, value);      goto out;
 
-        case 0x340: // MRW mscratch = Scratch register for machine trap handlers.
-            result = rv_csr_update(c, op, &m->scratch, value);
-            goto out;
-
-        case 0x341: // MRW mepc = Machine exception program counter.
-            result = rv_csr_update(c, op, &m->epc, value);
-            goto out;
-
-        case 0x342: // MRW mcause = Machine trap cause.
+        case RV_CSR_MCAUSE:
             if (c->mode == RV_MODE_RV32) {
                 value = ((value & RV_CAUSE_INT32) << 32) | (value & ~RV_CAUSE_INT32);
                 result = rv_csr_update(c, op, &m->cause, value);
@@ -279,51 +239,41 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
             }
             goto out;
 
-        case 0x343: // MRW mtval = Machine bad address or instruction.
-            result = rv_csr_update(c, op, &m->tval, value);
-            goto out;
+        case RV_CSR_MTVAL:  result = rv_csr_update(c, op, &m->tval, value);     goto out;
+        case RV_CSR_MIP:    result = rv_csr_update(c, op, &m->ip, value);       goto out;
 
-        case 0x344: // MRW mip = Machine interrupt pending.
-            result = rv_csr_update(c, op, &m->ip, value);
-            goto out;
+        case RV_CSR_MTINST:
+        case RV_CSR_MTVAL2:
+        case RV_CSR_MENVCFG:
+            result.err = SL_ERR_UNIMPLEMENTED;  goto out;
 
-        case 0x34A: // MRW mtinst = Machine trap instruction (transformed).
-        case 0x34B: // MRW mtval2 = Machine bad guest physical address.
-            result.err = SL_ERR_UNIMPLEMENTED;
-            goto out;
-
-        // Machine Configuration
-        case 0x747: // MRW mseccfg - Machine security configuration register.
-            result.err = SL_ERR_UNIMPLEMENTED;
-            goto out;
-
-        case 0x757: // MRW mseccfgh - Additional machine security conf. register, RV32 only.
+        case RV_CSR_MENVCFGH:
             if (c->mode != RV_MODE_RV32) goto undef;
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
-        case 0xB00: // MRW mcycle - Machine cycle counter
-            result = rv_mcycle_csr(c, op, value);
+        case RV_CSR_MSECCFG:    result.err = SL_ERR_UNIMPLEMENTED;      goto out;
+
+        case RV_CSR_MSECCFGH:
+            if (c->mode != RV_MODE_RV32) goto undef;
+            result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
-        case 0xB02: // MRW minstret - Machine instructions-retired counter.
-            result = rv_mcinstret_csr(c, op, value);
-            goto out;
+        case RV_CSR_MCYCLE:     result = rv_mcycle_csr(c, op, value);       goto out;
+        case RV_CSR_MINSTRET:   result = rv_mcinstret_csr(c, op, value);    goto out;
 
         default:
             break;
         }
 
-        // MRW pmpcfg0-15 - Physical memory protection configuration.
-        if ((addr.raw >= 0x3A0) && (addr.raw <= 0x3AF)) {
-            const uint32_t i = addr.raw - 0x3A0;
+        if ((addr.raw >= RV_CSR_PMPCFG_BASE) && (addr.raw < (RV_CSR_PMPCFG_BASE + RV_CSR_PMPCFG_NUM))) {
+            const uint32_t i = addr.raw - RV_CSR_PMPCFG_BASE;
             result = rv_csr_update(c, op, &c->pmpcfg[i], value);
             goto out;
         }
 
-        // MRW pmpaddr0-63 - Physical memory protection address register.
-        if ((addr.raw >= 0x3B0) && (addr.raw <= 0x3EF)) {
-            const uint32_t i = addr.raw - 0x3B0;
+        if ((addr.raw >= RV_CSR_PMPADDR_BASE) && (addr.raw < (RV_CSR_PMPADDR_BASE + RV_CSR_PMPADDR_NUM))) {
+            const uint32_t i = addr.raw - RV_CSR_PMPADDR_BASE;
             result = rv_csr_update(c, op, &c->pmpaddr[i], value);
             goto out;
         }
