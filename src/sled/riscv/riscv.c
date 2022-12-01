@@ -170,7 +170,7 @@ static int rv_handle_pending_irq(rv_core_t *c) {
     for (int i = 0; i < 6; i++) {
         const uint8_t num = irq_pri[i];
         if (active & (1u << num)) {
-            if ((err = rv_exception_enter(c, num, true))) break;
+            if ((err = rv_exception_enter(c, num | RV_CAUSE_INT, 0))) break;
         }
     }
     return err;

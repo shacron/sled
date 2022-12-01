@@ -44,29 +44,29 @@ rv_sr_mode_t* rv_get_mode_registers(rv_core_t *c, uint8_t priv_level) {
     return &c->sr_mode[priv_level - 1];
 }
 
-int rv_exception_enter(rv_core_t *c, uint64_t cause, bool irq) {
+int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
     rv_sr_mode_t *m = rv_get_mode_registers(c, RV_PRIV_LEVEL_MACHINE);
-    m->epc = c->pc;
-    m->tval = 0;
-    m->ip = 0;
-    if (irq) {
-        m->ip = 1;
-        if (c->mode == RV_MODE_RV64) cause |= (1ull << 63);
-        else                         cause |= (1u << 31);
-    }
     m->cause = cause;
+    m->epc = c->pc;
+    m->tval = addr;
 
     // update status register
     csr_status_t s;
     s.raw = c->status;
     s.m_mpie = s.m_mie;           // previous interrupt state
     s.m_mie = 0;                  // disable interrupts
-
     s.m_mpp = c->priv_level;      // previous priv level
     c->status = s.raw;
 
     c->priv_level = RV_PRIV_LEVEL_MACHINE;      // todo: fix me
-    c->pc = m->tvec;
+
+    uint64_t tvec = m->tvec;
+    if (cause & RV_CAUSE_INT) {
+        const uint64_t ci = cause & ~RV_CAUSE_INT;
+        // m->ip = 1ull << ci;
+        if (tvec & 1) tvec += (ci << 2);
+    }
+    c->pc = tvec;
 
     core_interrupt_set(&c->core, false);
     return 0;
