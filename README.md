@@ -20,12 +20,13 @@ Supported:
 * M, C extensions
 * machine mode
 * interrupts
+* (some) exceptions
 
 In progress:
 
+* more exceptions
 * system and user modes
 * A extension
-* exceptions
 * most of the CSRs
 * timers
 * MMU/MPU
