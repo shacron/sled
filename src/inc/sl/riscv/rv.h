@@ -75,12 +75,31 @@ typedef struct rv_core rv_core_t;
 #define RV_PRIV_LEVEL_HYPERVISOR 2
 #define RV_PRIV_LEVEL_MACHINE    3
 
+// cause register values
+#define RV_CAUSE_INT            (1ul << 63)
+// cause interrupt exception code
 #define RV_INT_SUPER_SW         1
 #define RV_INT_MACHINE_SW       3
 #define RV_INT_SUPER_TIMER      5
 #define RV_INT_MACHINE_TIMER    7
 #define RV_INT_SUPER_EXTERNAL   9
 #define RV_INT_MACHINE_EXTERNAL 11
+// non-interrupt exception code
+#define RV_EX_INST_ALIGN        0
+#define RV_EX_INST_FAULT        1
+#define RV_EX_INST_ILLEGAL      2
+#define RV_EX_BREAK             3
+#define RV_EX_LOAD_ALIGN        4
+#define RV_EX_LOAD_FAULT        5
+#define RV_EX_STORE_ALIGN       6
+#define RV_EX_STORE_FAULT       7
+#define RV_EX_CALL_FROM_U       8
+#define RV_EX_CALL_FROM_S       9
+#define RV_EX_CALL_FROM_M       11
+#define RV_EX_INST_PAGE_FAULT   12
+#define RV_EX_LOAD_PAGE_FAULT   13
+#define RV_EX_STORE_PAGE_FAULT  15
+
 
 #define RV_MODE_RV32    0
 #define RV_MODE_RV64    1
