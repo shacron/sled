@@ -96,6 +96,7 @@ typedef struct rv_core rv_core_t;
 #define RV_EX_STORE_FAULT       7
 #define RV_EX_CALL_FROM_U       8
 #define RV_EX_CALL_FROM_S       9
+#define RV_EX_CALL_FROM_H       10
 #define RV_EX_CALL_FROM_M       11
 #define RV_EX_INST_PAGE_FAULT   12
 #define RV_EX_LOAD_PAGE_FAULT   13

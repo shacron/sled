@@ -107,22 +107,30 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
 
     switch (ex) {
     case EX_SYSCALL:
-        // printf("\nSYSCALL %" PRIx64 "\n", value);
-        if (c->core.options & CORE_OPT_TRAP_SYSCALL)
+        if (c->core.options & CORE_OPT_TRAP_SYSCALL) {
             return SL_ERR_SYSCALL;
-        return SL_ERR_UNIMPLEMENTED;
-        // return rv_syscall(c);
+        } else {
+            return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->priv_level, value);
+        }
 
     case EX_UNDEFINDED:
-        inst.raw = (uint32_t)value;
-        printf("UNDEFINED instruction %08x (op=%x) at pc=%" PRIx64 "\n", inst.raw, inst.b.opcode, c->pc);
-        rv_dump_core_state(c);
-        return SL_ERR_UNDEF;
+        if (c->core.options & CORE_OPT_TRAP_UNDEF) {
+            inst.raw = (uint32_t)value;
+            printf("UNDEFINED instruction %08x (op=%x) at pc=%" PRIx64 "\n", inst.raw, inst.b.opcode, c->pc);
+            rv_dump_core_state(c);
+            return SL_ERR_UNDEF;
+        } else {
+            return rv_exception_enter(c, RV_EX_INST_ILLEGAL, value);
+        }
 
     case EX_ABORT_READ:
-        printf("DATA ABORT (rd) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
-        rv_dump_core_state(c);
-        return status;
+        if (c->core.options & CORE_OPT_TRAP_ABORT) {
+            printf("DATA ABORT (rd) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
+            rv_dump_core_state(c);
+            return status;
+        } else {
+            return rv_exception_enter(c, RV_EX_LOAD_FAULT, value);
+        }
 
     case EX_ABORT_WRITE:
         if (c->core.options & CORE_OPT_TRAP_ABORT) {
