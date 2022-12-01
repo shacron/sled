@@ -184,7 +184,8 @@ static int riscv_core_step(core_t *c, uint32_t num) {
             if ((err = rv_handle_pending_irq(rc))) break;
         }
         uint32_t inst;
-        if ((err = rv_load_pc(rc, &inst))) break;
+        if ((err = rv_load_pc(rc, &inst)))
+            return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);
         rc->jump_taken = 0;
         if ((err = rv_dispatch(rc, inst))) break;
         rc->core.ticks++;
