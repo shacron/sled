@@ -269,7 +269,14 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
             goto out;
 
         case 0x342: // MRW mcause = Machine trap cause.
-            result = rv_csr_update(c, op, &m->cause, value);
+            if (c->mode == RV_MODE_RV32) {
+                value = ((value & RV_CAUSE_INT32) << 32) | (value & ~RV_CAUSE_INT32);
+                result = rv_csr_update(c, op, &m->cause, value);
+                value = result.value;
+                result.value = ((value & RV_CAUSE_INT64) >> 32) | (value & 0x7fffffff);
+            } else {
+                result = rv_csr_update(c, op, &m->cause, value);
+            }
             goto out;
 
         case 0x343: // MRW mtval = Machine bad address or instruction.

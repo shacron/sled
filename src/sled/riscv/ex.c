@@ -61,13 +61,13 @@ int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
     c->priv_level = RV_PRIV_LEVEL_MACHINE;      // todo: fix me
 
     uint64_t tvec = m->tvec;
-    if (cause & RV_CAUSE_INT) {
-        const uint64_t ci = cause & ~RV_CAUSE_INT;
+    if (cause & RV_CAUSE_INT64) {
+        const uint64_t ci = cause & ~RV_CAUSE_INT64;
         // m->ip = 1ull << ci;
         if (tvec & 1) tvec += (ci << 2);
     }
     c->pc = tvec;
-
+    c->jump_taken = 1;
     core_interrupt_set(&c->core, false);
     return 0;
 }
@@ -125,9 +125,13 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
         return status;
 
     case EX_ABORT_WRITE:
-        printf("DATA ABORT (wr) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
-        rv_dump_core_state(c);
-        return status;
+        if (c->core.options & CORE_OPT_TRAP_ABORT) {
+            printf("DATA ABORT (wr) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
+            rv_dump_core_state(c);
+            return status;
+        } else {
+            return rv_exception_enter(c, RV_EX_STORE_FAULT, value);
+        }
 
     default:
         printf("\nUNHANDLED EXCEPTION type %u\n", ex);

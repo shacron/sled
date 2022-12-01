@@ -76,7 +76,8 @@ typedef struct rv_core rv_core_t;
 #define RV_PRIV_LEVEL_MACHINE    3
 
 // cause register values
-#define RV_CAUSE_INT            (1ul << 63)
+#define RV_CAUSE_INT64          (1ul << 63)
+#define RV_CAUSE_INT32          (1ul << 31)
 // cause interrupt exception code
 #define RV_INT_SUPER_SW         1
 #define RV_INT_MACHINE_SW       3
