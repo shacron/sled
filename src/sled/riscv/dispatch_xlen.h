@@ -22,29 +22,12 @@
 
 // SPDX-License-Identifier: MIT License
 
-#include <inttypes.h>
 #include <sl/riscv.h>
 #include <sl/riscv/dispatch.h>
 #include <sl/riscv/trace.h>
 #include <sled/error.h>
 
-#if USING_RV32
-#define XLEN 32
-#define uxlen_t uint32_t
-#define sxlen_t int32_t
-#define ux2len_t uint64_t
-#define sx2len_t int64_t
-#define XLEN_PREFIX(name) rv32_ ## name
-#define PRIXLENx PRIx32
-#else
-#define XLEN 64
-#define uxlen_t uint64_t
-#define sxlen_t int64_t
-#define ux2len_t __uint128_t
-#define sx2len_t __int128_t
-#define XLEN_PREFIX(name) rv64_ ## name
-#define PRIXLENx PRIx64
-#endif
+#include "xlen.h"
 
 #define SIGN_EXT_IMM12(inst) (((int32_t)inst.raw) >> 20)
 
