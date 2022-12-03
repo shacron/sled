@@ -31,35 +31,15 @@
 #include <sl/riscv/rv.h>
 
 // plain register modification with no side effects
-result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t update_value) {
+result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
     result64_t result = {};
     switch (op) {
-    case RV_CSR_OP_WRITE:
-        *reg = update_value;
-        break;
-
-    case RV_CSR_OP_READ:
-        result.value = *reg;
-        break;
-
-    case RV_CSR_OP_SWAP:
-        result.value = *reg;
-        *reg = update_value;
-        break;
-
-    case RV_CSR_OP_READ_SET:
-        result.value = *reg;
-        *reg |= update_value;
-        break;
-
-    case RV_CSR_OP_READ_CLEAR:
-        result.value = *reg;
-        *reg &= ~update_value;
-        break;
-
-    default:
-        result.err = SL_ERR_UNDEF;
-        break;
+    case RV_CSR_OP_WRITE:       *reg = value;                            break;
+    case RV_CSR_OP_READ:        result.value = *reg;                     break;
+    case RV_CSR_OP_SWAP:        result.value = *reg;    *reg = value;    break;
+    case RV_CSR_OP_READ_SET:    result.value = *reg;    *reg |= value;   break;
+    case RV_CSR_OP_READ_CLEAR:  result.value = *reg;    *reg &= ~value;  break;
+    default:                    result.err = SL_ERR_UNDEF;               break;
     }
     return result;
 }
@@ -72,7 +52,7 @@ static uint64_t rv_status64_to_internal(uint64_t s) {
     return ((s & RV_SR_STATUS64_SD) >> 32) | (s & ~(RV_SR_STATUS64_SD));
 }
 
-static result64_t rv_mstatus_csr(rv_core_t *c, int op, uint64_t update_value) {
+static result64_t rv_mstatus_csr(rv_core_t *c, int op, uint64_t value) {
     result64_t result = {};
 
     // Our status register is 64-bits, but keeps SD in bit 32 for compatibility
@@ -84,40 +64,40 @@ static result64_t rv_mstatus_csr(rv_core_t *c, int op, uint64_t update_value) {
     }
 
     if (c->mode == RV_MODE_RV64) {
-        update_value = rv_status64_to_internal(update_value);
+        value = rv_status64_to_internal(value);
     }
 
     const uint64_t wpri_mask = (RV_SR_STATUS_WPRI0 | RV_SR_STATUS_WPRI1 | RV_SR_STATUS_WPRI2 | (0xff << RV_SR_STATUS_BIT_WPRI3) | (0x1fffffful << RV_SR_STATUS_BIT_WPRI4));
 
-    update_value &= ~wpri_mask;
+    value &= ~wpri_mask;
     uint64_t changed_bits;
 
     switch (op) {
     case RV_CSR_OP_READ_SET:
-        changed_bits = (~c->status) & update_value;
+        changed_bits = (~c->status) & value;
         if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, true);
         if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, true);
         // todo: other fields
-        c->status |= update_value;
+        c->status |= value;
         break;
 
     case RV_CSR_OP_READ_CLEAR:
-        changed_bits = c->status & update_value;
+        changed_bits = c->status & value;
         if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, false);
         if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, false);
         // todo: other fields
-        c->status &= ~update_value;
+        c->status &= ~value;
         break;
 
     case RV_CSR_OP_SWAP:
         result.value = c->status;
         // fall through
     case RV_CSR_OP_WRITE:
-        changed_bits = c->status ^ update_value;
-        if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, (bool)(update_value & RV_SR_STATUS_MIE));
-        if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, (bool)(update_value & RV_SR_STATUS_UBE));
+        changed_bits = c->status ^ value;
+        if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, (bool)(value & RV_SR_STATUS_MIE));
+        if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, (bool)(value & RV_SR_STATUS_UBE));
         // todo: other fields
-        c->status = update_value;
+        c->status = value;
         break;
 
     default:
@@ -132,7 +112,7 @@ out:
     return result;
 }
 
-result64_t rv_mcycle_csr(rv_core_t *c, int op, uint64_t value) {
+static result64_t rv_mcycle_csr(rv_core_t *c, int op, uint64_t value) {
     result64_t result = {};
     uint64_t ticks = c->core.ticks;
 
@@ -161,7 +141,7 @@ result64_t rv_mcycle_csr(rv_core_t *c, int op, uint64_t value) {
     return result;
 }
 
-result64_t rv_mcinstret_csr(rv_core_t *c, int op, uint64_t value) {
+static result64_t rv_mcinstret_csr(rv_core_t *c, int op, uint64_t value) {
     result64_t result = {};
     uint64_t ticks = c->core.ticks;
 
