@@ -44,30 +44,19 @@ result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
     return result;
 }
 
-static uint64_t rv_status_internal_to_64(uint64_t is) {
-    return ((is & RV_SR_STATUS_SD) << 32) | (is & ~(RV_SR_STATUS_SD));
-}
-
-static uint64_t rv_status64_to_internal(uint64_t s) {
-    return ((s & RV_SR_STATUS64_SD) >> 32) | (s & ~(RV_SR_STATUS64_SD));
-}
-
 static result64_t rv_mstatus_csr(rv_core_t *c, int op, uint64_t value) {
     result64_t result = {};
-
-    // Our status register is 64-bits, but keeps SD in bit 32 for compatibility
-    // with the 32 bit version.
 
     if (op == RV_CSR_OP_READ) {
         result.value = c->status;
         goto fixup;
     }
 
-    if (c->mode == RV_MODE_RV64) {
-        value = rv_status64_to_internal(value);
-    }
+    if (c->mode == RV_MODE_RV32)
+        value = ((value & RV_SR_STATUS_SD) << 32) | (value & ~(RV_SR_STATUS_SD));
 
-    const uint64_t wpri_mask = (RV_SR_STATUS_WPRI0 | RV_SR_STATUS_WPRI1 | RV_SR_STATUS_WPRI2 | (0xff << RV_SR_STATUS_BIT_WPRI3) | (0x1fffffful << RV_SR_STATUS_BIT_WPRI4));
+    const uint64_t wpri_mask = (RV_SR_STATUS_WPRI0 | RV_SR_STATUS_WPRI1 | RV_SR_STATUS_WPRI2 |
+        (0xff << RV_SR_STATUS_BIT_WPRI3) | (0x1fffffful << RV_SR_STATUS_BIT_WPRI4));
 
     value &= ~wpri_mask;
     uint64_t changed_bits;
@@ -106,8 +95,8 @@ static result64_t rv_mstatus_csr(rv_core_t *c, int op, uint64_t value) {
     }
 
 fixup:
-    if (c->mode == RV_MODE_RV32) result.value = (uint32_t)result.value;
-    else result.value = rv_status_internal_to_64(result.value);
+    if (c->mode == RV_MODE_RV32)
+        result.value = (uint32_t)(((result.value & RV_SR_STATUS64_SD) >> 32) | (result.value & ~(RV_SR_STATUS64_SD)));
 out:
     return result;
 }
