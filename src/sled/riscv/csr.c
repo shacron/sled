@@ -113,50 +113,20 @@ static result64_t rv_mcause_csr(rv_core_t *c, int op, uint64_t *reg, uint64_t va
     return result;
 }
 
-
-static result64_t rv_mcycle_csr(rv_core_t *c, int op, uint64_t value) {
+static result64_t rv_tick_csr(rv_core_t *c, int op, int64_t *offset, uint64_t value) {
     result64_t result = {};
     uint64_t ticks = c->core.ticks;
 
     switch (op) {
     case RV_CSR_OP_READ:
-        result.value = ticks - c->mcycle_offset;
+        result.value = ticks - *offset;
         break;
 
     case RV_CSR_OP_SWAP:
-        result.value = ticks - c->mcycle_offset;
+        result.value = ticks - *offset;
         // fall through
     case RV_CSR_OP_WRITE:
-        c->mcycle_offset = ticks - value;
-        break;
-
-    case RV_CSR_OP_READ_SET:
-    case RV_CSR_OP_READ_CLEAR:
-        // bitwise operations on a counter are a bad idea
-        result.err = SL_ERR_UNIMPLEMENTED;
-        break;
-
-    default:
-        result.err = SL_ERR_UNDEF;
-        break;
-    }
-    return result;
-}
-
-static result64_t rv_mcinstret_csr(rv_core_t *c, int op, uint64_t value) {
-    result64_t result = {};
-    uint64_t ticks = c->core.ticks;
-
-    switch (op) {
-    case RV_CSR_OP_READ:
-        result.value = ticks - c->minstret_offset;
-        break;
-
-    case RV_CSR_OP_SWAP:
-        result.value = ticks - c->minstret_offset;
-        // fall through
-    case RV_CSR_OP_WRITE:
-        c->minstret_offset = ticks - value;
+        *offset = ticks - value;
         break;
 
     case RV_CSR_OP_READ_SET:
@@ -230,11 +200,10 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
-        case RV_CSR_MCYCLE:     result = rv_mcycle_csr(c, op, value);       goto out;
-        case RV_CSR_MINSTRET:   result = rv_mcinstret_csr(c, op, value);    goto out;
+        case RV_CSR_MCYCLE:     result = rv_tick_csr(c, op, &c->mcycle_offset, value);      goto out;
+        case RV_CSR_MINSTRET:   result = rv_tick_csr(c, op, &c->minstret_offset, value);    goto out;
 
-        default:
-            break;
+        default:                break;
         }
 
         if ((addr.raw >= RV_CSR_PMPCFG_BASE) && (addr.raw < (RV_CSR_PMPCFG_BASE + RV_CSR_PMPCFG_NUM))) {
@@ -300,8 +269,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
-        default:
-            break;
+        default:            break;
         }
 
         if ((addr.raw >= 0xc03) && (addr.raw <= 0xc1f)) {
