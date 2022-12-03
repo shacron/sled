@@ -101,6 +101,19 @@ out:
     return result;
 }
 
+static result64_t rv_mcause_csr(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
+    result64_t result = {};
+    if (c->mode == RV_MODE_RV32) {
+        value = ((value & RV_CAUSE_INT32) << 32) | (value & ~RV_CAUSE_INT32);
+        result = rv_csr_update(c, op, reg, value);
+        result.value = (uint32_t)(((result.value & RV_CAUSE_INT64) >> 32) | (result.value & 0x7fffffff));
+    } else {
+        result = rv_csr_update(c, op, reg, value);
+    }
+    return result;
+}
+
+
 static result64_t rv_mcycle_csr(rv_core_t *c, int op, uint64_t value) {
     result64_t result = {};
     uint64_t ticks = c->core.ticks;
@@ -196,20 +209,9 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
 
         case RV_CSR_MSCRATCH:   result = rv_csr_update(c, op, &m->scratch, value);  goto out;
         case RV_CSR_MEPC:       result = rv_csr_update(c, op, &m->epc, value);      goto out;
-
-        case RV_CSR_MCAUSE:
-            if (c->mode == RV_MODE_RV32) {
-                value = ((value & RV_CAUSE_INT32) << 32) | (value & ~RV_CAUSE_INT32);
-                result = rv_csr_update(c, op, &m->cause, value);
-                value = result.value;
-                result.value = ((value & RV_CAUSE_INT64) >> 32) | (value & 0x7fffffff);
-            } else {
-                result = rv_csr_update(c, op, &m->cause, value);
-            }
-            goto out;
-
-        case RV_CSR_MTVAL:  result = rv_csr_update(c, op, &m->tval, value);     goto out;
-        case RV_CSR_MIP:    result = rv_csr_update(c, op, &m->ip, value);       goto out;
+        case RV_CSR_MCAUSE:     result = rv_mcause_csr(c, op, &m->cause, value);    goto out;
+        case RV_CSR_MTVAL:      result = rv_csr_update(c, op, &m->tval, value);     goto out;
+        case RV_CSR_MIP:        result = rv_csr_update(c, op, &m->ip, value);       goto out;
 
         case RV_CSR_MTINST:
         case RV_CSR_MTVAL2:
