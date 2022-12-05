@@ -16,6 +16,8 @@ The default project builds an app named __sled__, which constructs a simple mach
 
 ## Status
 
+This is very much a work in progress and evolving rapidly. If you plan to modify the code, expect changes. An official release will be made when things are in a more stable state.
+
 ### RISCV
 
 RISCV cores are at an advanced state. They are able to run standalone binaries (i.e., things that don't require mode changes or generally access CSRs).
