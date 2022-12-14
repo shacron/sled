@@ -37,11 +37,20 @@ static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
     core_t *c = containerof(ep, core_t, irq_ep);
 
     lock_lock(&c->lock);
+    bool was_clear = (ep->asserted == 0);
     int err = irq_endpoint_assert(ep, num, high);
-    // if (!err) c->pending_irq = irq_endpoint_get_active(ep);
+    if (!err && was_clear && (ep->asserted > 0)) cond_signal_all(&c->cond_int_asserted);
     lock_unlock(&c->lock);
 
     return err;
+}
+
+int core_wait_for_interrupt(core_t *c) {
+    irq_endpoint_t *ep = &c->irq_ep;
+    lock_lock(&c->lock);
+    if (ep->asserted == 0) cond_wait(&c->cond_int_asserted, &c->lock);
+    lock_unlock(&c->lock);
+    return 0;
 }
 
 int core_init(core_t *c, core_params_t *p, bus_t *b) {
@@ -53,6 +62,7 @@ int core_init(core_t *c, core_params_t *p, bus_t *b) {
     c->bus = b;
     c->irq_ep.assert = core_accept_irq;
     lock_init(&c->lock);
+    cond_init(&c->cond_int_asserted);
     irq_endpoint_set_enabled(&c->irq_ep, IRQ_VEC_ALL);
     return 0;
 }

@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -44,10 +45,15 @@
 #define ISSUE_INTERRUPT 1
 
 typedef struct {
+    machine_t *m;
+    pthread_t core0;
+    int core_id;
+    int uart_fd_in;
+    int uart_fd_out;
+
     int uart_io;
     const char *uart_path;
-
-} opts_t;
+} sm_t;
 
 static const struct option longopts[] = {
     // { "arch",      required_argument,  NULL,   'a' },
@@ -83,7 +89,7 @@ static void usage(void) {
 
 }
 
-static int parse_opts(int argc, char *argv[], opts_t *o) {
+static int parse_opts(int argc, char *argv[], sm_t *sm) {
     int ch;
 
     while ((ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
@@ -93,16 +99,16 @@ static int parse_opts(int argc, char *argv[], opts_t *o) {
 
         case 's':
             if (!strcmp(optarg, "-")) {
-                o->uart_io = UART_IO_CONS;
+                sm->uart_io = UART_IO_CONS;
                 break;
             }
             if (!strcmp(optarg, "null")) {
-                o->uart_io = UART_IO_NULL;
+                sm->uart_io = UART_IO_NULL;
                 break;
             }
             if (!strcmp(optarg, "file")) {
-                o->uart_io = UART_IO_FILE;
-                o->uart_path = "serial.txt";
+                sm->uart_io = UART_IO_FILE;
+                sm->uart_path = "serial.txt";
                 break;
             }
             if (!strncmp(optarg, "port:", 5)) {
@@ -124,25 +130,41 @@ static int parse_opts(int argc, char *argv[], opts_t *o) {
     return optind;
 }
 
-int simple_machine(const char *file, opts_t *o) {
+void *core_runner(void *arg) {
+    sm_t *sm = arg;
+    core_t *c = machine_get_core(sm->m, sm->core_id);
+    const uint32_t step_count = 1000 * 1000;
+    int err = core_step(c, step_count);
+    return (void *)(uintptr_t)err;
+}
+
+int start_thread_for_core(sm_t *sm) {
+    int err = pthread_create(&sm->core0, NULL, core_runner, sm);
+    if (err != 0) {
+        perror("pthread_create");
+        return -1;
+    }
+    return 0;
+}
+
+int simple_machine(const char *file, sm_t *sm) {
     machine_t *m;
     elf_object_t *eo = NULL;
     int err;
     uint64_t a0, a1;
-    uint32_t step_count;
-    int uart_fd_in = -1;
-    int uart_fd_out = -1;
+    sm->uart_fd_in = -1;
+    sm->uart_fd_out = -1;
 
-    if (o->uart_io == UART_IO_CONS) {
-        uart_fd_in = STDIN_FILENO;
-        uart_fd_out = STDOUT_FILENO;
-    } else if (o->uart_io == UART_IO_FILE) {
-        uart_fd_out = open(o->uart_path, (O_WRONLY | O_APPEND | O_CREAT), (S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH));
-        if (uart_fd_out < 0) {
-            perror(o->uart_path);
-            return uart_fd_out;
+    if (sm->uart_io == UART_IO_CONS) {
+        sm->uart_fd_in = STDIN_FILENO;
+        sm->uart_fd_out = STDOUT_FILENO;
+    } else if (sm->uart_io == UART_IO_FILE) {
+        sm->uart_fd_out = open(sm->uart_path, (O_WRONLY | O_APPEND | O_CREAT), (S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH));
+        if (sm->uart_fd_out < 0) {
+            perror(sm->uart_path);
+            return sm->uart_fd_out;
         }
-    } else if (o->uart_io == UART_IO_PORT) {
+    } else if (sm->uart_io == UART_IO_PORT) {
         // todo:
         fprintf(stderr, "not yet implemented\n");
         return -1;
@@ -170,6 +192,7 @@ int simple_machine(const char *file, opts_t *o) {
         fprintf(stderr, "machine_init failed: %s\n", st_err(err));
         goto out_err;
     }
+    sm->m = m;
 
     if ((err = machine_add_mem(m, PLAT_MEM_BASE, PLAT_MEM_SIZE))) {
         fprintf(stderr, "machine_add_mem failed: %s\n", st_err(err));
@@ -192,7 +215,7 @@ int simple_machine(const char *file, opts_t *o) {
     }
 
     device_t *d = machine_get_device_for_name(m, "uart0");
-    sled_uart_set_channel(d, o->uart_io, uart_fd_in, uart_fd_out);
+    sled_uart_set_channel(d, sm->uart_io, sm->uart_fd_in, sm->uart_fd_out);
 
     // create core
 
@@ -211,39 +234,33 @@ int simple_machine(const char *file, opts_t *o) {
     eo = NULL;
 
     // run
-
-    core_t *c = machine_get_core(m, p.id);
-
-#if ISSUE_INTERRUPT
-    // todo: set trap handler?
-    step_count = 30 * 1000; // should be enough to set up interrupts...
-    err = core_step(c, step_count);
-    if (err == SL_ERR_SYSCALL) goto handle_syscall;
-    if (err != SL_OK) {
-        printf("unexpected run status: %s\n", st_err(err));
+    sm->core_id = p.id;
+    if ((err = start_thread_for_core(sm))) {
+        fprintf(stderr, "start_thread_for_core failed\n");
         goto out_err_machine;
     }
 
-    // printf("sending interrupt\n");
+#if ISSUE_INTERRUPT
+    sleep(1);
+    printf("sending interrupt\n");
     // pulse interrupt since there's no way for software to clear this
     machine_set_interrupt(m, 0, true);
     machine_set_interrupt(m, 0, false);
 #endif
 
-    step_count = 1000 * 1000;
-    err = core_step(c, step_count);
-    if (err == SL_OK) {
-        printf("stopped after %u steps\n", step_count);
-        goto out;
-    }
+    void *retval;
+    pthread_join(sm->core0, &retval);
+    err = (int)(uintptr_t)retval;
+
+
+    core_t *c = machine_get_core(m, sm->core_id);
+
+    if (err == SL_OK) goto out;
     if (err != SL_ERR_SYSCALL) {
         printf("unexpected run status: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-#if ISSUE_INTERRUPT
-handle_syscall:
-#endif
     a0 = core_get_reg(c, CORE_REG_ARG0);
     if (a0 != 0x666) {
         printf("unexpected exit syscall %#" PRIx64 "\n", a0);
@@ -267,19 +284,19 @@ out_err_machine:
     machine_destroy(m);
 out_err:
     elf_close(eo);
-    if (o->uart_io != UART_IO_CONS) {
-        if (uart_fd_in >= 0) close(uart_fd_in);
-        if (uart_fd_out >= 0) close(uart_fd_out);
+    if (sm->uart_io != UART_IO_CONS) {
+        if (sm->uart_fd_in >= 0) close(sm->uart_fd_in);
+        if (sm->uart_fd_out >= 0) close(sm->uart_fd_out);
     }
     return err;
 }
 
 int main(int argc, char *argv[]) {
-    opts_t o = {
+    sm_t sm = {
         .uart_io = UART_IO_CONS,
     };
 
-    int ret = parse_opts(argc, argv, &o);
+    int ret = parse_opts(argc, argv, &sm);
     if (ret < 0) {
         if (ret == -2) {
             usage();
@@ -297,6 +314,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (simple_machine(argv[0], &o)) return 1;
+    if (simple_machine(argv[0], &sm)) return 1;
     return 0;
 }

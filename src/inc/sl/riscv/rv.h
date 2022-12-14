@@ -163,6 +163,7 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction);
 int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_t status);
 int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr);
 int rv_exception_return(rv_core_t *c);
+int rv_wait_for_interrupt(rv_core_t *c);
 
 rv_sr_mode_t* rv_get_mode_registers(rv_core_t *c, uint8_t priv_level);
 

@@ -71,6 +71,7 @@ struct core {
     core_ops_t ops;
 
     lock_t lock;
+    cond_t cond_int_asserted;
     irq_endpoint_t irq_ep;
     uint32_t pending_irq;       // only updated under lock
 };
@@ -86,6 +87,8 @@ int core_state_set(core_t *c, uint32_t state);
 
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
+
+int core_wait_for_interrupt(core_t *c);
 
 int core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 int core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);

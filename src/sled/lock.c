@@ -39,3 +39,23 @@ void lock_unlock(lock_t *l) {
 void lock_destroy(lock_t *l) {
     pthread_mutex_destroy(&l->mu);
 }
+
+void cond_init(cond_t *c) {
+    pthread_cond_init(&c->cond, NULL);
+}
+
+void cond_wait(cond_t *c, lock_t *l) {
+    pthread_cond_wait(&c->cond, &l->mu);
+}
+
+void cond_signal_one(cond_t *c) {
+    pthread_cond_signal(&c->cond);
+}
+
+void cond_signal_all(cond_t *c) {
+    pthread_cond_broadcast(&c->cond);
+}
+
+void cond_destroy(cond_t *c) {
+    pthread_cond_destroy(&c->cond);
+}

@@ -161,7 +161,7 @@ static int rv_handle_pending_irq(rv_core_t *c) {
 
     if (active == 0) return 0;
 
-    const uint8_t irq_pri[] = {
+    static const uint8_t irq_pri[] = {
         RV_INT_MACHINE_EXTERNAL, RV_INT_MACHINE_TIMER, RV_INT_MACHINE_SW,
         RV_INT_SUPER_EXTERNAL,   RV_INT_SUPER_TIMER,   RV_INT_SUPER_SW
     };

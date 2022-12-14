@@ -30,7 +30,17 @@ typedef struct {
     pthread_mutex_t mu;
 } lock_t;
 
+typedef struct {
+    pthread_cond_t cond;
+} cond_t;
+
 void lock_init(lock_t *l);
 void lock_lock(lock_t *l);
 void lock_unlock(lock_t *l);
 void lock_destroy(lock_t *l);
+
+void cond_init(cond_t *c);
+void cond_wait(cond_t *c, lock_t *l);
+void cond_signal_one(cond_t *c);
+void cond_signal_all(cond_t *c);
+void cond_destroy(cond_t *c);

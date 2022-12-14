@@ -121,8 +121,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
             }
             if (inst.r.rs2 == 0b00101) { // WFI
                 RV_TRACE_PRINT(c, "wfi");
-                // nop for now
-                return 0;
+                return core_wait_for_interrupt(&c->core);
             }
             goto undef;
 
