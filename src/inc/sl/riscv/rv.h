@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include <sled/riscv/exception.h>
-#include <sled/riscv/reg.h>
+#include <riscv/exception.h>
+#include <riscv/register.h>
 #include <sl/common.h>
 #include <sl/core.h>
 #include <sl/ex.h>

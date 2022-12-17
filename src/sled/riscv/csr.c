@@ -4,9 +4,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include <sl/core.h>
+#include <riscv/csr.h>
 #include <sled/error.h>
-#include <sled/riscv/csr.h>
+#include <sl/core.h>
 #include <sl/riscv/csr.h>
 #include <sl/riscv/rv.h>
 
