@@ -117,12 +117,14 @@ $(BLD_HOST_INCDIR)/%.h: include/%.h
 	@mkdir -p $(dir $@)
 	@cp $^ $@
 
-ifeq ($(MAKECMDGOALS),install)
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),install install_headers))
 PUB_HEADERS := $(shell find include -name '*.h')
 PUB_HEADERS := $(PUB_HEADERS:include/%=$(BLD_HOST_INCDIR)/%)
 endif
 
-install: apps $(PUB_HEADERS)
+install_headers: $(PUB_HEADERS)
+
+install: apps install_headers
 
 
 ##############################################################################
