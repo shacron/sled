@@ -16,6 +16,9 @@ typedef struct rv_core rv_core_t;
 #define RV_MODE_RV32    0
 #define RV_MODE_RV64    1
 
+#define RV_OP_MRET      RV_PRIV_LEVEL_MACHINE
+#define RV_OP_SRET      RV_PRIV_LEVEL_SUPERVISOR
+
 typedef struct {
     uint64_t scratch;
     uint64_t epc;
@@ -72,7 +75,7 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction);
 
 int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_t status);
 int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr);
-int rv_exception_return(rv_core_t *c);
+int rv_exception_return(rv_core_t *c, uint8_t op);
 int rv_wait_for_interrupt(rv_core_t *c);
 
 rv_sr_level_t* rv_get_level_csrs(rv_core_t *c, uint8_t level);
