@@ -39,28 +39,28 @@ static void rv_dump_core_state(rv_core_t *c) {
     }
 }
 
-rv_sr_mode_t* rv_get_mode_registers(rv_core_t *c, uint8_t priv_level) {
-    assert(c->priv_level != 0);
-    return &c->sr_mode[priv_level - 1];
+rv_sr_level_t* rv_get_level_csrs(rv_core_t *c, uint8_t level) {
+    assert(c->level != 0);
+    return &c->sr_mode[level - 1];
 }
 
 int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
-    rv_sr_mode_t *m = rv_get_mode_registers(c, RV_PRIV_LEVEL_MACHINE);
-    m->cause = cause;
-    m->epc = c->pc;
-    m->tval = addr;
+    rv_sr_level_t *r = rv_get_level_csrs(c, RV_PRIV_LEVEL_MACHINE);
+    r->cause = cause;
+    r->epc = c->pc;
+    r->tval = addr;
 
     // update status register
     csr_status_t s;
     s.raw = c->status;
     s.m_mpie = s.m_mie;           // previous interrupt state
     s.m_mie = 0;                  // disable interrupts
-    s.m_mpp = c->priv_level;      // previous priv level
+    s.m_mpp = c->level;           // previous priv level
     c->status = s.raw;
 
-    c->priv_level = RV_PRIV_LEVEL_MACHINE;      // todo: fix me
+    c->level = RV_PRIV_LEVEL_MACHINE;      // todo: fix me
 
-    uint64_t tvec = m->tvec;
+    uint64_t tvec = r->tvec;
     if (cause & RV_CAUSE_INT64) {
         const uint64_t ci = cause & ~RV_CAUSE_INT64;
         // m->ip = 1ull << ci;
@@ -78,7 +78,7 @@ int rv_exception_return(rv_core_t *c) {
     csr_status_t s;
     s.raw = c->status;
 
-    if (c->priv_level == RV_PRIV_LEVEL_MACHINE) {
+    if (c->level == RV_PRIV_LEVEL_MACHINE) {
         // mret
         dest_pl = s.m_mpp;
         s.m_mie = s.m_mpie;
@@ -91,9 +91,9 @@ int rv_exception_return(rv_core_t *c) {
     }
     c->status = s.raw;
 
-    rv_sr_mode_t *m = rv_get_mode_registers(c, c->priv_level);
-    c->pc = m->epc;
-    c->priv_level = dest_pl;
+    rv_sr_level_t *r = rv_get_level_csrs(c, c->level);
+    c->pc = r->epc;
+    c->level = dest_pl;
     c->jump_taken = 1;
 
     core_interrupt_set(&c->core, int_enabled);
@@ -110,7 +110,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
         if (c->core.options & CORE_OPT_TRAP_SYSCALL) {
             return SL_ERR_SYSCALL;
         } else {
-            return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->priv_level, value);
+            return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->level, value);
         }
 
     case EX_UNDEFINDED:

@@ -127,13 +127,13 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
     csr_addr_t addr;
     addr.raw = csr;
 
-    if (addr.f.level > c->priv_level) goto undef;
+    if (addr.f.level > c->level) goto undef;
     if (op != RV_CSR_OP_READ) {
         if (addr.f.type == 3) goto undef;
     }
 
     if (addr.f.level == RV_PRIV_LEVEL_MACHINE) {
-        rv_sr_mode_t *m = rv_get_mode_registers(c, RV_PRIV_LEVEL_MACHINE);
+        rv_sr_level_t *r = rv_get_level_csrs(c, RV_PRIV_LEVEL_MACHINE);
 
         // machine level
         switch (addr.raw) {
@@ -145,23 +145,23 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
         case RV_CSR_MCONFIGPTR: result.value = c->mconfigptr; goto out;
         // Machine Trap Setup (MRW)
         case RV_CSR_MSTATUS:    result = rv_mstatus_csr(c, op, value);              goto out;
-        case RV_CSR_MISA:       result = rv_csr_update(c, op, &m->isa, value);      goto out;
-        case RV_CSR_MEDELEG:    result = rv_csr_update(c, op, &m->edeleg, value);   goto out;
-        case RV_CSR_MIDELEG:    result = rv_csr_update(c, op, &m->ideleg, value);   goto out;
-        case RV_CSR_MIE:        result = rv_csr_update(c, op, &m->ie, value);       goto out;
-        case RV_CSR_MTVEC:      result = rv_csr_update(c, op, &m->tvec, value);     goto out;
-        case RV_CSR_MCOUNTEREN: result = rv_csr_update(c, op, &m->counteren, value);    goto out;
+        case RV_CSR_MISA:       result = rv_csr_update(c, op, &r->isa, value);      goto out;
+        case RV_CSR_MEDELEG:    result = rv_csr_update(c, op, &r->edeleg, value);   goto out;
+        case RV_CSR_MIDELEG:    result = rv_csr_update(c, op, &r->ideleg, value);   goto out;
+        case RV_CSR_MIE:        result = rv_csr_update(c, op, &r->ie, value);       goto out;
+        case RV_CSR_MTVEC:      result = rv_csr_update(c, op, &r->tvec, value);     goto out;
+        case RV_CSR_MCOUNTEREN: result = rv_csr_update(c, op, &r->counteren, value);    goto out;
 
         case RV_CSR_MSTATUSH:
             if (c->mode != RV_MODE_RV32) goto undef;
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
-        case RV_CSR_MSCRATCH:   result = rv_csr_update(c, op, &m->scratch, value);  goto out;
-        case RV_CSR_MEPC:       result = rv_csr_update(c, op, &m->epc, value);      goto out;
-        case RV_CSR_MCAUSE:     result = rv_mcause_csr(c, op, &m->cause, value);    goto out;
-        case RV_CSR_MTVAL:      result = rv_csr_update(c, op, &m->tval, value);     goto out;
-        case RV_CSR_MIP:        result = rv_csr_update(c, op, &m->ip, value);       goto out;
+        case RV_CSR_MSCRATCH:   result = rv_csr_update(c, op, &r->scratch, value);  goto out;
+        case RV_CSR_MEPC:       result = rv_csr_update(c, op, &r->epc, value);      goto out;
+        case RV_CSR_MCAUSE:     result = rv_mcause_csr(c, op, &r->cause, value);    goto out;
+        case RV_CSR_MTVAL:      result = rv_csr_update(c, op, &r->tval, value);     goto out;
+        case RV_CSR_MIP:        result = rv_csr_update(c, op, &r->ip, value);       goto out;
 
         case RV_CSR_MTINST:
         case RV_CSR_MTVAL2:
@@ -270,27 +270,27 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
 
     // supervisor level
     if (addr.f.level == RV_PRIV_LEVEL_SUPERVISOR) {
-        rv_sr_mode_t *m = rv_get_mode_registers(c, RV_PRIV_LEVEL_HYPERVISOR);
+        rv_sr_level_t *r = rv_get_level_csrs(c, RV_PRIV_LEVEL_HYPERVISOR);
 
         switch (addr.raw) {
         case 0x140: // sscratch
-            result = rv_csr_update(c, op, &m->scratch, value);
+            result = rv_csr_update(c, op, &r->scratch, value);
             goto out;
 
         case 0x141: // sepc
-            result = rv_csr_update(c, op, &m->epc, value);
+            result = rv_csr_update(c, op, &r->epc, value);
             goto out;
 
         case 0x142: // scause
-            result = rv_csr_update(c, op, &m->cause, value);
+            result = rv_csr_update(c, op, &r->cause, value);
             goto out;
 
         case 0x143: // stval
-            result = rv_csr_update(c, op, &m->tval, value);
+            result = rv_csr_update(c, op, &r->tval, value);
             goto out;
 
         case 0x144: // sip
-            result = rv_csr_update(c, op, &m->ip, value);
+            result = rv_csr_update(c, op, &r->ip, value);
             goto out;
 
         // Supervisor Trap Setup (SRW)
@@ -300,7 +300,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
             goto out;
 
         case 0x105: // stvec
-            result = rv_csr_update(c, op, &m->tvec, value);
+            result = rv_csr_update(c, op, &r->tvec, value);
             goto out;
 
         case 0x106: // scounteren

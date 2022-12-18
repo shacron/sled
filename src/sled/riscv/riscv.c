@@ -43,23 +43,23 @@ static void riscv_set_reg(core_t *c, uint32_t reg, uint64_t value) {
         break;
 
     case RV_REG_MSCRATCH:
-        rv_get_mode_registers(rc, RV_PRIV_LEVEL_MACHINE)->scratch = value;
+        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->scratch = value;
         break;
 
     case RV_REG_MEPC:
-        rv_get_mode_registers(rc, RV_PRIV_LEVEL_MACHINE)->epc = value;
+        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->epc = value;
         break;
 
     case RV_REG_MCAUSE:
-        rv_get_mode_registers(rc, RV_PRIV_LEVEL_MACHINE)->cause = value;
+        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->cause = value;
         break;
 
     case RV_REG_MTVAL:
-        rv_get_mode_registers(rc, RV_PRIV_LEVEL_MACHINE)->tval = value;
+        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->tval = value;
         break;
 
     case RV_REG_MIP:
-        rv_get_mode_registers(rc, RV_PRIV_LEVEL_MACHINE)->ip = value;
+        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->ip = value;
         break;
 
     default:
@@ -199,7 +199,7 @@ int riscv_core_create(core_params_t *p, bus_t *bus, core_t **core_out) {
     }
 
     rc->mode = RV_MODE_RV32;
-    rc->priv_level = RV_PRIV_LEVEL_MACHINE;
+    rc->level = RV_PRIV_LEVEL_MACHINE;
 
     rc->core.options |= (CORE_OPT_ENDIAN_BIG | CORE_OPT_ENDIAN_LITTLE);
 
