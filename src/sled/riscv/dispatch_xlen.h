@@ -1053,7 +1053,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         err = core_mem_write(&c->core, addr, 8, 1, &val);
         if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
-        RV_TRACE_PRINT(c, "c.sdsp x%u, %u" PRIx64, ci.css.rs2, imm);
+        RV_TRACE_PRINT(c, "c.sdsp x%u, %u", ci.css.rs2, imm);
         break;
     }
 #endif
