@@ -13,12 +13,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <plat/platform.h>
 #include <sled/arch.h>
 #include <sled/device.h>
 #include <sled/elf.h>
 #include <sled/error.h>
 #include <sled/machine.h>
-#include <sled/platform/simple.h>
 
 #define ISSUE_INTERRUPT 1
 

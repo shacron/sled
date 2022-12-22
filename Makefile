@@ -1,6 +1,7 @@
 SDKDIR ?= ../sdk
 BLD_BASEDIR ?= build
 APPS ?= sled
+APP_PLATFORM ?= simple
 
 BLD_HOST_OBJDIR ?= $(BLD_BASEDIR)/obj
 BLD_HOST_BINDIR ?= $(BLD_BASEDIR)
@@ -46,7 +47,7 @@ endif
 
 CXXFLAGS := $(CFLAGS) -std=c++17
 LIBTARGETS :=
-INCLUDES := -Iinclude
+INCLUDES := -Iinclude -Iplat/$(APP_PLATFORM)/inc
 CSOURCES :=
 CLIBFLAGS := -fvisibility=hidden -fPIC
 DOBJS :=
