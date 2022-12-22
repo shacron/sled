@@ -1,4 +1,4 @@
-SRCDIR := src/device
+SRCDIR := dev
 
 LIB_CSOURCES += \
 	$(SRCDIR)/sled/intc.c \

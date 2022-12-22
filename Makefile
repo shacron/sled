@@ -83,6 +83,11 @@ $(BLD_HOST_OBJDIR)/src/%.c.o: src/%.c
 	@echo " [cc]" $<
 	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Isrc/inc -c -o $@ $<
 
+$(BLD_HOST_OBJDIR)/dev/%.c.o: dev/%.c
+	@mkdir -p $(dir $@)
+	@echo " [cc]" $<
+	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Isrc/inc -c -o $@ $<
+
 $(BLD_HOST_OBJDIR)/app/%.c.o: app/%.c
 	@mkdir -p $(dir $@)
 	@echo " [cc]" $<
@@ -133,7 +138,7 @@ install: apps install_headers
 
 LIB_CSOURCES :=
 
-include src/device/build.mk
+include dev/build.mk
 include src/extension/build.mk
 include src/sled/build.mk
 
