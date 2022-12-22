@@ -27,7 +27,7 @@
 
 #include <core/common.h>
 #include <core/device.h>
-#include <sled/device/rtc.h>
+#include <device/sled/rtc.h>
 #include <sled/error.h>
 
 #define RTC_TYPE 'time'

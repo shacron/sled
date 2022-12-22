@@ -28,7 +28,7 @@
 
 #include <core/common.h>
 #include <core/device.h>
-#include <sled/device/uart.h>
+#include <device/sled/uart.h>
 #include <sled/error.h>
 
 #define UART_TYPE 'rxtx'

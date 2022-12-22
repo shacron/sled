@@ -28,7 +28,7 @@
 
 #include <core/common.h>
 #include <core/dev/intc.h>
-#include <sled/device/intc.h>
+#include <device/sled/intc.h>
 #include <sled/error.h>
 
 #define INTC_TYPE 'intc'
