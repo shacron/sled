@@ -26,8 +26,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <sl/common.h>
-#include <sl/device.h>
+#include <core/common.h>
+#include <core/device.h>
 #include <sled/device/uart.h>
 #include <sled/error.h>
 

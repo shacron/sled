@@ -27,10 +27,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sl/bus.h>
-#include <sl/device.h>
+#include <core/bus.h>
+#include <core/device.h>
+#include <core/mem.h>
 #include <sled/error.h>
-#include <sl/mem.h>
 
 // #define BUS_TRACE 1
 

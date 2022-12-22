@@ -5,10 +5,10 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+#include <core/riscv/csr.h>
+#include <core/riscv/inst.h>
+#include <core/riscv/rv.h>
 #include <sled/error.h>
-#include <sl/riscv/csr.h>
-#include <sl/riscv/inst.h>
-#include <sl/riscv/rv.h>
 
 static void rv_dump_core_state(rv_core_t *c) {
     printf("pc = %"PRIx64", sp = %"PRIx64", ra = %"PRIx64"\n", c->pc, c->r[RV_SP], c->r[RV_RA]);

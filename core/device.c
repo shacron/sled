@@ -25,8 +25,8 @@
 #include <stdatomic.h>
 #include <stdio.h>
 
-#include <sl/common.h>
-#include <sl/device.h>
+#include <core/common.h>
+#include <core/device.h>
 #include <sled/error.h>
 
 int intc_create(device_t **dev_out);

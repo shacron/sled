@@ -4,11 +4,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include <core/core.h>
+#include <core/riscv/csr.h>
+#include <core/riscv/rv.h>
 #include <riscv/csr.h>
 #include <sled/error.h>
-#include <sl/core.h>
-#include <sl/riscv/csr.h>
-#include <sl/riscv/rv.h>
 
 // plain register modification with no side effects
 result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {

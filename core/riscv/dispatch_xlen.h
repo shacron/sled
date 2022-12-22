@@ -22,9 +22,9 @@
 
 // SPDX-License-Identifier: MIT License
 
-#include <sl/riscv.h>
-#include <sl/riscv/dispatch.h>
-#include <sl/riscv/trace.h>
+#include <core/riscv.h>
+#include <core/riscv/dispatch.h>
+#include <core/riscv/trace.h>
 #include <sled/error.h>
 
 #include "xlen.h"

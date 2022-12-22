@@ -9,12 +9,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <core/common.h>
+#include <core/riscv.h>
+#include <core/riscv/csr.h>
+#include <core/riscv/rv.h>
 #include <sled/arch.h>
-#include <sl/common.h>
 #include <sled/error.h>
-#include <sl/riscv.h>
-#include <sl/riscv/csr.h>
-#include <sl/riscv/rv.h>
 
 static int rv_load_pc(rv_core_t *c, uint32_t *inst) {
     return core_mem_read(&c->core, c->pc, 4, 1, inst);

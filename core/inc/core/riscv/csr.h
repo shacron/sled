@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#include <sl/common.h>
+#include <core/common.h>
 
 typedef struct rv_core rv_core_t;
 

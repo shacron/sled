@@ -1,4 +1,4 @@
-SRCDIR := src/sled
+SRCDIR := core
 
 LIB_CSOURCES += \
 	$(SRCDIR)/bus.c \

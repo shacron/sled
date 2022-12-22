@@ -28,8 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sl/common.h>
-#include <sl/core.h>
+#include <core/common.h>
+#include <core/core.h>
 #include <sled/arch.h>
 #include <sled/error.h>
 

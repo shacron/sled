@@ -22,8 +22,8 @@
 
 // SPDX-License-Identifier: MIT License
 
-#include <sl/riscv/csr.h>
-#include <sl/riscv/rv.h>
+#include <core/riscv/csr.h>
+#include <core/riscv/rv.h>
 
 static const char * reg_name[] = {
     [RV_ZERO] = "zero",

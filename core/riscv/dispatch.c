@@ -6,12 +6,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <sl/riscv.h>
-#include <sl/riscv/csr.h>
-#include <sl/riscv/dispatch.h>
-#include <sl/riscv/inst.h>
-#include <sl/riscv/rv.h>
-#include <sl/riscv/trace.h>
+#include <core/riscv.h>
+#include <core/riscv/csr.h>
+#include <core/riscv/dispatch.h>
+#include <core/riscv/inst.h>
+#include <core/riscv/rv.h>
+#include <core/riscv/trace.h>
 #include <sled/error.h>
 
 #define FENCE_W (1u << 0)

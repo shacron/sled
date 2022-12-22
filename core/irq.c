@@ -24,7 +24,7 @@
 
 #include <stddef.h>
 
-#include <sl/irq.h>
+#include <core/irq.h>
 #include <sled/error.h>
 
 uint32_t irq_endpoint_get_active(irq_endpoint_t *ep) {

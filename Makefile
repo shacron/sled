@@ -78,15 +78,15 @@ $(foreach app,$(APPS),$(eval $(call include_app,$(app))))
 # top level build rules
 ##############################################################################
 
-$(BLD_HOST_OBJDIR)/src/%.c.o: src/%.c
+$(BLD_HOST_OBJDIR)/core/%.c.o: core/%.c
 	@mkdir -p $(dir $@)
 	@echo " [cc]" $<
-	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Isrc/inc -c -o $@ $<
+	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
 
 $(BLD_HOST_OBJDIR)/dev/%.c.o: dev/%.c
 	@mkdir -p $(dir $@)
 	@echo " [cc]" $<
-	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Isrc/inc -c -o $@ $<
+	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
 
 $(BLD_HOST_OBJDIR)/app/%.c.o: app/%.c
 	@mkdir -p $(dir $@)
@@ -139,8 +139,8 @@ install: apps install_headers
 LIB_CSOURCES :=
 
 include dev/build.mk
-include src/extension/build.mk
-include src/sled/build.mk
+include core/build.mk
+include core/extension/build.mk
 
 LIB_OBJS := $(LIB_CSOURCES:%.c=$(BLD_HOST_OBJDIR)/%.c.o)
 DOBJS += $(LIB_OBJS)

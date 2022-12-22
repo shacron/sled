@@ -26,9 +26,9 @@
 
 #include <stdint.h>
 
-#include <sl/bus.h>
-#include <sl/irq.h>
-#include <sl/itrace.h>
+#include <core/bus.h>
+#include <core/irq.h>
+#include <core/itrace.h>
 #include <sled/core.h>
 
 #ifdef __cplusplus

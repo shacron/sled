@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <sl/common.h>
-#include <sl/dev/intc.h>
+#include <core/common.h>
+#include <core/dev/intc.h>
 #include <sled/device/intc.h>
 #include <sled/error.h>
 

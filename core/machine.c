@@ -27,11 +27,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <core/bus.h>
+#include <core/dev/intc.h>
+#include <core/mem.h>
+#include <core/riscv.h>
 #include <sled/arch.h>
-#include <sl/bus.h>
-#include <sl/dev/intc.h>
-#include <sl/mem.h>
-#include <sl/riscv.h>
 #include <sled/elf.h>
 #include <sled/error.h>
 #include <sled/machine.h>

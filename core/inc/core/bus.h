@@ -22,22 +22,29 @@
 
 // SPDX-License-Identifier: MIT License
 
-#include <stdlib.h>
+#pragma once
 
-#include <sl/mem.h>
-#include <sled/error.h>
+#include <stdint.h>
 
-int mem_region_create(mem_region_t *m, uint64_t base, uint64_t length) {
-    m->base = base;
-    m->end = base + length;
-    m->data = calloc(1, length);
-    if (m->data == NULL) return SL_ERR_MEM;
-    return 0;
+#include <core/device.h>
+#include <core/mem.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct bus bus_t;
+
+int bus_create(bus_t **bus_out);
+void bus_destroy(bus_t *bus);
+
+int bus_read(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+int bus_write(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+
+int bus_add_mem_region(bus_t *b, mem_region_t r);
+int bus_add_device(bus_t *b, device_t *dev, uint64_t base);
+device_t * bus_get_device_for_name(bus_t *b, const char *name);
+
+#ifdef __cplusplus
 }
-
-int mem_region_destroy(mem_region_t *m) {
-    if (m->data != NULL) free(m->data);
-    m->data = NULL;
-    return 0;
-}
-
+#endif
