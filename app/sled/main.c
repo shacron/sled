@@ -207,7 +207,7 @@ int simple_machine(sm_t *sm) {
 
     // load elf
 
-    if ((err = machine_load_core(m, p.id, eo))) {
+    if ((err = machine_load_core(m, p.id, eo, true))) {
         fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
         goto out_err_machine;
     }
@@ -219,7 +219,7 @@ int simple_machine(sm_t *sm) {
             printf("failed to open %s\n", sm->kernel_file);
             goto out_err_machine;
         }
-        if ((err = machine_load_core(m, p.id, eo))) {
+        if ((err = machine_load_core(m, p.id, eo, false))) {
             fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
             goto out_err_machine;
         }
