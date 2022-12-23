@@ -26,9 +26,12 @@ typedef struct {
     machine_t *m;
     pthread_t core0;
     int core_id;
+
+    const char *monitor_file;
+    const char *kernel_file;
+
     int uart_fd_in;
     int uart_fd_out;
-
     int uart_io;
     const char *uart_path;
 } sm_t;
@@ -36,12 +39,14 @@ typedef struct {
 static const struct option longopts[] = {
     // { "arch",      required_argument,  NULL,   'a' },
     { "help",      no_argument,        NULL,   'h' },
-    { "verbose",   no_argument,        NULL,   'v' },
+    { "kernel",    required_argument,  NULL,   'k' },
+    { "monitor",   required_argument,  NULL,   'm' },
     { "serial",    required_argument,  NULL,   's' },
+    { "verbose",   no_argument,        NULL,   'v' },
     { NULL,        0,                  NULL,   0 }
 };
 
-static const char *shortopts = "hs:v";
+static const char *shortopts = "hm:s:v";
 
 static void usage(void) {
     printf("sled: [options] <executable>\n");
@@ -72,9 +77,10 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
 
     while ((ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
         switch (ch) {
-        case 'h':
-            return -2;
-
+        case 'h':return -2;
+        case 'k': sm->kernel_file = optarg;     break;
+        case 'm': sm->monitor_file = optarg;    break;
+        case 'v': break;                // todo
         case 's':
             if (!strcmp(optarg, "-")) {
                 sm->uart_io = UART_IO_CONS;
@@ -95,10 +101,6 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
             }
             fprintf(stderr, "unrecognized serial option: %s\n", optarg);
             return -1;
-
-        case 'v':
-            // todo
-            break;
 
         default:
             fprintf(stderr, "invalid argument\n"); // which argument?
@@ -125,7 +127,7 @@ int start_thread_for_core(sm_t *sm) {
     return 0;
 }
 
-int simple_machine(const char *file, sm_t *sm) {
+int simple_machine(sm_t *sm) {
     machine_t *m;
     elf_object_t *eo = NULL;
     int err;
@@ -150,8 +152,9 @@ int simple_machine(const char *file, sm_t *sm) {
 
     // open elf
 
-    if ((err = elf_open(file, &eo))) {
-        printf("failed to open %s\n", file);
+    // todo: handle no-monitor kernel-only
+    if ((err = elf_open(sm->monitor_file, &eo))) {
+        printf("failed to open %s\n", sm->monitor_file);
         goto out_err;
     }
 
@@ -210,6 +213,19 @@ int simple_machine(const char *file, sm_t *sm) {
     }
     elf_close(eo);
     eo = NULL;
+
+    if (sm->kernel_file != NULL) {
+        if ((err = elf_open(sm->kernel_file, &eo))) {
+            printf("failed to open %s\n", sm->kernel_file);
+            goto out_err_machine;
+        }
+        if ((err = machine_load_core(m, p.id, eo))) {
+            fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
+            goto out_err_machine;
+        }
+        elf_close(eo);
+        eo = NULL;
+    }
 
     // run
     sm->core_id = p.id;
@@ -286,12 +302,16 @@ int main(int argc, char *argv[]) {
     argc -= ret;
     argv += ret;
 
-    if (argc < 1) {
-        fprintf(stderr, "executable name required\n");
-        usage();
-        return 1;
+    if (sm.monitor_file == NULL) {
+        if (argc > 0) {
+            sm.monitor_file = argv[0];
+        } else {
+            fprintf(stderr, "monitor executable name required\n");
+            usage();
+            return 1;
+        }
     }
 
-    if (simple_machine(argv[0], &sm)) return 1;
+    if (simple_machine(&sm)) return 1;
     return 0;
 }
