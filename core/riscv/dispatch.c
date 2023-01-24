@@ -152,7 +152,8 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
 
     uint64_t value;
     int op = (csr_op & 3);
-    if (csr_op & 0b100) value = inst.i.rs1; // treat rs1 as immediate value
+    const bool csr_imm = csr_op & 0b100;
+    if (csr_imm) value = inst.i.rs1; // treat rs1 as immediate value
     else value = c->r[inst.i.rs1];
 
     if (op == RV_CSR_OP_SWAP) {
@@ -169,8 +170,8 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         snprintf(namebuf, 16, "%#x", csr_addr);
         name = namebuf;
     }
-    if ((csr_op & 0b100) == 0) RV_TRACE_PRINT(c, "%s x%u, x%u, %s", opstr, inst.i.rd, inst.i.rs1, name);
-    else RV_TRACE_PRINT(c, "%s x%u, %u, %s", opstr, inst.i.rd, inst.i.rs1, name);
+    if (csr_imm) RV_TRACE_PRINT(c, "%s x%u, %u, %s", opstr, inst.i.rd, inst.i.rs1, name);
+    else RV_TRACE_PRINT(c, "%s x%u, x%u, %s", opstr, inst.i.rd, inst.i.rs1, name);
 #endif
 
     result64_t result = rv_csr_op(c, op, csr_addr, value);
@@ -186,19 +187,21 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         return result.err;
     }
 
-#ifdef RV_TRACE
-    if (op == RV_CSR_OP_WRITE) {
-        if (c->mode == RV_MODE_RV32) value = (uint32_t)value;
-        RV_TRACE_OPT(c, ITRACE_OPT_SYSREG);
-        RV_TRACE_STORE(c, csr_addr, 0, value);
-    }
-#endif // RV_TRACE
-
     if (inst.i.rd != RV_ZERO) {
         if (c->mode == RV_MODE_RV32) result.value = (uint32_t)result.value;
         c->r[inst.i.rd] = result.value;
-        RV_TRACE_RD(c, inst.i.rd, c->r[inst.i.rd]);
     }
+
+#ifdef RV_TRACE
+    RV_TRACE_RD(c, inst.i.rd, c->r[inst.i.rd]);
+    if (op != RV_CSR_OP_READ) {
+        c->core.trace->options |= ITRACE_OPT_SYSREG;
+        c->core.trace->addr = csr_addr;
+        c->core.trace->aux_value = value;
+    }
+#endif // RV_TRACE
+
+
     return 0;
 
 undef:
@@ -237,19 +240,20 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction) {
             len += snprintf(buf + len, BUFLEN - len, "%08x  ", tr.opcode);
 
         len += snprintf(buf + len, BUFLEN - len, "%-30s", tr.opstr);
-        if (tr.options & ITRACE_OPT_INST_STORE) {
-            if (tr.options & ITRACE_OPT_SYSREG) {
-                const char *n = c->ext.name_for_sysreg(c, tr.addr);
-                if (n == NULL)
-                    len += snprintf(buf + len, BUFLEN - len, "; %#4x = %#" PRIx64, (uint32_t)tr.addr, tr.rd_value);
-                else
-                    len += snprintf(buf + len, BUFLEN - len, "; %s = %#" PRIx64, n, tr.rd_value);
-            } else {
-                len += snprintf(buf + len, BUFLEN - len, "; [%#" PRIx64 "] = %#" PRIx64, tr.addr, tr.rd_value);
-            }
-        } else {
-            if (tr.rd != RV_ZERO)
+        if (tr.options & ITRACE_OPT_SYSREG) {
+            if (tr.rd == RV_ZERO)
+                len += snprintf(buf + len, BUFLEN - len, ";");
+            else
                 len += snprintf(buf + len, BUFLEN - len, "; %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
+            const char *n = c->ext.name_for_sysreg(c, tr.addr);
+            if (n == NULL)
+                len += snprintf(buf + len, BUFLEN - len, " csr(%#x) = %#" PRIx64, (uint32_t)tr.addr, tr.aux_value);
+            else
+                len += snprintf(buf + len, BUFLEN - len, " %s = %#" PRIx64, n, tr.aux_value);
+        } else if (tr.options & ITRACE_OPT_INST_STORE) {
+            len += snprintf(buf + len, BUFLEN - len, "; [%#" PRIx64 "] = %#" PRIx64, tr.addr, tr.rd_value);
+        } else if (tr.rd != RV_ZERO) {
+            len += snprintf(buf + len, BUFLEN - len, "; %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
         }
 
         puts(buf);

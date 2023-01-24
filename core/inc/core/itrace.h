@@ -19,6 +19,7 @@ typedef struct {
     uint16_t options;
     uint64_t rd_value;
     uint64_t addr;
+    uint64_t aux_value;
     uint32_t cur;
     char opstr[TRACE_STR_LEN];
 } itrace_t;
