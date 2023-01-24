@@ -162,15 +162,16 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     }
 
     const uint32_t csr_addr = inst.i.imm;
+#ifdef RV_TRACE
     const char *name = c->ext.name_for_sysreg(c, csr_addr);
     char namebuf[16];
     if (name == NULL) {
         snprintf(namebuf, 16, "%#x", csr_addr);
         name = namebuf;
     }
-
     if ((csr_op & 0b100) == 0) RV_TRACE_PRINT(c, "%s x%u, x%u, %s", opstr, inst.i.rd, inst.i.rs1, name);
     else RV_TRACE_PRINT(c, "%s x%u, %u, %s", opstr, inst.i.rd, inst.i.rs1, name);
+#endif
 
     result64_t result = rv_csr_op(c, op, csr_addr, value);
     if (result.err == SL_ERR_UNDEF) return rv_undef(c, inst);
@@ -184,6 +185,15 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         assert(false);
         return result.err;
     }
+
+#ifdef RV_TRACE
+    if (op == RV_CSR_OP_WRITE) {
+        if (c->mode == RV_MODE_RV32) value = (uint32_t)value;
+        RV_TRACE_OPT(c, ITRACE_OPT_SYSREG);
+        RV_TRACE_STORE(c, csr_addr, 0, value);
+    }
+#endif // RV_TRACE
+
     if (inst.i.rd != RV_ZERO) {
         if (c->mode == RV_MODE_RV32) result.value = (uint32_t)result.value;
         c->r[inst.i.rd] = result.value;
@@ -228,7 +238,15 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction) {
 
         len += snprintf(buf + len, BUFLEN - len, "%-30s", tr.opstr);
         if (tr.options & ITRACE_OPT_INST_STORE) {
-            len += snprintf(buf + len, BUFLEN - len, "; [%#" PRIx64 "] = %#" PRIx64, tr.addr, tr.rd_value);
+            if (tr.options & ITRACE_OPT_SYSREG) {
+                const char *n = c->ext.name_for_sysreg(c, tr.addr);
+                if (n == NULL)
+                    len += snprintf(buf + len, BUFLEN - len, "; %#4x = %#" PRIx64, (uint32_t)tr.addr, tr.rd_value);
+                else
+                    len += snprintf(buf + len, BUFLEN - len, "; %s = %#" PRIx64, n, tr.rd_value);
+            } else {
+                len += snprintf(buf + len, BUFLEN - len, "; [%#" PRIx64 "] = %#" PRIx64, tr.addr, tr.rd_value);
+            }
         } else {
             if (tr.rd != RV_ZERO)
                 len += snprintf(buf + len, BUFLEN - len, "; %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
