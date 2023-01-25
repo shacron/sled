@@ -114,7 +114,7 @@ https://github.com/shacron/sledkit
 
     make -j <jobs>
 
-The following build options are for people developing sled:
+The following build options are for people developing sled, and should be define on the command line or in the environment:
 
     BUILD=debug
 
@@ -123,6 +123,26 @@ Build the project in debug mode for a better debugging experience.
     RV_TRACE=1
 
 Enable RISCV instruction tracing. Running sled will print an instruction trace for every instruction dispatched. This significantly slows down execution.
+
+## Usage
+
+### Application
+
+Sled is designed as a library, made to be used by a front-end application that provides the user interface. The default build includes an application, helpfully named `sled`, that demonstrates this. When built standalone `./build/sled` is created and can be used to run properly-linked ELF binaries.
+
+    ./build/sled /path/to/binary.elf
+
+See the sled help menu for more options.
+
+    sled -h
+
+The sled app will configure the core to the binary's architecture if it is supported. To be loaded properly, the binary must be linked at the right location to be in the device's physical memory. This range is defined by `PLAT_MEM_BASE` and `PLAT_MEM_SIZE` for the platform used. In this case, the Simple Machine platform information is located in `plat/simple/inc/plat/platform.h`.
+
+App examples can be found in the sledKit SDK, which builds test applications for the sled app.
+
+### Library
+
+The Sled library (__libsled.a__) as well as headers and apps, are designed to be installed to a target SDK, and should provide everything needed to link the static archive into a C application. The build parameters `BLD_HOST_BINDIR`, `BLD_HOST_LIBDIR`, and `BLD_HOST_INCDIR` instruct the build and install steps in the build where to generate and copy these objects. sledKit provides an example of this usage.
 
 ## Contributing
 

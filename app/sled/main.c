@@ -49,27 +49,31 @@ static const struct option longopts[] = {
 static const char *shortopts = "hk:m:s:v";
 
 static void usage(void) {
-    printf("sled: [options] <executable>\n");
-
-    printf("options:\n");
-    const struct option *opt;
-    for (opt = &longopts[0]; opt->name != NULL; opt++) {
-        if ((opt->flag == NULL) && isalnum(opt->val)) printf("  -%c, ", (char)opt->val);
-        else printf("  ");
-        printf("--%s\n", opt->name);
-    }
-    printf(
+    puts(
+    "usage: sled [options] <executable>\n"
     "\n"
-    "--serial=<output>\n"
-    "    Set serial input and output. Possible values are:\n"
-    "    '-' direct io to stdio (default)\n"
-    "    'null' discard serial output\n"
-    "    'file' direct output to file 'serial.txt'\n"
-    "    'port:num' direct io to TCP network port. Execution will wait until a client\n"
-    "       connects to this port\n"
+    "options:\n"
+    "  <executable>\n"
+    "       An ELF binary to be loaded and run in the default core.\n"
     "\n"
+    "  -m, --monitor=<binary>\n"
+    "       An ELF binary to be loaded into the default core, setting the entry point\n"
+    "       to run when execution begins. This option replaces the <executable> option.\n"
+    "\n"
+    "  -k, --kernel=<binary>\n"
+    "       An ELF binary to be loaded into the default core. The code is not executed.\n"
+    "\n"
+    "  -s, --serial=<output>\n"
+    "       Set serial input and output. Possible 'output' values are:\n"
+    "         '-' direct io to stdio (default)\n"
+    "         'null' discard serial output\n"
+    "         'file' direct output to file 'serial.txt'\n"
+    "         'port:num' direct io to TCP network port. Execution will wait until a client\n"
+    "            connects to this port.\n"
+    "\n"
+    "  -h, --help\n"
+    "       Print this help text and exit.\n"
     );
-
 }
 
 static int parse_opts(int argc, char *argv[], sm_t *sm) {
