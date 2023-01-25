@@ -46,7 +46,7 @@ static const struct option longopts[] = {
     { NULL,        0,                  NULL,   0 }
 };
 
-static const char *shortopts = "hm:s:v";
+static const char *shortopts = "hk:m:s:v";
 
 static void usage(void) {
     printf("sled: [options] <executable>\n");
