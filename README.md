@@ -142,7 +142,7 @@ App examples can be found in the sledKit SDK, which builds test applications for
 
 ### Library
 
-The Sled library (__libsled.a__) as well as headers and apps, are designed to be installed to a target SDK, and should provide everything needed to link the static archive into a C application. The build parameters `BLD_HOST_BINDIR`, `BLD_HOST_LIBDIR`, and `BLD_HOST_INCDIR` instruct the build and install steps in the build where to generate and copy these objects. sledKit provides an example of this usage.
+The Sled library (__libsled.a__) as well as headers and apps, are designed to be installed to a target SDK, and should provide everything needed to link the static archive into a C application. The build parameters `BLD_HOST_BINDIR`, `BLD_HOST_LIBDIR`, and `BLD_HOST_INCDIR` instruct the build and install steps where to generate and copy these objects. sledKit provides an example of this usage.
 
 ## Contributing
 
@@ -161,7 +161,7 @@ Good contributions opportunities:
 * Port an OS to sled. Until there's an MMU or MPU it's not likely to go well for big OSs, but if you have something smaller, bring it.
 * Build with different toolchains. Plugging in GCC should be pretty straightforward with few changes. Ideally this should be supported in __sledKit__ and just work here. Got other toolchains?
 
-All code contributions (excluding properly licensed ports) must include a copyright assignment to The Sled Project. The author may include an additional copyright notice crediting themselves.
+Original code contributions must include a copyright assignment to The Sled Project as MIT-licensed. The author may include an additional copyright notice crediting themselves. Imported code should have a permissive license.
 
 
 ## License
