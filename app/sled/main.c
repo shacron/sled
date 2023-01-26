@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -20,6 +21,8 @@
 #include <sled/error.h>
 #include <sled/machine.h>
 
+#define DEFAULT_STEP_COUNT (1000 * 1000)
+
 #define ISSUE_INTERRUPT 1
 
 typedef struct {
@@ -29,6 +32,7 @@ typedef struct {
 
     const char *monitor_file;
     const char *kernel_file;
+    uint64_t steps;
 
     int uart_fd_in;
     int uart_fd_out;
@@ -41,7 +45,8 @@ static const struct option longopts[] = {
     { "help",      no_argument,        NULL,   'h' },
     { "kernel",    required_argument,  NULL,   'k' },
     { "monitor",   required_argument,  NULL,   'm' },
-    { "serial",    required_argument,  NULL,   's' },
+    { "serial",    required_argument,  NULL,   1   },
+    { "step",      required_argument,  NULL,   's' },
     { "verbose",   no_argument,        NULL,   'v' },
     { NULL,        0,                  NULL,   0 }
 };
@@ -63,7 +68,10 @@ static void usage(void) {
     "  -k, --kernel=<binary>\n"
     "       An ELF binary to be loaded into the default core. The code is not executed.\n"
     "\n"
-    "  -s, --serial=<output>\n"
+    "  -s, --step=<num>\n"
+    "       Number of instructions to execute before exiting. 0 for infinite.\n"
+    "\n"
+    "  --serial=<output>\n"
     "       Set serial input and output. Possible 'output' values are:\n"
     "         '-' direct io to stdio (default)\n"
     "         'null' discard serial output\n"
@@ -81,11 +89,12 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
 
     while ((ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
         switch (ch) {
-        case 'h':return -2;
+        case 'h': return -2;
         case 'k': sm->kernel_file = optarg;     break;
         case 'm': sm->monitor_file = optarg;    break;
+        case 's': sm->steps = strtoull(optarg, NULL, 0); break;
         case 'v': break;                // todo
-        case 's':
+        case 1:
             if (!strcmp(optarg, "-")) {
                 sm->uart_io = UART_IO_CONS;
                 break;
@@ -117,8 +126,19 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
 void *core_runner(void *arg) {
     sm_t *sm = arg;
     core_t *c = machine_get_core(sm->m, sm->core_id);
-    const uint32_t step_count = 1000 * 1000;
-    int err = core_step(c, step_count);
+
+    int err = 0;
+    if (sm->steps == 0) {
+        for ( ; err == 0; ) err = core_step(c, DEFAULT_STEP_COUNT);
+    } else {
+        for (uint64_t s = sm->steps; s > 0; ) {
+            uint64_t step;
+            if (s > 0xffffffff) step = 0xffffffff;
+            else step = s;
+            if ((err = core_step(c, step))) break;
+            s -= step;
+        }
+    }
     return (void *)(uintptr_t)err;
 }
 
@@ -292,6 +312,7 @@ out_err:
 int main(int argc, char *argv[]) {
     sm_t sm = {
         .uart_io = UART_IO_CONS,
+        .steps = DEFAULT_STEP_COUNT,
     };
 
     int ret = parse_opts(argc, argv, &sm);
