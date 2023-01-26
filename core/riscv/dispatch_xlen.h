@@ -263,8 +263,10 @@ static int XLEN_PREFIX(exec_store)(rv_core_t *c, rv_inst_t inst) {
         return rv_undef(c, inst);
     }
 
-    if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
-
+    if (err) {
+        RV_TRACE_PRINT(c, "%s x%u, %d(x%u)            ; [%" PRIXLENx "] = %s", opstr, inst.s.rs2, imm, inst.i.rs1, dest, st_err(err));
+        return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
+    }
     RV_TRACE_STORE(c, dest, inst.s.rs2, val);
     RV_TRACE_PRINT(c, "%s x%u, %d(x%u)", opstr, inst.s.rs2, imm, inst.s.rs1);
     return 0;
