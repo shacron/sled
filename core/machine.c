@@ -8,9 +8,11 @@
 
 #include <core/bus.h>
 #include <core/dev/intc.h>
+#include <core/core.h>
 #include <core/mem.h>
 #include <core/riscv.h>
 #include <sled/arch.h>
+#include <sled/core.h>
 #include <sled/elf.h>
 #include <sled/error.h>
 #include <sled/machine.h>
