@@ -25,14 +25,24 @@
 
 #define ISSUE_INTERRUPT 1
 
+#define BIN_FLAG_ELF        (1u << 0)
+#define BIN_FLAG_INIT       (1u << 1)
+#define BIN_FLAG_FREE_NAME  (1u << 2)
+
+typedef struct bin_file {
+    struct bin_file* next;
+    uint32_t flags;
+    char *file;
+    uint64_t addr;
+} bin_file_t;
+
 typedef struct {
     machine_t *m;
     pthread_t core0;
     int core_id;
 
-    const char *monitor_file;
-    const char *kernel_file;
     uint64_t steps;
+    bin_file_t *bin_list;
 
     int uart_fd_in;
     int uart_fd_out;
@@ -41,17 +51,17 @@ typedef struct {
 } sm_t;
 
 static const struct option longopts[] = {
-    // { "arch",      required_argument,  NULL,   'a' },
     { "help",      no_argument,        NULL,   'h' },
     { "kernel",    required_argument,  NULL,   'k' },
     { "monitor",   required_argument,  NULL,   'm' },
+    { "raw",       required_argument,  NULL,   'r' },
     { "serial",    required_argument,  NULL,   1   },
     { "step",      required_argument,  NULL,   's' },
     { "verbose",   no_argument,        NULL,   'v' },
     { NULL,        0,                  NULL,   0 }
 };
 
-static const char *shortopts = "hk:m:s:v";
+static const char *shortopts = "hk:m:r:s:v";
 
 static void usage(void) {
     puts(
@@ -67,6 +77,9 @@ static void usage(void) {
     "\n"
     "  -k, --kernel=<binary>\n"
     "       An ELF binary to be loaded into the default core. The code is not executed.\n"
+    "\n"
+    "  -r, --raw=<binary>:<addr>\n"
+    "       A raw binary to be loaded into memory at a given address\n"
     "\n"
     "  -s, --step=<num>\n"
     "       Number of instructions to execute before exiting. 0 for infinite.\n"
@@ -84,16 +97,49 @@ static void usage(void) {
     );
 }
 
+static int add_binary(sm_t *sm, uint32_t flags, char *file, uint64_t addr) {
+    bin_file_t *b = malloc(sizeof(*b));
+    if (b == NULL) return -1;
+    b->flags = flags;
+    b->file = file;
+    b->addr = addr;
+    b->next = sm->bin_list;
+    sm->bin_list = b;
+    return 0;
+}
+
 static int parse_opts(int argc, char *argv[], sm_t *sm) {
     int ch;
 
     while ((ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
         switch (ch) {
         case 'h': return -2;
-        case 'k': sm->kernel_file = optarg;     break;
-        case 'm': sm->monitor_file = optarg;    break;
+        case 'k': add_binary(sm, BIN_FLAG_ELF, optarg, 0);   break;
+        case 'm': add_binary(sm, BIN_FLAG_ELF | BIN_FLAG_INIT, optarg, 0);   break;
         case 's': sm->steps = strtoull(optarg, NULL, 0); break;
         case 'v': break;                // todo
+
+        case 'r':
+        {
+            char *s = strdup(optarg);
+            char *a = strrchr(s, ':');
+            if (a == NULL) {
+                fprintf(stderr, "binary address required for raw entry\n");
+                free(s);
+                return -1;
+            }
+            *a = '\0';
+            a++;
+            uint64_t addr = strtoull(a, NULL, 0);
+            if (addr == 0) {
+                fprintf(stderr, "invalid binary address '%s'\n", a);
+                free(s);
+                return -1;
+            }
+            add_binary(sm, BIN_FLAG_FREE_NAME, s, addr);
+            break;
+        }
+
         case 1:
             if (!strcmp(optarg, "-")) {
                 sm->uart_io = UART_IO_CONS;
@@ -151,6 +197,42 @@ int start_thread_for_core(sm_t *sm) {
     return 0;
 }
 
+static int load_binary(machine_t *m, uint32_t core_id, bin_file_t *b) {
+    int err = -1;
+    void *buf = NULL;
+    int fd = open(b->file, O_RDONLY);
+    if (fd == -1) {
+        fprintf(stderr, "failed to open %s\n", b->file);
+        return -1;
+    }
+    struct stat stat;
+    if ((err = fstat(fd, &stat))) {
+        fprintf(stderr, "failed to open %s\n", b->file);
+        goto out_err;
+    }
+    size_t size = stat.st_size;
+    if (size == 0) {
+        err = 0;
+        goto out_err;
+    }
+    if ((buf = malloc(size)) == NULL) {
+        perror("malloc");
+        goto out_err;
+    }
+    ssize_t num = read(fd, buf, size);
+    if (num < 0) {
+        perror(b->file);
+        goto out_err;
+    }
+    err = machine_load_core_raw(m, core_id, b->addr, buf, size);
+
+out_err:
+    free(buf);
+    if (fd >= 0) close(fd);
+    return err;
+};
+
+
 int simple_machine(sm_t *sm) {
     machine_t *m;
     elf_object_t *eo = NULL;
@@ -176,9 +258,20 @@ int simple_machine(sm_t *sm) {
 
     // open elf
 
-    // todo: handle no-monitor kernel-only
-    if ((err = elf_open(sm->monitor_file, &eo))) {
-        printf("failed to open %s\n", sm->monitor_file);
+    bin_file_t *entry_elf = NULL;
+    for (bin_file_t *b = sm->bin_list; b != NULL; b = b->next) {
+        const uint32_t flags = BIN_FLAG_ELF | BIN_FLAG_INIT;
+        if ((b->flags & flags) != flags) continue;
+        if ((err = elf_open(b->file, &eo))) {
+            printf("failed to open %s\n", b->file);
+            goto out_err;
+        }
+        entry_elf = b;
+        break;
+    }
+
+    if (entry_elf == NULL) {
+        printf("failed find loadable binary\n");
         goto out_err;
     }
 
@@ -238,17 +331,22 @@ int simple_machine(sm_t *sm) {
     elf_close(eo);
     eo = NULL;
 
-    if (sm->kernel_file != NULL) {
-        if ((err = elf_open(sm->kernel_file, &eo))) {
-            printf("failed to open %s\n", sm->kernel_file);
-            goto out_err_machine;
+    for (bin_file_t *b = sm->bin_list; b != NULL; b = b->next) {
+        if (b == entry_elf) continue;
+        if (b->flags & BIN_FLAG_ELF) {
+            if ((err = elf_open(b->file, &eo))) {
+                printf("failed to open %s\n", b->file);
+                goto out_err_machine;
+            }
+            if ((err = machine_load_core(m, p.id, eo, false))) {
+                fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
+                goto out_err_machine;
+            }
+            elf_close(eo);
+            eo = NULL;
+        } else {
+            if ((err = load_binary(m, p.id, b))) goto out_err_machine;
         }
-        if ((err = machine_load_core(m, p.id, eo, false))) {
-            fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
-            goto out_err_machine;
-        }
-        elf_close(eo);
-        eo = NULL;
     }
 
     // run
@@ -310,6 +408,7 @@ out_err:
 }
 
 int main(int argc, char *argv[]) {
+    bin_file_t *next = NULL;
     sm_t sm = {
         .uart_io = UART_IO_CONS,
         .steps = DEFAULT_STEP_COUNT,
@@ -319,24 +418,26 @@ int main(int argc, char *argv[]) {
     if (ret < 0) {
         if (ret == -2) {
             usage();
-            return 0;
+            ret = 0;
+        } else {
+            ret = 1;
         }
-        return 1;
+        goto out_err;
     }
 
     argc -= ret;
     argv += ret;
 
-    if (sm.monitor_file == NULL) {
-        if (argc > 0) {
-            sm.monitor_file = argv[0];
-        } else {
-            fprintf(stderr, "monitor executable name required\n");
-            usage();
-            return 1;
-        }
-    }
+    if (argc > 0) add_binary(&sm, BIN_FLAG_ELF | BIN_FLAG_INIT, argv[0], 0);
 
-    if (simple_machine(&sm)) return 1;
+    ret = simple_machine(&sm);
+
+out_err:
+    for (bin_file_t *b = sm.bin_list; b != NULL; b = next) {
+        next = b->next;
+        if (b->flags & BIN_FLAG_FREE_NAME) free(b->file);
+        free(b);
+    }
+    if (ret) return 1;
     return 0;
 }

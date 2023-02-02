@@ -206,3 +206,18 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_entry
 out_err:
     return err;
 }
+
+int machine_load_core_raw(machine_t *m, uint32_t id, uint64_t addr, void *buf, uint64_t size) {
+    core_t *c = machine_get_core(m, id);
+    if (c == NULL) {
+        fprintf(stderr, "invalid core id: %u\n", id);
+        return SL_ERR_ARG;
+    }
+    int err;
+    if ((err = core_mem_write(c, addr, 1, size, buf))) {
+        fprintf(stderr, "failed to load core memory: %s\n", st_err(err));
+        fprintf(stderr, "  addr=%#" PRIx64 ", size=%#" PRIx64 "\n", addr, size);
+    }
+    return err;
+}
+

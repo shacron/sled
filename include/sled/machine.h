@@ -23,6 +23,7 @@ int machine_add_device_prefab(machine_t *m, uint64_t base, device_t *d);
 int machine_add_mem(machine_t *m, uint64_t base, uint64_t size);
 
 int machine_load_core(machine_t *m, uint32_t id, elf_object_t *obj, bool set_entry);
+int machine_load_core_raw(machine_t *m, uint32_t id, uint64_t addr, void *buf, uint64_t size);
 
 device_t * machine_get_device_for_name(machine_t *m, const char *name);
 core_t * machine_get_core(machine_t *m, uint32_t id);
