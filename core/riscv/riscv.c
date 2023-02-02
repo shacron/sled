@@ -13,6 +13,7 @@
 #include <core/riscv.h>
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
+#include <riscv/csr.h>
 #include <sled/arch.h>
 #include <sled/error.h>
 
@@ -29,39 +30,19 @@ static void riscv_set_reg(core_t *c, uint32_t reg, uint64_t value) {
         return;
     }
 
+    rv_sr_level_t *sr = NULL;
+    if (reg >= RV_CORE_REG_BASE) sr = rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE);
+
     switch (reg) {
-    case CORE_REG_PC:
-        rc->pc = value;
-        break;
-
-    case CORE_REG_SP:
-        rc->r[RV_SP] = value;
-        break;
-
-    case CORE_REG_LR:
-        rc->r[RV_RA] = value;
-        break;
-
-    case RV_REG_MSCRATCH:
-        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->scratch = value;
-        break;
-
-    case RV_REG_MEPC:
-        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->epc = value;
-        break;
-
-    case RV_REG_MCAUSE:
-        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->cause = value;
-        break;
-
-    case RV_REG_MTVAL:
-        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->tval = value;
-        break;
-
-    case RV_REG_MIP:
-        rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE)->ip = value;
-        break;
-
+    case CORE_REG_PC:   rc->pc = value;         break;
+    case CORE_REG_SP:   rc->r[RV_SP] = value;   break;
+    case CORE_REG_LR:   rc->r[RV_RA] = value;   break;
+    case RV_CORE_REG(RV_CSR_MTVEC):     sr->tvec = value;       break;
+    case RV_CORE_REG(RV_CSR_MSCRATCH):  sr->scratch = value;    break;
+    case RV_CORE_REG(RV_CSR_MEPC):      sr->epc = value;        break;
+    case RV_CORE_REG(RV_CSR_MCAUSE):    sr->cause = value;      break;
+    case RV_CORE_REG(RV_CSR_MTVAL):     sr->tval = value;       break;
+    case RV_CORE_REG(RV_CSR_MIP):       sr->ip = value;         break;
     default:
         assert(false);
         break;

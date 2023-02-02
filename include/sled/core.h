@@ -37,12 +37,9 @@ struct core_params {
 #define CORE_REG_ARG1   0xfffb
 
 // Architecture-specific registers definitions
-#define RV_REG_MSCRATCH 0x80000000
-#define RV_REG_MEPC     0x80000001
-#define RV_REG_MCAUSE   0x80000002
-#define RV_REG_MTVAL    0x80000003
-#define RV_REG_MIP      0x80000004
-
+// RISCV - add reg base to CSR address
+#define RV_CORE_REG_BASE     0x80000000
+#define RV_CORE_REG(csr) (RV_CORE_REG_BASE + (csr))
 
 void core_set_reg(core_t *c, uint32_t reg, uint64_t value);
 uint64_t core_get_reg(core_t *c, uint32_t reg);
