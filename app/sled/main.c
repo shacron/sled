@@ -277,12 +277,12 @@ int simple_machine(sm_t *sm) {
 
     // configure core
 
-    core_params_t p = {};
-    p.arch = elf_arch(eo);
-    p.subarch = elf_subarch(eo);
-    p.id = 0;
-    p.options = CORE_OPT_TRAP_SYSCALL;
-    p.arch_options = elf_arch_options(eo);
+    core_params_t params = {};
+    params.arch = elf_arch(eo);
+    params.subarch = elf_subarch(eo);
+    params.id = 0;
+    params.options = CORE_OPT_TRAP_SYSCALL;
+    params.arch_options = elf_arch_options(eo);
 
     // create machine
 
@@ -317,14 +317,14 @@ int simple_machine(sm_t *sm) {
 
     // create core
 
-    if ((err = machine_add_core(m, &p))) {
+    if ((err = machine_add_core(m, &params))) {
         printf("machine_add_core failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
     // load elf
 
-    if ((err = machine_load_core(m, p.id, eo, true))) {
+    if ((err = machine_load_core(m, params.id, eo, true))) {
         fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
         goto out_err_machine;
     }
@@ -338,19 +338,19 @@ int simple_machine(sm_t *sm) {
                 printf("failed to open %s\n", b->file);
                 goto out_err_machine;
             }
-            if ((err = machine_load_core(m, p.id, eo, false))) {
+            if ((err = machine_load_core(m, params.id, eo, false))) {
                 fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
                 goto out_err_machine;
             }
             elf_close(eo);
             eo = NULL;
         } else {
-            if ((err = load_binary(m, p.id, b))) goto out_err_machine;
+            if ((err = load_binary(m, params.id, b))) goto out_err_machine;
         }
     }
 
     // run
-    sm->core_id = p.id;
+    sm->core_id = params.id;
     if ((err = start_thread_for_core(sm))) {
         fprintf(stderr, "start_thread_for_core failed\n");
         goto out_err_machine;
