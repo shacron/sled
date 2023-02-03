@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2023 Shac Ron and The Sled Project
 
 #include <string.h>
 
@@ -29,7 +29,7 @@ static const arch_ops_t arch_ops[] = {
     [ARCH_MIPS] = { },
     [ARCH_ARM] = { },
     [ARCH_RISCV] = {
-        // .reg_for_name = rv_reg_for_name,
+        .reg_for_name = rv_reg_for_name,
         .name_for_reg = rv_name_for_reg,
      },
 };
