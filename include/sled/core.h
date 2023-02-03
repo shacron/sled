@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+// Public core interface
+
 typedef struct core core_t;
 typedef struct core_params core_params_t;
 

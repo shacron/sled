@@ -55,17 +55,22 @@ struct core {
     uint32_t pending_irq;       // only updated under lock
 };
 
+// setup functions
 int core_init(core_t *c, core_params_t *p, bus_t *b);
 int core_shutdown(core_t *c);
 
-void core_interrupt_set(core_t *c, bool enable);
-int core_endian_set(core_t *c, bool big);
+void core_config_get(core_t *c, core_params_t *p);
+int core_config_set(core_t *c, core_params_t *p);
 
+void core_interrupt_set(core_t *c, bool enable);
+
+// runtime functions
+int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
-
 int core_wait_for_interrupt(core_t *c);
 
+// memory access through core
 int core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 int core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 

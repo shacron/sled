@@ -1,26 +1,5 @@
-// MIT License
-
-// Copyright (c) 2022 Shac Ron
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
 // SPDX-License-Identifier: MIT License
+// Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <stdatomic.h>
 #include <stddef.h>
@@ -32,6 +11,8 @@
 #include <core/core.h>
 #include <sled/arch.h>
 #include <sled/error.h>
+
+static void config_set_internal(core_t *c, core_params_t *p);
 
 static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
     core_t *c = containerof(ep, core_t, irq_ep);
@@ -53,12 +34,30 @@ int core_wait_for_interrupt(core_t *c) {
     return 0;
 }
 
-int core_init(core_t *c, core_params_t *p, bus_t *b) {
+void core_config_get(core_t *c, core_params_t *p) {
+    p->arch = c->arch;
+    p->subarch = c->subarch;
+    p->id = c->id;
+    p->options = c->options;
+    p->arch_options = c->arch_options;
+}
+
+int core_config_set(core_t *c, core_params_t *p) {
+    if (c->arch != p->arch) return SL_ERR_ARG;
+    config_set_internal(c, p);
+    return 0;
+}
+
+static void config_set_internal(core_t *c, core_params_t *p) {
     c->arch = p->arch;
     c->subarch = p->subarch;
+    c->id = p->id;
     c->options = p->options;
     c->arch_options = p->arch_options;
-    c->id = p->id;
+}
+
+int core_init(core_t *c, core_params_t *p, bus_t *b) {
+    config_set_internal(c, p);
     c->bus = b;
     c->irq_ep.assert = core_accept_irq;
     lock_init(&c->lock);

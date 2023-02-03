@@ -139,7 +139,7 @@ void machine_destroy(machine_t *m) {
     free(m);
 }
 
-int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_state) {
+int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure) {
     core_t *c = machine_get_core(m, id);
     if (c == NULL) {
         fprintf(stderr, "invalid core id: %u\n", id);
@@ -185,7 +185,23 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_state
     }
 
     err = 0;
-    if (!set_state) goto out_err;
+    if (!configure) goto out_err;
+
+    core_params_t params = {};
+    core_config_get(c, &params);
+
+    if (params.arch != elf_arch(o)) {
+        fprintf(stderr, "elf architecture does not match core\n");
+        err = SL_ERR_ARG;
+        goto out_err;
+    }
+    params.subarch = elf_subarch(o);
+    params.arch_options = elf_arch_options(o);
+
+    if ((err = core_config_set(c, &params))) {
+        fprintf(stderr, "core_config_set failed: %s\n", st_err(err));
+        goto out_err;
+    }
 
     uint64_t entry = elf_get_entry(o);
     if (entry == 0) {
@@ -193,7 +209,7 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_state
         err = SL_ERR_ARG;
         goto out_err;
     }
-    c->ops.set_reg(c, CORE_REG_PC, entry);
+    core_set_reg(c, CORE_REG_PC, entry);
 
     if ((err = c->ops.set_state(c, CORE_STATE_64BIT, is64))) {
         fprintf(stderr, "failed to set core 64-bit state\n");

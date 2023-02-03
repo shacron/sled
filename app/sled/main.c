@@ -23,7 +23,7 @@
 
 #define DEFAULT_STEP_COUNT (1000 * 1000)
 
-#define ISSUE_INTERRUPT 1
+// #define ISSUE_INTERRUPT 1
 
 #define BIN_FLAG_ELF        (1u << 0)
 #define BIN_FLAG_INIT       (1u << 1)
@@ -235,7 +235,6 @@ out_err:
 
 int simple_machine(sm_t *sm) {
     machine_t *m;
-    elf_object_t *eo = NULL;
     int err;
     uint64_t a0, a1;
     sm->uart_fd_in = -1;
@@ -255,34 +254,6 @@ int simple_machine(sm_t *sm) {
         fprintf(stderr, "not yet implemented\n");
         return -1;
     }
-
-    // open elf
-
-    bin_file_t *entry_elf = NULL;
-    for (bin_file_t *b = sm->bin_list; b != NULL; b = b->next) {
-        const uint32_t flags = BIN_FLAG_ELF | BIN_FLAG_INIT;
-        if ((b->flags & flags) != flags) continue;
-        if ((err = elf_open(b->file, &eo))) {
-            printf("failed to open %s\n", b->file);
-            goto out_err;
-        }
-        entry_elf = b;
-        break;
-    }
-
-    if (entry_elf == NULL) {
-        printf("failed find loadable binary\n");
-        goto out_err;
-    }
-
-    // configure core
-
-    core_params_t params = {};
-    params.arch = elf_arch(eo);
-    params.subarch = elf_subarch(eo);
-    params.id = 0;
-    params.options = CORE_OPT_TRAP_SYSCALL;
-    params.arch_options = elf_arch_options(eo);
 
     // create machine
 
@@ -317,31 +288,33 @@ int simple_machine(sm_t *sm) {
 
     // create core
 
+    core_params_t params = {};
+    params.arch = PLAT_CORE_ARCH;
+    params.subarch = PLAT_CORE_SUBARCH;
+    params.id = 0;
+    params.options = CORE_OPT_TRAP_SYSCALL;
+    params.arch_options = PLAT_ARCH_OPTIONS;
+
     if ((err = machine_add_core(m, &params))) {
         printf("machine_add_core failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    // load elf
-
-    if ((err = machine_load_core(m, params.id, eo, true))) {
-        fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
-        goto out_err_machine;
-    }
-    elf_close(eo);
-    eo = NULL;
-
+    bool configured = false;
     for (bin_file_t *b = sm->bin_list; b != NULL; b = b->next) {
-        if (b == entry_elf) continue;
         if (b->flags & BIN_FLAG_ELF) {
+            elf_object_t *eo = NULL;
             if ((err = elf_open(b->file, &eo))) {
                 printf("failed to open %s\n", b->file);
                 goto out_err_machine;
             }
-            if ((err = machine_load_core(m, params.id, eo, false))) {
+            const bool config = (b->flags & BIN_FLAG_INIT) ? true : false;
+            if (config && configured) printf("warning: cpu already configured\n");
+            if ((err = machine_load_core(m, params.id, eo, config))) {
                 fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
                 goto out_err_machine;
             }
+            configured = true;
             elf_close(eo);
             eo = NULL;
         } else {
@@ -399,7 +372,6 @@ out:
 out_err_machine:
     machine_destroy(m);
 out_err:
-    elf_close(eo);
     if (sm->uart_io != UART_IO_CONS) {
         if (sm->uart_fd_in >= 0) close(sm->uart_fd_in);
         if (sm->uart_fd_out >= 0) close(sm->uart_fd_out);
