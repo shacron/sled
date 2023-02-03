@@ -139,7 +139,7 @@ void machine_destroy(machine_t *m) {
     free(m);
 }
 
-int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_entry) {
+int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_state) {
     core_t *c = machine_get_core(m, id);
     if (c == NULL) {
         fprintf(stderr, "invalid core id: %u\n", id);
@@ -173,8 +173,6 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_entry
             filesz = ph->p_filesz;
         }
 
-        // TODO: load data, init BSS
-
         // load PT_LOAD with X|W|R flags
         if (type != PT_LOAD) continue;
         if (memsz == 0) continue;
@@ -187,7 +185,7 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_entry
     }
 
     err = 0;
-    if (!set_entry) goto out_err;
+    if (!set_state) goto out_err;
 
     uint64_t entry = elf_get_entry(o);
     if (entry == 0) {
@@ -195,12 +193,12 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool set_entry
         err = SL_ERR_ARG;
         goto out_err;
     }
+    c->ops.set_reg(c, CORE_REG_PC, entry);
 
     if ((err = c->ops.set_state(c, CORE_STATE_64BIT, is64))) {
         fprintf(stderr, "failed to set core 64-bit state\n");
         goto out_err;
     }
-    c->ops.set_reg(c, CORE_REG_PC, entry);
     err = 0;
 
 out_err:
