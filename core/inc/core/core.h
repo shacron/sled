@@ -14,10 +14,6 @@
 extern "C" {
 #endif
 
-#define CORE_STATE_INTERRUPTS_EN    0
-#define CORE_STATE_64BIT            1
-#define CORE_STATE_ENDIAN_BIG       2
-
 #define MAX_PHYS_MEM_REGIONS    4
 #define MAX_DEVICES             8 
 

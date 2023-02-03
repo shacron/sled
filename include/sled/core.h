@@ -43,6 +43,11 @@ struct core_params {
 #define RV_CORE_REG_BASE     0x80000000
 #define RV_CORE_REG(csr) (RV_CORE_REG_BASE + (csr))
 
+// Core state args
+#define CORE_STATE_INTERRUPTS_EN    0
+#define CORE_STATE_64BIT            1
+#define CORE_STATE_ENDIAN_BIG       2
+
 void core_set_reg(core_t *c, uint32_t reg, uint64_t value);
 uint64_t core_get_reg(core_t *c, uint32_t reg);
 int core_step(core_t *c, uint32_t num);

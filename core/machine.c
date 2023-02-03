@@ -211,7 +211,7 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure
     }
     core_set_reg(c, CORE_REG_PC, entry);
 
-    if ((err = c->ops.set_state(c, CORE_STATE_64BIT, is64))) {
+    if ((err = core_set_state(c, CORE_STATE_64BIT, is64))) {
         fprintf(stderr, "failed to set core 64-bit state\n");
         goto out_err;
     }
