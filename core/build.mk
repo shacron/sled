@@ -1,6 +1,7 @@
 SRCDIR := core
 
 LIB_CSOURCES += \
+	$(SRCDIR)/arch.c \
 	$(SRCDIR)/bus.c \
 	$(SRCDIR)/core.c \
 	$(SRCDIR)/device.c \

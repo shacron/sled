@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: MIT License
+// Copyright (c) 2023 Shac Ron and The Sled Project
+
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <sled/arch.h>
 #include <sled/error.h>
 
 #include "cons.h"
@@ -15,6 +20,8 @@
 
 typedef struct {
     machine_t *machine;
+    core_t *core;
+
     uint32_t len;
     char *line;
     bool done;
@@ -27,14 +34,49 @@ typedef struct {
     const char *help;
 } cons_command_t;
 
-int help_handler(console_t *c, char *cmd, int argc, char **argv);
+static int help_handler(console_t *c, char *cmd, int argc, char **argv);
 
-int quit_handler(console_t *c, char *cmd, int argc, char **argv) {
+static int quit_handler(console_t *c, char *cmd, int argc, char **argv) {
     c->done = true;
     return 0;
 }
 
+static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
+    if (argc == 0) {
+        printf("usage:\n"
+               "  reg <reg>\n"
+               "    read a register\n"
+               "  reg <reg> <value>\n"
+               "    write value to register\n");
+        return 0;
+    }
+
+    int arch = core_get_arch(c->core);
+    char *rname = argv[0];
+
+    uint32_t r = arch_reg_for_name(arch, rname);
+    if (r == CORE_REG_INVALID) {
+        printf("invalid register name %s for architecture %s\n", rname, arch_name(arch));
+        return 0;
+    }
+
+    if (argc == 1) {
+        // read reg
+        uint64_t val = core_get_reg(c->core, r);
+        printf("%0" PRIx64 "\n", val);
+        return 0;
+    }
+
+    return 0;
+}
+
 static const cons_command_t command_list[] = {
+    {
+        .sname = 'r',
+        .lname = "reg",
+        .handler = reg_handler,
+        .help = "reg stuff",
+    },
     {
         .sname = '?',
         .lname = "help",
@@ -49,7 +91,7 @@ static const cons_command_t command_list[] = {
     },
 };
 
-int help_handler(console_t *c, char *cmd, int argc, char **argv) {
+static int help_handler(console_t *c, char *cmd, int argc, char **argv) {
     for (size_t i = 0; i < countof(command_list); i ++) {
         const cons_command_t *cc = &command_list[i];
         printf("%c %s\n  %s\n\n", cc->sname, cc->lname, cc->help);
@@ -57,7 +99,7 @@ int help_handler(console_t *c, char *cmd, int argc, char **argv) {
     return 0;
 }
 
-int parse_command(console_t *c) {
+static int parse_command(console_t *c) {
     const char *sep = " \t";
     char *word, *br;
 
@@ -90,7 +132,7 @@ int parse_command(console_t *c) {
     return 0;
 }
 
-int read_line(console_t *c) {
+static int read_line(console_t *c) {
     int pos = 0;
     for ( ; pos < MAX_LINE - 1; pos++) {
         int x = getchar();
@@ -116,6 +158,7 @@ int console_enter(machine_t *m) {
     int err = 0;
     console_t c;
     c.machine = m;
+    c.core = machine_get_core(m, 0);
 
     c.line = malloc(MAX_LINE);
     if (c.line == NULL) {

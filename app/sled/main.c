@@ -21,6 +21,8 @@
 #include <sled/error.h>
 #include <sled/machine.h>
 
+#include "cons.h"
+
 #define DEFAULT_STEP_COUNT (1000 * 1000)
 
 #define BIN_FLAG_ELF        (1u << 0)
@@ -188,6 +190,9 @@ void *core_runner(void *arg) {
             if ((err = core_step(c, step))) break;
             s -= step;
         }
+    }
+    if (err) {
+        console_enter(sm->m);
     }
     return (void *)(uintptr_t)err;
 }

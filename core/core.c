@@ -26,6 +26,10 @@ static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
     return err;
 }
 
+uint8_t core_get_arch(core_t *c) {
+    return c->arch;
+}
+
 int core_wait_for_interrupt(core_t *c) {
     irq_endpoint_t *ep = &c->irq_ep;
     lock_lock(&c->lock);

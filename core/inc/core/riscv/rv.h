@@ -81,3 +81,4 @@ int rv_wait_for_interrupt(rv_core_t *c);
 rv_sr_level_t* rv_get_level_csrs(rv_core_t *c, uint8_t level);
 
 const char *rv_name_for_reg(uint32_t reg);
+uint32_t rv_reg_for_name(const char *name);

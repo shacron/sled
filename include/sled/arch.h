@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -11,6 +13,7 @@ extern "C" {
 #define ARCH_MIPS     0
 #define ARCH_ARM      1
 #define ARCH_RISCV    2
+#define ARCH_NUM      3
 #define ARCH_UNKNOWN  0xff
 
 // ARM subarch
@@ -35,6 +38,9 @@ extern "C" {
 #define RISCV_EXT_P         (1u << 10)  // packed simd
 #define RISCV_EXT_V         (1u << 11)  // vector
 #define RISCV_EXT_N         (1u << 12)  // user-level interrupts
+
+const char *arch_name(uint8_t arch);
+uint32_t arch_reg_for_name(uint8_t arch, const char *name);
 
 #ifdef __cplusplus
 }
