@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+typedef struct device device_t;
 typedef struct elf_object elf_object_t;
 typedef struct machine machine_t;
 
