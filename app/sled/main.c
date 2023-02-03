@@ -23,8 +23,6 @@
 
 #define DEFAULT_STEP_COUNT (1000 * 1000)
 
-// #define ISSUE_INTERRUPT 1
-
 #define BIN_FLAG_ELF        (1u << 0)
 #define BIN_FLAG_INIT       (1u << 1)
 #define BIN_FLAG_FREE_NAME  (1u << 2)
@@ -42,6 +40,7 @@ typedef struct {
     int core_id;
 
     uint64_t steps;
+    uint64_t entry;
     bin_file_t *bin_list;
 
     int uart_fd_in;
@@ -51,6 +50,7 @@ typedef struct {
 } sm_t;
 
 static const struct option longopts[] = {
+    { "entry",     required_argument,  NULL,   'e' },
     { "help",      no_argument,        NULL,   'h' },
     { "kernel",    required_argument,  NULL,   'k' },
     { "monitor",   required_argument,  NULL,   'm' },
@@ -61,7 +61,7 @@ static const struct option longopts[] = {
     { NULL,        0,                  NULL,   0 }
 };
 
-static const char *shortopts = "hk:m:r:s:v";
+static const char *shortopts = "e:hk:m:r:s:v";
 
 static void usage(void) {
     puts(
@@ -70,6 +70,9 @@ static void usage(void) {
     "options:\n"
     "  <executable>\n"
     "       An ELF binary to be loaded and run in the default core.\n"
+    "\n"
+    "  -e, --entry=<addr>\n"
+    "       Set execution entry point to <addr>. Overrides any entry point in loaded binaries\n"
     "\n"
     "  -m, --monitor=<binary>\n"
     "       An ELF binary to be loaded into the default core, setting the entry point\n"
@@ -113,6 +116,7 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
 
     while ((ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
         switch (ch) {
+        case 'e': sm->entry = strtoull(optarg, NULL, 0); break;
         case 'h': return -2;
         case 'k': add_binary(sm, BIN_FLAG_ELF, optarg, 0);   break;
         case 'm': add_binary(sm, BIN_FLAG_ELF | BIN_FLAG_INIT, optarg, 0);   break;
@@ -322,6 +326,10 @@ int simple_machine(sm_t *sm) {
         }
     }
 
+    core_t *c = machine_get_core(m, sm->core_id);
+
+    if (sm->entry != 0) core_set_reg(c, CORE_REG_PC, sm->entry);
+
     // run
     sm->core_id = params.id;
     if ((err = start_thread_for_core(sm))) {
@@ -340,9 +348,6 @@ int simple_machine(sm_t *sm) {
     void *retval;
     pthread_join(sm->core0, &retval);
     err = (int)(uintptr_t)retval;
-
-
-    core_t *c = machine_get_core(m, sm->core_id);
 
     if (err == SL_OK) goto out;
     if (err != SL_ERR_SYSCALL) {
