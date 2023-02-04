@@ -57,6 +57,10 @@ int core_step(core_t *c, uint32_t num);
 int core_run(core_t *c);
 int core_set_state(core_t *c, uint32_t state, bool enabled);
 
+// memory access through core
+int core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+int core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+
 uint64_t core_get_cycles(core_t *c);
 
 #ifdef __cplusplus

@@ -66,10 +66,6 @@ void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
 
-// memory access through core
-int core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-int core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-
 #ifdef __cplusplus
 }
 #endif
