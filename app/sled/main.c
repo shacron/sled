@@ -24,7 +24,7 @@
 #include "cons.h"
 
 #define DEFAULT_STEP_COUNT (1000 * 1000)
-#define DEFAULT_CONSOLE    1
+#define DEFAULT_CONSOLE    0
 
 #define BIN_FLAG_ELF        (1u << 0)
 #define BIN_FLAG_INIT       (1u << 1)
