@@ -164,7 +164,28 @@ do_op:
     return 0;
 }
 
+static int step_handler(console_t *c, char *cmd, int argc, char **argv) {
+    uint32_t step = 1;
+    if (argc > 0) {
+        step = strtoul(argv[0], NULL, 0);
+    }
+    for ( ; step; step--) {
+        int err = core_step(c->core, step);
+        if (err) {
+            printf("instruction failed: %s\n", st_err(err));
+            return err;
+        }
+    }
+    return 0;
+}
+
 static const cons_command_t command_list[] = {
+    {
+        .sname = 's',
+        .lname = "step",
+        .handler = step_handler,
+        .help = "step one or more instructions",
+    },
     {
         .sname = 'r',
         .lname = "reg",
