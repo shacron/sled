@@ -24,7 +24,7 @@
 #include "cons.h"
 
 #define DEFAULT_STEP_COUNT (1000 * 1000)
-#define DEFAULT_CONSOLE    false
+#define DEFAULT_CONSOLE    1
 
 #define BIN_FLAG_ELF        (1u << 0)
 #define BIN_FLAG_INIT       (1u << 1)
@@ -45,6 +45,7 @@ typedef struct {
     uint64_t steps;
     uint64_t entry;
     bin_file_t *bin_list;
+    bool cons_on_start;
     bool cons_on_err;
 
     int uart_fd_in;
@@ -54,6 +55,7 @@ typedef struct {
 } sm_t;
 
 static const struct option longopts[] = {
+    { "conole",    no_argument,        NULL,   'c' },
     { "entry",     required_argument,  NULL,   'e' },
     { "help",      no_argument,        NULL,   'h' },
     { "kernel",    required_argument,  NULL,   'k' },
@@ -65,7 +67,7 @@ static const struct option longopts[] = {
     { NULL,        0,                  NULL,   0 }
 };
 
-static const char *shortopts = "e:hk:m:r:s:v";
+static const char *shortopts = "ce:hk:m:r:s:v";
 
 static void usage(void) {
     puts(
@@ -74,6 +76,9 @@ static void usage(void) {
     "options:\n"
     "  <executable>\n"
     "       An ELF binary to be loaded and run in the default core.\n"
+    "\n"
+    "  -c, --console\n"
+    "       Enter console before execution starts\n"
     "\n"
     "  -e, --entry=<addr>\n"
     "       Set execution entry point to <addr>. Overrides any entry point in loaded binaries\n"
@@ -120,6 +125,7 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
 
     while ((ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
         switch (ch) {
+        case 'c': sm->cons_on_start = true; break;
         case 'e': sm->entry = strtoull(optarg, NULL, 0); break;
         case 'h': return -2;
         case 'k': add_binary(sm, BIN_FLAG_ELF, optarg, 0);   break;
@@ -178,10 +184,15 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
 }
 
 void *core_runner(void *arg) {
+    int err = 0;
     sm_t *sm = arg;
     core_t *c = machine_get_core(sm->m, sm->core_id);
 
-    int err = 0;
+    if (sm->cons_on_start) {
+        err = console_enter(sm->m);
+        goto out_err;
+    }
+
     if (sm->steps == 0) {
         for ( ; err == 0; ) err = core_step(c, DEFAULT_STEP_COUNT);
     } else {
@@ -196,6 +207,7 @@ void *core_runner(void *arg) {
     if (err && sm->cons_on_err) {
         console_enter(sm->m);
     }
+out_err:
     return (void *)(uintptr_t)err;
 }
 
