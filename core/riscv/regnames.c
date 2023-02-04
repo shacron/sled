@@ -243,6 +243,17 @@ const char *rv_name_for_reg(uint32_t reg) {
 
 uint32_t rv_reg_for_name(const char *name) {
     if (!strcmp(name, "pc")) return CORE_REG_PC;
+    if (name[0] == 'x') {
+        uint8_t c = name[1];
+        if (c < '0' || c > '9') return CORE_REG_INVALID;
+        if (name[2] == '\0')
+            return c - '0';
+        uint8_t d = name[2];
+        if (d < '0' || d > '9') return CORE_REG_INVALID;
+        c = ((c - '0') * 10) + (d - '0');
+        if (c > 31) return CORE_REG_INVALID;
+        return c;
+    }
     for (uint32_t i = 0; i < countof(reg_name); i++) {
         if (!strcmp(name, reg_name[i])) return i;
     }
@@ -250,7 +261,7 @@ uint32_t rv_reg_for_name(const char *name) {
 }
 
 
-const csr_name_t* csr_name_index[] = {
+static const csr_name_t* csr_name_index[] = {
     [0x0] = csr_name_0,
     [0x1] = csr_name_1,
     [0x2] = csr_name_2,
