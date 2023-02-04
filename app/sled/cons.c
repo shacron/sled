@@ -169,12 +169,13 @@ static int step_handler(console_t *c, char *cmd, int argc, char **argv) {
     if (argc > 0) {
         step = strtoul(argv[0], NULL, 0);
     }
-    for ( ; step; step--) {
-        int err = core_step(c->core, step);
-        if (err) {
-            printf("instruction failed: %s\n", st_err(err));
-            return err;
-        }
+    int err = core_step(c->core, step);
+    uint64_t pc = core_get_reg(c->core, CORE_REG_PC);
+    if (err) {
+        printf("instruction failed at pc=%#" PRIx64 ": %s\n", pc, st_err(err));
+    } else {
+        // todo: pretty-print instruction disassembly when decoder is done
+        printf("pc = %#" PRIx64 "\n", pc);
     }
     return 0;
 }
