@@ -24,6 +24,7 @@
 #include "cons.h"
 
 #define DEFAULT_STEP_COUNT (1000 * 1000)
+#define DEFAULT_CONSOLE    false
 
 #define BIN_FLAG_ELF        (1u << 0)
 #define BIN_FLAG_INIT       (1u << 1)
@@ -44,6 +45,7 @@ typedef struct {
     uint64_t steps;
     uint64_t entry;
     bin_file_t *bin_list;
+    bool cons_on_err;
 
     int uart_fd_in;
     int uart_fd_out;
@@ -191,7 +193,7 @@ void *core_runner(void *arg) {
             s -= step;
         }
     }
-    if (err) {
+    if (err && sm->cons_on_err) {
         console_enter(sm->m);
     }
     return (void *)(uintptr_t)err;
@@ -394,6 +396,7 @@ int main(int argc, char *argv[]) {
     sm_t sm = {
         .uart_io = UART_IO_CONS,
         .steps = DEFAULT_STEP_COUNT,
+        .cons_on_err = DEFAULT_CONSOLE,
     };
 
     int ret = parse_opts(argc, argv, &sm);
