@@ -42,16 +42,24 @@ static int quit_handler(console_t *c, char *cmd, int argc, char **argv) {
 }
 
 static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
+    int arch = core_get_arch(c->core);
+    uint64_t val;
+
     if (argc == 0) {
-        printf("usage:\n"
-               "  reg <reg>\n"
-               "    read a register\n"
-               "  reg <reg> <value>\n"
-               "    write value to register\n");
+        val = core_get_reg(c->core, CORE_REG_PC);
+        printf("pc : %" PRIx64 "\n", val);
+        uint32_t count = core_get_reg_count(c->core, CORE_REG_TYPE_INT);
+        for (uint32_t a = 0; a < count; a += 4) {
+            uint64_t r[4];
+            for (int b = 0; b < 4; b++) {
+                if ((a + b) > count) break;
+                r[b] = core_get_reg(c->core, a + b);
+            }
+            printf("r%2u: %16" PRIx64 " %16" PRIx64 " %16" PRIx64 " %16" PRIx64 "\n", a, r[0], r[1], r[2], r[3]);
+        }
         return 0;
     }
 
-    int arch = core_get_arch(c->core);
     char *rname = argv[0];
 
     uint32_t r = arch_reg_for_name(arch, rname);
@@ -60,7 +68,6 @@ static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
         return 0;
     }
 
-    uint64_t val;
     if (argc == 1) {
         // read reg
         val = core_get_reg(c->core, r);

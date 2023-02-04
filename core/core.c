@@ -147,3 +147,7 @@ int core_set_state(core_t *c, uint32_t state, bool enabled) {
     return c->ops.set_state(c, state, enabled);
 }
 
+uint32_t core_get_reg_count(core_t *c, int type) {
+    return arch_get_reg_count(c->arch, c->subarch, type);
+}
+

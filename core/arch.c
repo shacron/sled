@@ -34,9 +34,44 @@ static const arch_ops_t arch_ops[] = {
      },
 };
 
+typedef struct {
+    uint8_t arch;
+    uint8_t subarch;
+    const char *arch_name;
+    const char *subarch_name;
+    uint32_t int_reg_count;
+} arch_info_t;
+
+static const arch_info_t arch_info[] = {
+    {
+        .arch = ARCH_RISCV,
+        .subarch = SUBARCH_RV32,
+        .subarch_name = "rv32",
+        .int_reg_count = 32,
+    },
+    {
+        .arch = ARCH_RISCV,
+        .subarch = SUBARCH_RV64,
+        .subarch_name = "rv64",
+        .int_reg_count = 32,
+    },
+};
+
 const char *arch_name(uint8_t arch) {
     if (arch > ARCH_NUM) return NULL;
     return arch_name_map[arch];
+}
+
+uint32_t arch_get_reg_count(uint8_t arch, uint8_t subarch, int type) {
+    if (type != CORE_REG_TYPE_INT) return 0;
+
+    for (int i = 0; i < countof(arch_info); i++) {
+        const arch_info_t *a = &arch_info[i];
+        if ((a->arch == arch) && (a->subarch == subarch)) {
+            return a->int_reg_count;
+        }
+    }
+    return 0;
 }
 
 uint32_t arch_reg_for_name(uint8_t arch, const char *name) {

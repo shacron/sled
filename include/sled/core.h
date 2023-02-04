@@ -45,12 +45,20 @@ struct core_params {
 #define RV_CORE_REG_BASE     0x80000000
 #define RV_CORE_REG(csr) (RV_CORE_REG_BASE + (csr))
 
+// Query register types
+#define CORE_REG_TYPE_INT    0
+#define CORE_REG_TYPE_FLOAT  1
+#define CORE_REG_TYPE_VECTOR 2
+#define CORE_REG_TYPE_MATRIX 3
+
 // Core state args
 #define CORE_STATE_INTERRUPTS_EN    0
 #define CORE_STATE_64BIT            1
 #define CORE_STATE_ENDIAN_BIG       2
 
 uint8_t core_get_arch(core_t *c);
+uint32_t core_get_reg_count(core_t *c, int type);
+
 void core_set_reg(core_t *c, uint32_t reg, uint64_t value);
 uint64_t core_get_reg(core_t *c, uint32_t reg);
 int core_step(core_t *c, uint32_t num);

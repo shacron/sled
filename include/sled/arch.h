@@ -16,6 +16,10 @@ extern "C" {
 #define ARCH_NUM      3
 #define ARCH_UNKNOWN  0xff
 
+// MIPS subarch
+#define SUBARCH_MIPS   0
+#define SUBARCH_MIPS64 1
+
 // ARM subarch
 #define SUBARCH_ARM   0
 #define SUBARCH_ARM64 1
@@ -41,6 +45,7 @@ extern "C" {
 
 const char *arch_name(uint8_t arch);
 uint32_t arch_reg_for_name(uint8_t arch, const char *name);
+uint32_t arch_get_reg_count(uint8_t arch, uint8_t subarch, int type);
 
 #ifdef __cplusplus
 }
