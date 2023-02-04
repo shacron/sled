@@ -74,13 +74,95 @@ static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
     return 0;
 }
 
+static int mem_handler(console_t *c, char *cmd, int argc, char **argv) {
+    int err = 0;
+
+    if (argc < 2) {
+        printf("usage:\n"
+               "  mem r<size> <addr> <num>\n"
+               "    read memory at address\n"
+               "  mem w<size> <addr> <value> <num>\n"
+               "    write value of size wsize to memory\n");
+        return 0;
+    }
+
+    uint32_t size = 0;
+    uint32_t num = 20;
+    uint64_t value = 0;
+    const uint32_t line_len = 100;
+    char line[line_len];
+
+    const char *op = argv[0];
+    if ((op[0] == 'r') || (op[0] == 'w')) {
+        switch (op[1]) {
+        case '1': size = 1; break;
+        case '2': size = 2; break;
+        case '4': size = 4; break;
+        case '8':
+        case '\0': size = 8; break;
+        default:
+            printf("invalid mem size. Should be 1, 2, 4, or 8.\n");
+            return 0;
+        }
+    } else {
+        printf("invalid mem op %s\n", op);
+        return 0;
+    }
+
+    uint64_t addr = strtoull(argv[1], NULL, 0);
+
+    if (argc == 2) goto do_op;
+
+    const char *sval = NULL;
+    const char *snum = argv[2];
+    if (op[0] == 'w') {
+        sval = argv[2];
+        if (argc >= 4) snum = argv[3];
+        else snum = NULL;
+    }
+    if (sval != NULL) value = strtoull(sval, NULL, 0);
+    if (snum != NULL) num = strtoull(snum, NULL, 0);
+
+do_op:
+    if (op[0] == 'r') {
+        for (uint32_t i = 0; i < num; ) {
+            line[0] = '\0';
+            int cur = snprintf(line, line_len, "%"PRIx64": ", addr);
+            uint32_t j;
+            for (j = i; j < num; j++) {
+                uint8_t a;
+                if ((err = core_mem_read(c->core, addr, 1, 1, &a))) {
+                    printf("failed to read memory at %"PRIx64"\n", addr);
+                    return 0;
+                }
+                addr++;
+                cur += snprintf(line + cur, line_len - cur, "%02x ", a);
+                if (line_len - cur < 4) break;
+            }
+            puts(line);
+            i = j;
+        }
+    } else {
+
+
+    }
+    return 0;
+}
+
 static const cons_command_t command_list[] = {
     {
         .sname = 'r',
         .lname = "reg",
         .handler = reg_handler,
-        .help = "reg stuff",
+        .help = "reg read/write",
     },
+    {
+        .sname = 'm',
+        .lname = "mem",
+        .handler = mem_handler,
+        .help = "mem read/write",
+    },
+
     {
         .sname = '?',
         .lname = "help",
