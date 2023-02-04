@@ -60,13 +60,17 @@ static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
         return 0;
     }
 
+    uint64_t val;
     if (argc == 1) {
         // read reg
-        uint64_t val = core_get_reg(c->core, r);
-        printf("%0" PRIx64 "\n", val);
+        val = core_get_reg(c->core, r);
+        printf("%#" PRIx64 "\n", val);
         return 0;
     }
 
+    val = strtoull(argv[1], NULL, 0);
+    core_set_reg(c->core, r, val);
+    printf("%s = %#" PRIx64 "\n", rname, val);
     return 0;
 }
 
