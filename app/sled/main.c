@@ -55,7 +55,7 @@ typedef struct {
 } sm_t;
 
 static const struct option longopts[] = {
-    { "conole",    no_argument,        NULL,   'c' },
+    { "console",   no_argument,        NULL,   'c' },
     { "entry",     required_argument,  NULL,   'e' },
     { "help",      no_argument,        NULL,   'h' },
     { "kernel",    required_argument,  NULL,   'k' },
