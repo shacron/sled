@@ -42,14 +42,16 @@ static int XLEN_PREFIX(exec_jump)(rv_core_t *c, rv_inst_t inst) {
     // or imm4 with sign extend
     imm |= ((int32_t)(inst.raw & 0x80000000)) >> (31 - 20);
 
-    uxlen_t dest = imm + c->pc;        // J
-    if (inst.j.rd == RV_ZERO) {
-        RV_TRACE_PRINT(c, "j %#0" PRIXLENx, dest);
+#if RV_TRACE
+    uxlen_t trace_dest = RV_BR_TARGET(imm + c->pc, imm);
+#endif
+    if (inst.j.rd == RV_ZERO) {        // J
+        RV_TRACE_PRINT(c, "j %#" PRIXLENx, trace_dest);
     } else {
         c->r[inst.j.rd] = (uxlen_t)(c->pc + 4);    // JAL
-        RV_TRACE_PRINT(c, "jal x%u, %#0" PRIXLENx, inst.j.rd, dest);
+        RV_TRACE_PRINT(c, "jal x%u, %#" PRIXLENx, inst.j.rd, trace_dest);
     }
-    c->pc = dest;
+    c->pc = imm + c->pc;
     c->jump_taken = 1;
     RV_TRACE_RD(c, CORE_REG_PC, c->pc);
     return 0;
@@ -99,7 +101,7 @@ static int XLEN_PREFIX(exec_branch)(rv_core_t *c, rv_inst_t inst) {
     int32_t imm = (inst.b.imm3 << 11) | (inst.b.imm2 << 5) | (inst.b.imm1 << 1);
     // or imm4 with sign extend
     imm |= ((int32_t)(inst.raw & 0x80000000)) >> (31 - 12);
-    RV_TRACE_PRINT(c, "%s x%u, x%u, %#" PRIXLENx, opstr, inst.b.rs1, inst.b.rs2, (uxlen_t)(c->pc+imm));
+    RV_TRACE_PRINT(c, "%s x%u, x%u, %#" PRIXLENx, opstr, inst.b.rs1, inst.b.rs2, (uxlen_t)RV_BR_TARGET(c->pc + imm, imm));
     if (cond) {
         c->pc = (uxlen_t)(c->pc + imm);
         c->jump_taken = 1;
@@ -824,10 +826,10 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const int32_t imm = sign_extend32(CJIMM(ci), 12);
         const uxlen_t result = c->pc + imm;
         c->r[RV_RA] = c->pc + 2;
+        RV_TRACE_RD(c, CORE_REG_PC, RV_BR_TARGET(result, imm));
+        RV_TRACE_PRINT(c, "c.jal %d", imm);
         c->pc = result;
         c->jump_taken = 1;
-        RV_TRACE_RD(c, CORE_REG_PC, result);
-        RV_TRACE_PRINT(c, "c.jal %d", imm);
 #else
         // C.ADDIW
         if (ci.ci.rsd == 0) goto undef;
@@ -880,10 +882,10 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     {
         const int32_t imm = sign_extend32(CJIMM(ci), 12);
         uxlen_t result = c->pc + imm;
+        RV_TRACE_RD(c, CORE_REG_PC, result);
+        RV_TRACE_PRINT(c, "c.j %#" PRIXLENx, RV_BR_TARGET(result, imm));
         c->pc = result;
         c->jump_taken = 1;
-        RV_TRACE_RD(c, CORE_REG_PC, result);
-        RV_TRACE_PRINT(c, "c.j %d", imm);
         break;
     }
 
@@ -891,13 +893,13 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     {
         const int32_t imm = sign_extend32(CBIMM(ci), 8);
         const uint32_t rs = RVC_TO_REG(ci.cb.rs);
+        const uxlen_t result = c->pc + imm;
         if (c->r[rs] == 0) {
-            const uxlen_t result = c->pc + imm;
             c->pc = result;
             c->jump_taken = 1;
             RV_TRACE_RD(c, CORE_REG_PC, result);
         }
-        RV_TRACE_PRINT(c, "c.beqz x%u, %d", rs, imm);
+        RV_TRACE_PRINT(c, "c.beqz x%u, %#" PRIXLENx, rs, RV_BR_TARGET(result, imm));
         break;
     }
 
@@ -905,13 +907,13 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     {
         const int32_t imm = sign_extend32(CBIMM(ci), 8);
         const uint32_t rs = RVC_TO_REG(ci.cb.rs);
+        const uxlen_t result = (uxlen_t)(c->pc + imm);
         if (c->r[rs] != 0) {
-            const uxlen_t result = (uxlen_t)(c->pc + imm);
             c->pc = result;
             c->jump_taken = 1;
             RV_TRACE_RD(c, CORE_REG_PC, result);
         }
-        RV_TRACE_PRINT(c, "c.bnez x%u, %d", rs, imm);
+        RV_TRACE_PRINT(c, "c.bnez x%u, %#" PRIXLENx, rs, RV_BR_TARGET(result, imm));
         break;
     }
 
