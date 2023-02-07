@@ -61,6 +61,25 @@
 // CSR addresses in csr instruction
 // ****************************************************************************
 
+// Supervisor Trap Setup
+#define RV_CSR_SSTATUS      0x100   // SRW sstatus - Supervisor status register.
+#define RV_CSR_SIE          0x104   // SRW sie - Supervisor interrupt-enable register.
+#define RV_CSR_STVEC        0x105   // SRW stvec - Supervisor trap handler base address.
+#define RV_CSR_SCOUNTEREN   0x106   // SRW scounteren - Supervisor counter enable.
+// Supervisor Configuration
+#define RV_CSR_SENVCFG      0x10A   // SRW senvcfg - Supervisor environment configuration register.
+// Supervisor Trap Handling
+#define RV_CSR_SSCRATCH     0x140   // SRW sscratch - Scratch register for supervisor trap handlers.
+#define RV_CSR_SEPC         0x141   // SRW sepc - Supervisor exception program counter.
+#define RV_CSR_SCAUSE       0x142   // SRW scause - Supervisor trap cause.
+#define RV_CSR_STVAL        0x143   // SRW stval - Supervisor bad address or instruction.
+#define RV_CSR_SIP          0x144   // SRW sip - Supervisor interrupt pending.
+// Supervisor address translation and protection.
+#define RV_CSR_SATP         0x180   // SRW satp - Supervisor Protection and Translation
+// Debug/Trace Registers
+#define RV_CSR_SCONTEXT     0x5A8   // SRW scontext - Supervisor-mode context register.
+
+
 // Machine Information Registers (MRO)
 #define RV_CSR_MVENDORID        0xf11 // MRO mvendorid - Vendor ID.
 #define RV_CSR_MARCHID          0xf12 // MRO marchid - Architecture ID.
