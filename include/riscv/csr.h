@@ -56,7 +56,12 @@
 #define RV_SR_STATUS_WPRI4     (1ul << RV_SR_STATUS_BIT_WPRI4)
 #define RV_SR_STATUS64_SD      (1ul << RV_SR_STATUS64_BIT_SD)
 
-
+#define RV_SR_STATUS_VS_MASK    (3ul << RV_SR_STATUS_BIT_VS)
+#define RV_SR_STATUS_MMP_MASK   (3ul << RV_SR_STATUS_BIT_MPP)
+#define RV_SR_STATUS_FS_MASK    (3ul << RV_SR_STATUS_BIT_FS)
+#define RV_SR_STATUS_XS_MASK    (3ul << RV_SR_STATUS_BIT_XS)
+#define RV_SR_STATUS64_UXL_MASK (3ul << RV_SR_STATUS_BIT_UXL)
+#define RV_SR_STATUS64_SXL_MASK (3ul << RV_SR_STATUS_BIT_SXL)
 
 // CSR addresses in csr instruction
 // ****************************************************************************
