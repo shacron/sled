@@ -126,7 +126,7 @@ device_t * machine_get_device_for_name(machine_t *m, const char *name) {
 }
 
 int machine_set_interrupt(machine_t *m, uint32_t irq, bool high) {
-    if (m->intc == NULL) return SL_ERR_NODEV;
+    if (m->intc == NULL) return SL_ERR_IO_NODEV;
     return irq_endpoint_assert(&m->intc->irq_ep, irq, high);
 }
 
