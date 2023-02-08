@@ -24,6 +24,11 @@ result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
     return result;
 }
 
+/*
+mstatus64 SD - MBE SBE SXL[1:0] UXL[1:0] - TSR TW TVM MXR SUM MPRV XS[1:0] FS[1:0] MPP[1:0] VS[1:0] SPP MPIE UBE SPIE - MIE - SIE
+sstatus64 SD ------------------ UXL[1:0] ------------ MXR SUM ---- XS[1:0] FS[1:0] -------- VS[1:0] SPP ---- UBE SPIE ------- SIE
+*/
+
 static result64_t rv_mstatus_csr(rv_core_t *c, int op, uint64_t value) {
     result64_t result = {};
 
@@ -273,49 +278,54 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
         rv_sr_level_t *r = rv_get_level_csrs(c, RV_PRIV_LEVEL_HYPERVISOR);
 
         switch (addr.raw) {
-        case 0x140: // sscratch
-            result = rv_csr_update(c, op, &r->scratch, value);
-            goto out;
-
-        case 0x141: // sepc
-            result = rv_csr_update(c, op, &r->epc, value);
-            goto out;
-
-        case 0x142: // scause
-            result = rv_csr_update(c, op, &r->cause, value);
-            goto out;
-
-        case 0x143: // stval
-            result = rv_csr_update(c, op, &r->tval, value);
-            goto out;
-
-        case 0x144: // sip
-            result = rv_csr_update(c, op, &r->ip, value);
-            goto out;
-
         // Supervisor Trap Setup (SRW)
-        case 0x100: // sstatus
-        case 0x104: // sie
+        case RV_CSR_SSTATUS: // sstatus
+
+
+
+        case RV_CSR_SIE: // sie
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
-        case 0x105: // stvec
+        case RV_CSR_STVEC: // stvec
             result = rv_csr_update(c, op, &r->tvec, value);
             goto out;
 
-        case 0x106: // scounteren
+        case RV_CSR_SCOUNTEREN: // scounteren
+
         // Supervisor Configuration (SRW)
-        case 0x10a: // senvcfg
+        case RV_CSR_SENVCFG: // senvcfg
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
+        // Supervisor Trap Handling
+        case RV_CSR_SSCRATCH: // sscratch
+            result = rv_csr_update(c, op, &r->scratch, value);
+            goto out;
+
+        case RV_CSR_SEPC: // sepc
+            result = rv_csr_update(c, op, &r->epc, value);
+            goto out;
+
+        case RV_CSR_SCAUSE: // scause
+            result = rv_csr_update(c, op, &r->cause, value);
+            goto out;
+
+        case RV_CSR_STVAL: // stval
+            result = rv_csr_update(c, op, &r->tval, value);
+            goto out;
+
+        case RV_CSR_SIP: // sip
+            result = rv_csr_update(c, op, &r->ip, value);
+            goto out;
+
         // Supervisor Protection and Translation (SRW)
-        case 0x180: // satp
+        case RV_CSR_SATP: // satp
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
         // Debug/Trace Registers (SRW)
-        case 0x5a8: // scontext
+        case RV_CSR_SCONTEXT: // scontext
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 

@@ -177,7 +177,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     result64_t result = rv_csr_op(c, op, csr_addr, value);
     if (result.err == SL_ERR_UNDEF) return rv_undef(c, inst);
     if (result.err == SL_ERR_UNIMPLEMENTED) {
-        printf("unimplemented CSR access %x\n", csr_addr);
+        printf("unimplemented CSR access %#x\n", csr_addr);
         assert(false);
         return SL_ERR_UNIMPLEMENTED;
     }
