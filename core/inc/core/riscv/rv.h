@@ -50,6 +50,7 @@ struct rv_core {
     uint64_t pc;
     uint64_t r[32];
 
+    uint32_t irq_asserted;
     uint64_t status;
 
     // system registers

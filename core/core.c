@@ -20,7 +20,10 @@ static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
     lock_lock(&c->lock);
     bool was_clear = (ep->asserted == 0);
     int err = irq_endpoint_assert(ep, num, high);
-    if (!err && was_clear && (ep->asserted > 0)) cond_signal_all(&c->cond_int_asserted);
+    if (!err && was_clear && (ep->asserted > 0)) {
+        c->pending_irq = 1;
+        cond_signal_all(&c->cond_int_asserted);
+    }
     lock_unlock(&c->lock);
 
     return err;

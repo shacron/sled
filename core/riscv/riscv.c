@@ -113,13 +113,19 @@ static void riscv_core_next_pc(rv_core_t *c) {
     }
 }
 
-static int rv_handle_pending_irq(rv_core_t *c) {
+static void rv_handle_pending_irq(rv_core_t *c) {
     irq_endpoint_t *ep = &c->core.irq_ep;
     lock_lock(&c->core.lock);
-    const uint32_t active = ep->asserted;
+    c->irq_asserted = ep->asserted;
+    c->core.pending_irq = 0;
     lock_unlock(&c->core.lock);
+}
 
-    if (active == 0) return 0;
+static int rv_interrupt_taken(rv_core_t *c) {
+    uint32_t asserted = c->irq_asserted;
+    if (asserted == 0) return 0;
+
+    c->irq_asserted = 0;
 
     static const uint8_t irq_pri[] = {
         RV_INT_EXTERNAL_M, RV_INT_TIMER_M, RV_INT_SW_M, RV_INT_EXTERNAL_S, RV_INT_TIMER_S, RV_INT_SW_S
@@ -128,7 +134,7 @@ static int rv_handle_pending_irq(rv_core_t *c) {
     int err = 0;
     for (int i = 0; i < 6; i++) {
         const uint8_t num = irq_pri[i];
-        if (active & (1u << num)) {
+        if (asserted & (1u << num)) {
             if ((err = rv_exception_enter(c, num | RV_CAUSE_INT64, 0))) break;
         }
     }
@@ -139,8 +145,9 @@ static int riscv_core_step(core_t *c, uint32_t num) {
     rv_core_t *rc = (rv_core_t *)c;
     int err = 0;
     for (uint32_t i = 0; i < num; i++) {
+        if (rv_get_pending_irq(rc)) rv_handle_pending_irq(rc);
         if (CORE_INT_ENABLED(c->state)) {
-            if ((err = rv_handle_pending_irq(rc))) break;
+            if ((err = rv_interrupt_taken(rc))) break;
         }
         uint32_t inst;
         if ((err = rv_load_pc(rc, &inst)))
