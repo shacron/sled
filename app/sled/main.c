@@ -23,7 +23,8 @@
 
 #include "cons.h"
 
-#define DEFAULT_STEP_COUNT (1000 * 1000)
+#define ISSUE_INTERRUPT 1
+#define DEFAULT_STEP_COUNT (2 * 1000 * 1000)
 #define DEFAULT_CONSOLE    0
 
 #define BIN_FLAG_ELF        (1u << 0)
