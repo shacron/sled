@@ -22,6 +22,8 @@ extern "C" {
 #define BARRIER_SYSTEM  (1u << 2)
 #define BARRIER_SYNC    (1u << 3)
 
+#define CORE_INT_ENABLED(s) (s & (1u << CORE_STATE_INTERRUPTS_EN))
+
 typedef struct core_ops {
     void (*set_reg)(core_t *c, uint32_t reg, uint64_t value);
     uint64_t (*get_reg)(core_t *c, uint32_t reg);

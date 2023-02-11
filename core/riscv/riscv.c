@@ -139,7 +139,7 @@ static int riscv_core_step(core_t *c, uint32_t num) {
     rv_core_t *rc = (rv_core_t *)c;
     int err = 0;
     for (uint32_t i = 0; i < num; i++) {
-        if ((c->state & (1u << CORE_STATE_INTERRUPTS_EN))) {
+        if (CORE_INT_ENABLED(c->state)) {
             if ((err = rv_handle_pending_irq(rc))) break;
         }
         uint32_t inst;
