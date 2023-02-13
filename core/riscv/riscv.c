@@ -113,6 +113,8 @@ static void riscv_core_next_pc(rv_core_t *c) {
     }
 }
 
+// rv_handle_pending_irq copies asynchronous pending IRQs to the synchronous
+// irq_asserted flag. irq_asserted is only touched in the dispatch loop.
 static void rv_handle_pending_irq(rv_core_t *c) {
     irq_endpoint_t *ep = &c->core.irq_ep;
     lock_lock(&c->core.lock);
@@ -121,11 +123,10 @@ static void rv_handle_pending_irq(rv_core_t *c) {
     lock_unlock(&c->core.lock);
 }
 
+// Synchronous irq handler - invokes an exception before the next instruction is dispatched.
 static int rv_interrupt_taken(rv_core_t *c) {
     uint32_t asserted = c->irq_asserted;
     if (asserted == 0) return 0;
-
-    c->irq_asserted = 0;
 
     static const uint8_t irq_pri[] = {
         RV_INT_EXTERNAL_M, RV_INT_TIMER_M, RV_INT_SW_M, RV_INT_EXTERNAL_S, RV_INT_TIMER_S, RV_INT_SW_S
@@ -133,12 +134,15 @@ static int rv_interrupt_taken(rv_core_t *c) {
 
     int err = 0;
     for (int i = 0; i < 6; i++) {
-        const uint8_t num = irq_pri[i];
-        if (asserted & (1u << num)) {
-            if ((err = rv_exception_enter(c, num | RV_CAUSE_INT64, 0))) break;
+        const uint8_t bit = irq_pri[i];
+        const uint32_t num = (1u << bit);
+        if (asserted & num) {
+            if ((err = rv_exception_enter(c, bit | RV_CAUSE_INT64, 0))) return err;
+            c->irq_asserted &= ~(num);
+            return 0;
         }
     }
-    return err;
+    return SL_ERR_STATE;
 }
 
 static int riscv_core_step(core_t *c, uint32_t num) {
