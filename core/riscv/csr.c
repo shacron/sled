@@ -10,6 +10,24 @@
 #include <riscv/csr.h>
 #include <sled/error.h>
 
+/*
+mstatus64 SD - MBE SBE SXL[1:0] UXL[1:0] - TSR TW TVM MXR SUM MPRV XS[1:0] FS[1:0] MPP[1:0] VS[1:0] SPP MPIE UBE SPIE - MIE - SIE
+sstatus64 SD ------------------ UXL[1:0] ------------ MXR SUM ---- XS[1:0] FS[1:0] -------- VS[1:0] SPP ---- UBE SPIE ------- SIE
+*/
+
+#define STATUS_MASK_M \
+    (RV_SR_STATUS_SIE | RV_SR_STATUS_MIE | RV_SR_STATUS_SPIE | RV_SR_STATUS_UBE | RV_SR_STATUS_MPIE | RV_SR_STATUS_SPP | \
+     RV_SR_STATUS_VS_MASK | RV_SR_STATUS_MMP_MASK | RV_SR_STATUS_FS_MASK | RV_SR_STATUS_XS_MASK | RV_SR_STATUS_MPRV | \
+     RV_SR_STATUS_SUM | RV_SR_STATUS_MXR | RV_SR_STATUS_TVM | RV_SR_STATUS_TW | RV_SR_STATUS_TSR | RV_SR_STATUS64_UXL_MASK | \
+     RV_SR_STATUS64_SXL_MASK | RV_SR_STATUS_SBE | RV_SR_STATUS_MBE | RV_SR_STATUS64_SD)
+
+// #define STATUS_MASK_H STATUS_MASK_M
+
+#define STATUS_MASK_S \
+    (RV_SR_STATUS_SIE | RV_SR_STATUS_SPIE | RV_SR_STATUS_UBE | RV_SR_STATUS_SPP | RV_SR_STATUS_VS_MASK | \
+     RV_SR_STATUS_FS_MASK | RV_SR_STATUS_XS_MASK | RV_SR_STATUS_SUM | RV_SR_STATUS_MXR | RV_SR_STATUS64_UXL_MASK | \
+     RV_SR_STATUS64_SD)
+
 // plain register modification with no side effects
 result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
     result64_t result = {};
@@ -23,19 +41,6 @@ result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
     }
     return result;
 }
-
-/*
-mstatus64 SD - MBE SBE SXL[1:0] UXL[1:0] - TSR TW TVM MXR SUM MPRV XS[1:0] FS[1:0] MPP[1:0] VS[1:0] SPP MPIE UBE SPIE - MIE - SIE
-sstatus64 SD ------------------ UXL[1:0] ------------ MXR SUM ---- XS[1:0] FS[1:0] -------- VS[1:0] SPP ---- UBE SPIE ------- SIE
-*/
-
-#define STATUS_MASK_M \
-    (RV_SR_STATUS_SIE | RV_SR_STATUS_MIE | RV_SR_STATUS_SPIE | RV_SR_STATUS_UBE | RV_SR_STATUS_MPIE | RV_SR_STATUS_SPP | RV_SR_STATUS_VS_MASK | RV_SR_STATUS_MMP_MASK | RV_SR_STATUS_FS_MASK | RV_SR_STATUS_XS_MASK | RV_SR_STATUS_MPRV | RV_SR_STATUS_SUM | RV_SR_STATUS_MXR | RV_SR_STATUS_TVM | RV_SR_STATUS_TW | RV_SR_STATUS_TSR | RV_SR_STATUS64_UXL_MASK | RV_SR_STATUS64_SXL_MASK | RV_SR_STATUS_SBE | RV_SR_STATUS_MBE | RV_SR_STATUS64_SD)
-
-// #define STATUS_MASK_H STATUS_MASK_M
-
-#define STATUS_MASK_S \
-    (RV_SR_STATUS_SIE | RV_SR_STATUS_SPIE | RV_SR_STATUS_UBE | RV_SR_STATUS_SPP | RV_SR_STATUS_VS_MASK | RV_SR_STATUS_FS_MASK | RV_SR_STATUS_XS_MASK | RV_SR_STATUS_SUM | RV_SR_STATUS_MXR | RV_SR_STATUS64_UXL_MASK | RV_SR_STATUS64_SD)
 
 static uint64_t status_for_pl(uint64_t s, uint8_t pl) {
     switch (pl) {
