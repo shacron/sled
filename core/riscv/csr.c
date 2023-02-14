@@ -29,46 +29,64 @@ mstatus64 SD - MBE SBE SXL[1:0] UXL[1:0] - TSR TW TVM MXR SUM MPRV XS[1:0] FS[1:
 sstatus64 SD ------------------ UXL[1:0] ------------ MXR SUM ---- XS[1:0] FS[1:0] -------- VS[1:0] SPP ---- UBE SPIE ------- SIE
 */
 
-static result64_t rv_mstatus_csr(rv_core_t *c, int op, uint64_t value) {
+#define STATUS_MASK_M \
+    (RV_SR_STATUS_SIE | RV_SR_STATUS_MIE | RV_SR_STATUS_SPIE | RV_SR_STATUS_UBE | RV_SR_STATUS_MPIE | RV_SR_STATUS_SPP | RV_SR_STATUS_VS_MASK | RV_SR_STATUS_MMP_MASK | RV_SR_STATUS_FS_MASK | RV_SR_STATUS_XS_MASK | RV_SR_STATUS_MPRV | RV_SR_STATUS_SUM | RV_SR_STATUS_MXR | RV_SR_STATUS_TVM | RV_SR_STATUS_TW | RV_SR_STATUS_TSR | RV_SR_STATUS64_UXL_MASK | RV_SR_STATUS64_SXL_MASK | RV_SR_STATUS_SBE | RV_SR_STATUS_MBE | RV_SR_STATUS64_SD)
+
+// #define STATUS_MASK_H STATUS_MASK_M
+
+#define STATUS_MASK_S \
+    (RV_SR_STATUS_SIE | RV_SR_STATUS_SPIE | RV_SR_STATUS_UBE | RV_SR_STATUS_SPP | RV_SR_STATUS_VS_MASK | RV_SR_STATUS_FS_MASK | RV_SR_STATUS_XS_MASK | RV_SR_STATUS_SUM | RV_SR_STATUS_MXR | RV_SR_STATUS64_UXL_MASK | RV_SR_STATUS64_SD)
+
+static uint64_t status_for_pl(uint64_t s, uint8_t pl) {
+    switch (pl) {
+    case RV_PL_MACHINE:     return s & STATUS_MASK_M;
+    // case RV_PL_HYPERVISOR:  return s & STATUS_MASK_H;
+    case RV_PL_SUPERVISOR:  return s & STATUS_MASK_S;
+    default:                assert(false); return 0;
+    }
+}
+
+static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
     result64_t result = {};
 
+    uint64_t s = status_for_pl(c->status, c->pl);
+
     if (op == RV_CSR_OP_READ) {
-        result.value = c->status;
+        result.value = s;
         goto fixup;
     }
 
     if (c->mode == RV_MODE_RV32)
         value = ((value & RV_SR_STATUS_SD) << 32) | (value & ~(RV_SR_STATUS_SD));
 
-    const uint64_t wpri_mask = (RV_SR_STATUS_WPRI0 | RV_SR_STATUS_WPRI1 | RV_SR_STATUS_WPRI2 |
-        (0xff << RV_SR_STATUS_BIT_WPRI3) | (0x1fffffful << RV_SR_STATUS_BIT_WPRI4));
+    value = status_for_pl(value, c->pl);
 
-    value &= ~wpri_mask;
     uint64_t changed_bits;
+    uint64_t int_flag = (RV_SR_STATUS_SIE << (c->pl - RV_PL_SUPERVISOR));
 
     switch (op) {
     case RV_CSR_OP_READ_SET:
-        changed_bits = (~c->status) & value;
-        if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, true);
+        changed_bits = (~s) & value;
+        if (changed_bits & int_flag) core_interrupt_set(&c->core, true);
         if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, true);
         // todo: other fields
         c->status |= value;
         break;
 
     case RV_CSR_OP_READ_CLEAR:
-        changed_bits = c->status & value;
-        if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, false);
+        changed_bits = s & value;
+        if (changed_bits & int_flag) core_interrupt_set(&c->core, false);
         if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, false);
         // todo: other fields
         c->status &= ~value;
         break;
 
     case RV_CSR_OP_SWAP:
-        result.value = c->status;
+        result.value = s;
         // fall through
     case RV_CSR_OP_WRITE:
-        changed_bits = c->status ^ value;
-        if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, (bool)(value & RV_SR_STATUS_MIE));
+        changed_bits = s ^ value;
+        if (changed_bits & int_flag) core_interrupt_set(&c->core, (bool)(value & int_flag));
         if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, (bool)(value & RV_SR_STATUS_UBE));
         // todo: other fields
         c->status = value;
@@ -149,7 +167,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
         case RV_CSR_MHARTID:    result.value = c->mhartid;    goto out;
         case RV_CSR_MCONFIGPTR: result.value = c->mconfigptr; goto out;
         // Machine Trap Setup (MRW)
-        case RV_CSR_MSTATUS:    result = rv_mstatus_csr(c, op, value);              goto out;
+        case RV_CSR_MSTATUS:    result = rv_status_csr(c, op, value);               goto out;
         case RV_CSR_MISA:       result = rv_csr_update(c, op, &r->isa, value);      goto out;
         case RV_CSR_MEDELEG:    result = rv_csr_update(c, op, &r->edeleg, value);   goto out;
         case RV_CSR_MIDELEG:    result = rv_csr_update(c, op, &r->ideleg, value);   goto out;
