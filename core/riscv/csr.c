@@ -67,12 +67,11 @@ static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
     value = status_for_pl(value, c->pl);
 
     uint64_t changed_bits;
-    uint64_t int_flag = (RV_SR_STATUS_SIE << (c->pl - RV_PL_SUPERVISOR));
 
     switch (op) {
     case RV_CSR_OP_READ_SET:
         changed_bits = (~s) & value;
-        if (changed_bits & int_flag) core_interrupt_set(&c->core, true);
+        if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, true);
         if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, true);
         // todo: other fields
         c->status |= value;
@@ -80,7 +79,7 @@ static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
 
     case RV_CSR_OP_READ_CLEAR:
         changed_bits = s & value;
-        if (changed_bits & int_flag) core_interrupt_set(&c->core, false);
+        if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, false);
         if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, false);
         // todo: other fields
         c->status &= ~value;
@@ -91,7 +90,7 @@ static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
         // fall through
     case RV_CSR_OP_WRITE:
         changed_bits = s ^ value;
-        if (changed_bits & int_flag) core_interrupt_set(&c->core, (bool)(value & int_flag));
+        if (changed_bits & RV_SR_STATUS_MIE) core_interrupt_set(&c->core, (bool)(value & RV_SR_STATUS_MIE));
         if (changed_bits & RV_SR_STATUS_UBE) core_endian_set(&c->core, (bool)(value & RV_SR_STATUS_UBE));
         // todo: other fields
         c->status = value;
