@@ -91,17 +91,17 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
 
         case 0b0011000: // MRET
             RV_TRACE_PRINT(c, "mret");
-            if (c->level != RV_PRIV_LEVEL_MACHINE) goto undef;
+            if (c->pl != RV_PL_MACHINE) goto undef;
             return rv_exception_return(c, RV_OP_MRET);
 
         case 0b0001000:
             if (inst.r.rs2 == 0b00010) {
                 RV_TRACE_PRINT(c, "sret");
-                if (c->level < RV_PRIV_LEVEL_SUPERVISOR) goto undef;
+                if (c->pl < RV_PL_SUPERVISOR) goto undef;
                 return rv_exception_return(c, RV_OP_SRET);
             }
             if (inst.r.rs2 == 0b00101) { // WFI
-                if (c->level == RV_PRIV_LEVEL_USER) goto undef;
+                if (c->pl == RV_PL_USER) goto undef;
                 RV_TRACE_PRINT(c, "wfi");
                 return core_wait_for_interrupt(&c->core);
             }

@@ -30,8 +30,8 @@ static void riscv_set_reg(core_t *c, uint32_t reg, uint64_t value) {
         return;
     }
 
-    rv_sr_level_t *sr = NULL;
-    if (reg >= RV_CORE_REG_BASE) sr = rv_get_level_csrs(rc, RV_PRIV_LEVEL_MACHINE);
+    rv_sr_pl_t *sr = NULL;
+    if (reg >= RV_CORE_REG_BASE) sr = rv_get_pl_csrs(rc, RV_PL_MACHINE);
 
     switch (reg) {
     case CORE_REG_PC:   rc->pc = value;         break;
@@ -191,7 +191,7 @@ int riscv_core_create(core_params_t *p, bus_t *bus, core_t **core_out) {
     }
 
     rc->mode = RV_MODE_RV32;
-    rc->level = RV_PRIV_LEVEL_MACHINE;
+    rc->pl = RV_PL_MACHINE;
 
     rc->core.options |= (CORE_OPT_ENDIAN_BIG | CORE_OPT_ENDIAN_LITTLE);
 

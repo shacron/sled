@@ -18,13 +18,13 @@ static void rv_dump_core_state(rv_core_t *c) {
     }
 }
 
-rv_sr_level_t* rv_get_level_csrs(rv_core_t *c, uint8_t level) {
-    assert(c->level != 0);
-    return &c->sr_mode[level - 1];
+rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, uint8_t pl) {
+    assert(c->pl != 0);
+    return &c->sr_pl[pl - 1];
 }
 
 int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
-    rv_sr_level_t *r = rv_get_level_csrs(c, RV_PRIV_LEVEL_MACHINE);
+    rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_MACHINE);
     r->cause = cause;
     r->epc = c->pc;
     r->tval = addr;
@@ -32,12 +32,12 @@ int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
     // update status register
     csr_status_t s;
     s.raw = c->status;
-    s.m_mpie = s.m_mie;           // previous interrupt state
-    s.m_mie = 0;                  // disable interrupts
-    s.m_mpp = c->level;           // previous priv level
+    s.m_mpie = s.m_mie;             // previous interrupt state
+    s.m_mie = 0;                    // disable interrupts
+    s.m_mpp = c->pl;                // previous priv level
     c->status = s.raw;
 
-    c->level = RV_PRIV_LEVEL_MACHINE;      // todo: fix me
+    c->pl = RV_PL_MACHINE;          // todo: fix me
 
     uint64_t tvec = r->tvec;
     if (cause & RV_CAUSE_INT64) {
@@ -70,9 +70,9 @@ int rv_exception_return(rv_core_t *c, uint8_t op) {
     }
     c->status = s.raw;
 
-    rv_sr_level_t *r = rv_get_level_csrs(c, c->level);
+    rv_sr_pl_t *r = rv_get_pl_csrs(c, c->pl);
     c->pc = r->epc;
-    c->level = dest_pl;
+    c->pl = dest_pl;
     c->jump_taken = 1;
 
     core_interrupt_set(&c->core, int_enabled);
@@ -89,7 +89,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
         if (c->core.options & CORE_OPT_TRAP_SYSCALL) {
             return SL_ERR_SYSCALL;
         } else {
-            return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->level, value);
+            return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->pl, value);
         }
 
     case EX_UNDEFINDED:

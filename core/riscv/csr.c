@@ -132,13 +132,13 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
     csr_addr_t addr;
     addr.raw = csr;
 
-    if (addr.f.level > c->level) goto undef;
+    if (addr.f.level > c->pl) goto undef;
     if (op != RV_CSR_OP_READ) {
         if (addr.f.type == 3) goto undef;
     }
 
-    if (addr.f.level == RV_PRIV_LEVEL_MACHINE) {
-        rv_sr_level_t *r = rv_get_level_csrs(c, RV_PRIV_LEVEL_MACHINE);
+    if (addr.f.level == RV_PL_MACHINE) {
+        rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_MACHINE);
 
         // machine level
         switch (addr.raw) {
@@ -207,7 +207,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
     }
 
     // hypervisor level
-    if (addr.f.level == RV_PRIV_LEVEL_HYPERVISOR) {
+    if (addr.f.level == RV_PL_HYPERVISOR) {
         switch (addr.raw) {
         case 0x240: // vsscratch
         case 0x241: // vsepc
@@ -274,8 +274,8 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
     }
 
     // supervisor level
-    if (addr.f.level == RV_PRIV_LEVEL_SUPERVISOR) {
-        rv_sr_level_t *r = rv_get_level_csrs(c, RV_PRIV_LEVEL_HYPERVISOR);
+    if (addr.f.level == RV_PL_SUPERVISOR) {
+        rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_HYPERVISOR);
 
         switch (addr.raw) {
         // Supervisor Trap Setup (SRW)

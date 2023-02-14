@@ -16,8 +16,8 @@ typedef struct rv_core rv_core_t;
 #define RV_MODE_RV32    0
 #define RV_MODE_RV64    1
 
-#define RV_OP_MRET      RV_PRIV_LEVEL_MACHINE
-#define RV_OP_SRET      RV_PRIV_LEVEL_SUPERVISOR
+#define RV_OP_MRET      RV_PL_MACHINE
+#define RV_OP_SRET      RV_PL_SUPERVISOR
 
 typedef struct {
     uint64_t scratch;
@@ -25,14 +25,13 @@ typedef struct {
     uint64_t cause;
     uint64_t tval;
     uint64_t ip;
-    // uint64_t status;
     uint64_t isa;
     uint64_t edeleg;
     uint64_t ideleg;
     uint64_t ie;
     uint64_t tvec;
     uint64_t counteren;
-} rv_sr_level_t;
+} rv_sr_pl_t;
 
 typedef struct {
     result64_t (*csr_op)(rv_core_t *c, int op, uint32_t csr, uint64_t value);
@@ -43,7 +42,7 @@ typedef struct {
 struct rv_core {
     core_t core;
     uint8_t mode;
-    uint8_t level;
+    uint8_t pl;     // privilege level
     uint8_t jump_taken;
     uint8_t c_inst; // was the last dispatched instruction a C type short instruction?
 
@@ -54,7 +53,7 @@ struct rv_core {
     uint64_t status;
 
     // system registers
-    rv_sr_level_t sr_mode[3];
+    rv_sr_pl_t sr_pl[3];
     uint64_t mvendorid;
     uint64_t marchid;
     uint64_t mimpid;
@@ -79,7 +78,7 @@ int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr);
 int rv_exception_return(rv_core_t *c, uint8_t op);
 int rv_wait_for_interrupt(rv_core_t *c);
 
-rv_sr_level_t* rv_get_level_csrs(rv_core_t *c, uint8_t level);
+rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, uint8_t pl);
 
 const char *rv_name_for_reg(uint32_t reg);
 uint32_t rv_reg_for_name(const char *name);

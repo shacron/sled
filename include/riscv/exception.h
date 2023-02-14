@@ -3,10 +3,11 @@
 
 #pragma once
 
-#define RV_PRIV_LEVEL_USER       0
-#define RV_PRIV_LEVEL_SUPERVISOR 1
-#define RV_PRIV_LEVEL_HYPERVISOR 2
-#define RV_PRIV_LEVEL_MACHINE    3
+// Privilege levels
+#define RV_PL_USER       0
+#define RV_PL_SUPERVISOR 1
+#define RV_PL_HYPERVISOR 2
+#define RV_PL_MACHINE    3
 
 
 // Exception values found in mcause
