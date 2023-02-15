@@ -891,9 +891,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b01110:   // C.BEQZ
     {
-        const int32_t imm = sign_extend32(CBIMM(ci), 8);
+        const int32_t imm = sign_extend32(CBIMM(ci), 9);
         const uint32_t rs = RVC_TO_REG(ci.cb.rs);
-        const uxlen_t result = c->pc + imm;
+        const uxlen_t result = (uxlen_t)(c->pc + imm);
         if (c->r[rs] == 0) {
             c->pc = result;
             c->jump_taken = 1;
@@ -905,7 +905,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b01111:   // C.BNEZ
     {
-        const int32_t imm = sign_extend32(CBIMM(ci), 8);
+        const int32_t imm = sign_extend32(CBIMM(ci), 9);
         const uint32_t rs = RVC_TO_REG(ci.cb.rs);
         const uxlen_t result = (uxlen_t)(c->pc + imm);
         if (c->r[rs] != 0) {
