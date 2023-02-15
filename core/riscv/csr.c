@@ -53,7 +53,6 @@ static uint64_t status_for_pl(uint64_t s, uint8_t pl) {
 
 static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
     result64_t result = {};
-
     uint64_t s = status_for_pl(c->status, c->pl);
 
     if (op == RV_CSR_OP_READ) {
@@ -65,7 +64,6 @@ static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
         value = ((value & RV_SR_STATUS_SD) << 32) | (value & ~(RV_SR_STATUS_SD));
 
     value = status_for_pl(value, c->pl);
-
     uint64_t changed_bits;
 
     switch (op) {
