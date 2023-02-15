@@ -137,7 +137,7 @@ static int rv_interrupt_taken(rv_core_t *c) {
         const uint8_t bit = irq_pri[i];
         const uint32_t num = (1u << bit);
         if (asserted & num) {
-            if ((err = rv_exception_enter(c, bit | RV_CAUSE_INT64, 0))) return err;
+            if ((err = rv_exception_enter(c, bit | RV_CAUSE64_INT, 0))) return err;
             c->irq_asserted &= ~(num);
             return 0;
         }

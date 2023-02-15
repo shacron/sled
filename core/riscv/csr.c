@@ -111,9 +111,9 @@ out:
 static result64_t rv_mcause_csr(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
     result64_t result = {};
     if (c->mode == RV_MODE_RV32) {
-        value = ((value & RV_CAUSE_INT32) << 32) | (value & ~RV_CAUSE_INT32);
+        value = ((value & RV_CAUSE32_INT) << 32) | (value & ~RV_CAUSE32_INT);
         result = rv_csr_update(c, op, reg, value);
-        result.value = (uint32_t)(((result.value & RV_CAUSE_INT64) >> 32) | (result.value & 0x7fffffff));
+        result.value = (uint32_t)(((result.value & RV_CAUSE64_INT) >> 32) | (result.value & 0x7fffffff));
     } else {
         result = rv_csr_update(c, op, reg, value);
     }

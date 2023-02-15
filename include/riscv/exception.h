@@ -13,8 +13,8 @@
 // Exception values found in mcause
 
 // High bit is set if cause is interrupt
-#define RV_CAUSE_INT64          (1ul << 63)
-#define RV_CAUSE_INT32          (1ul << 31)
+#define RV_CAUSE64_INT          (1ul << 63)
+#define RV_CAUSE32_INT          (1ul << 31)
 
 // cause when interrupt bit is set
 #define RV_INT_SW_S             1   // software interrupt from supervisor mode

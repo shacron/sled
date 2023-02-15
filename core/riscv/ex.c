@@ -24,6 +24,8 @@ rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, uint8_t pl) {
 }
 
 int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
+    // todo: check medeleg / mideleg for priv level dispatching
+
     rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_MACHINE);
     r->cause = cause;
     r->epc = c->pc;
@@ -40,8 +42,8 @@ int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
     c->pl = RV_PL_MACHINE;          // todo: fix me
 
     uint64_t tvec = r->tvec;
-    if (cause & RV_CAUSE_INT64) {
-        const uint64_t ci = cause & ~RV_CAUSE_INT64;
+    if (cause & RV_CAUSE64_INT) {
+        const uint64_t ci = cause & ~RV_CAUSE64_INT;
         // m->ip = 1ull << ci;
         if (tvec & 1) tvec += (ci << 2);
     }
