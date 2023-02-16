@@ -121,8 +121,7 @@
 #define RV_CSR_MCYCLE           0xb00 // MRW mcycle - Machine cycle counter.
 #define RV_CSR_MINSTRET         0xb02 // MRW minstret - Machine instructions-retired counter.
 #define RV_CSR_MHPMCOUNTER3     0xb03 // MRW mhpmcounter3 - Machine performance-monitoring counter.
-#define RV_CSR_MHPMCOUNTER4     0xb04 // MRW mhpmcounter4 - Machine performance-monitoring counter.
-#define RV_CSR_MHPMCOUNTER31    0xb1f // MRW mhpmcounter31 - Machine performance-monitoring counter.
+#define RV_CSR_MHPMCOUNTER_NUM  29
 #define RV_CSR_MCYCLEH          0xb80 // MRW mcycleh - Upper 32 bits of mcycle, RV32 only.
 #define RV_CSR_MINSTRETH        0xb82 // MRW minstreth - Upper 32 bits of minstret, RV32 only.
 #define RV_CSR_MHPMCOUNTER3H    0xb83 // MRW mhpmcounter3h - Upper 32 bits of mhpmcounter3, RV32 only.
@@ -131,8 +130,7 @@
 // Machine Counter Setup
 #define RV_CSR_MCOUNTINHIBIT    0x320 // MRW mcountinhibit - Machine counter-inhibit register.
 #define RV_CSR_MHPMEVENT3       0x323 // MRW mhpmevent3 - Machine performance-monitoring event selector.
-#define RV_CSR_MHPMEVENT4       0x324 // MRW mhpmevent4 - Machine performance-monitoring event selector.
-#define RV_CSR_MHPMEVENT31      0x33f // MRW mhpmevent31 - Machine performance-monitoring event selector.
+#define RV_CSR_MHPMEVENT_NUM    29
 // Debug/Trace Registers (shared with Debug Mode)
 #define RV_CSR_TSELECT          0x7a0 // MRW tselect - Debug/Trace trigger register select.
 #define RV_CSR_TDATA1           0x7a1 // MRW tdata1 - First Debug/Trace trigger data register.

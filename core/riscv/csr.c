@@ -223,6 +223,18 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
             goto out;
         }
 
+        if ((addr.raw >= RV_CSR_MHPMCOUNTER3) && (addr.raw < (RV_CSR_MHPMCOUNTER3 + RV_CSR_MHPMCOUNTER_NUM))) {
+            const uint32_t i = addr.raw - RV_CSR_MHPMCOUNTER3;
+            result = rv_csr_update(c, op, &c->mhpmcounter[i], value);
+            goto out;
+        }
+
+        if ((addr.raw >= RV_CSR_MHPMEVENT3) && (addr.raw < (RV_CSR_MHPMEVENT3 + RV_CSR_MHPMEVENT_NUM))) {
+            const uint32_t i = addr.raw - RV_CSR_MHPMEVENT3;
+            result = rv_csr_update(c, op, &c->mhpevent[i], value);
+            goto out;
+        }
+
         goto undef;
     }
 

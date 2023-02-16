@@ -66,6 +66,8 @@ struct rv_core {
 
     uint64_t pmpcfg[16];
     uint64_t pmpaddr[64];
+    uint64_t mhpmcounter[29];
+    uint64_t mhpevent[29]; // mhpevent3-mhpevent31
 
     rv_isa_extension_t ext; // isa extension
     void *ext_private;
