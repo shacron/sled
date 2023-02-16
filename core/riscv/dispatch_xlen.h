@@ -944,10 +944,10 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
             uint32_t val;
             err = core_mem_read(&c->core, addr, 4, 1, &val);
-            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
-            c->r[ci.ci.rsd] = val;
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.lwsp x%u, %u", ci.ci.rsd, imm);
+            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
+            c->r[ci.ci.rsd] = val;
             break;
         }
 
@@ -962,10 +962,10 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             const uint64_t addr = c->r[RV_SP] + imm;
             uint64_t val;
             err = core_mem_read(&c->core, addr, 8, 1, &val);
-            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
-            c->r[ci.ci.rsd] = val;
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.ldsp x%u, %u", ci.ci.rsd, imm);
+            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
+            c->r[ci.ci.rsd] = val;
             break;
         }
 #endif
@@ -1021,9 +1021,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uxlen_t addr = c->r[RV_SP] + imm;
         uint32_t val = c->r[ci.css.rs2];
         err = core_mem_write(&c->core, addr, 4, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
         RV_TRACE_PRINT(c, "c.swsp x%u, %u", ci.css.rs2, imm);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
         break;
     }
 
@@ -1036,9 +1036,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint64_t addr = c->r[RV_SP] + imm;
         uint64_t val = c->r[ci.css.rs2];
         err = core_mem_write(&c->core, addr, 8, 1, &val);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
         RV_TRACE_PRINT(c, "c.sdsp x%u, %u", ci.css.rs2, imm);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
         break;
     }
 #endif
