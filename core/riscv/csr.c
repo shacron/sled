@@ -329,9 +329,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
         case RV_CSR_SIP:        result = rv_csr_update(c, op, &r->ip, value);       goto out;
 
         // Supervisor Protection and Translation (SRW)
-        case RV_CSR_SATP: // satp
-            result.err = SL_ERR_UNIMPLEMENTED;
-            goto out;
+        case RV_CSR_SATP:       result = rv_csr_update(c, op, &c->stap, value);       goto out;
 
         // Debug/Trace Registers (SRW)
         case RV_CSR_SCONTEXT: // scontext

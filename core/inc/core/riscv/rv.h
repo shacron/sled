@@ -60,6 +60,8 @@ struct rv_core {
     uint64_t mhartid;
     uint64_t mconfigptr;
 
+    uint64_t stap;
+
     // offsets for calculating these from running counters
     int64_t mcycle_offset;
     int64_t minstret_offset;
