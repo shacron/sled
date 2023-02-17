@@ -92,13 +92,17 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         case 0b0011000: // MRET
             RV_TRACE_PRINT(c, "mret");
             if (c->pl != RV_PL_MACHINE) goto undef;
-            return rv_exception_return(c, RV_OP_MRET);
+            err = rv_exception_return(c, RV_OP_MRET);
+            if (!err) RV_TRACE_RD(c, CORE_REG_PC, c->pc);
+            return err;
 
         case 0b0001000:
             if (inst.r.rs2 == 0b00010) {
                 RV_TRACE_PRINT(c, "sret");
                 if (c->pl < RV_PL_SUPERVISOR) goto undef;
-                return rv_exception_return(c, RV_OP_SRET);
+                err = rv_exception_return(c, RV_OP_SRET);
+                if (!err) RV_TRACE_RD(c, CORE_REG_PC, c->pc);
+                return err;
             }
             if (inst.r.rs2 == 0b00101) { // WFI
                 if (c->pl == RV_PL_USER) goto undef;

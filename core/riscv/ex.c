@@ -88,11 +88,8 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
 
     switch (ex) {
     case EX_SYSCALL:
-        if (c->core.options & CORE_OPT_TRAP_SYSCALL) {
-            return SL_ERR_SYSCALL;
-        } else {
-            return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->pl, value);
-        }
+        if (c->core.options & CORE_OPT_TRAP_SYSCALL) return SL_ERR_SYSCALL;
+        return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->pl, value);
 
     case EX_UNDEFINDED:
         if (c->core.options & CORE_OPT_TRAP_UNDEF) {
