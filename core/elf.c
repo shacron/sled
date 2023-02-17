@@ -1,26 +1,5 @@
-// MIT License
-
-// Copyright (c) 2022 Shac Ron
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
 // SPDX-License-Identifier: MIT License
+// Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -34,6 +13,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/elf.h>
 
@@ -396,7 +376,7 @@ void *elf_get_program_header(elf_object_t *obj, uint32_t index) {
     return obj->image + phoff + (index * phentsize);
 }
 
-int elf_symbols(elf_object_t *obj) {
+int elf_read_symbols(elf_object_t *obj, sym_list_t *list) {
     Elf64_Off offset;
     Elf64_Xword size, entsize;
 
@@ -413,15 +393,44 @@ int elf_symbols(elf_object_t *obj) {
     }
 
     void *symtab = obj->image + offset;
-    Elf64_Xword num_symbols = size / entsize;
+    const Elf64_Xword num_symbols = size / entsize;
+
+    list->num = 0;
+    list->ent = NULL;
+    if (num_symbols == 0) return 0;
+
+    sym_entry_t *syms = malloc(num_symbols * sizeof(sym_entry_t));
+    if (syms == NULL) {
+        perror("malloc");
+        return -1;
+    }
+
+    uint32_t n = 0;
     for (Elf64_Xword i = 0; i < num_symbols; i++) {
+        char *name = NULL;
         if (obj->is64) {
             Elf64_Sym *s = symtab + (i * entsize);
-            printf("%016" PRIx64 " %016" PRIx64 " %s\n", s->st_value, s->st_size, get_string(obj, s->st_name));
+            if (ELF64_ST_TYPE(s->st_info) != STT_FUNC) continue;
+            syms[n].addr = s->st_value;
+            syms[n].size = s->st_size;
+            syms[n].flags = 0;
+            name = get_string(obj, s->st_name);
+            // printf("%016" PRIx64 " %016" PRIx64 " %s\n", s->st_value, s->st_size, get_string(obj, s->st_name));
         } else {
             Elf32_Sym *s = symtab + (i * entsize);
-            printf("%08x %8u %s\n", s->st_value, s->st_size, get_string(obj, s->st_name));
+            if (ELF32_ST_TYPE(s->st_info) != STT_FUNC) continue;
+            syms[n].addr = s->st_value;
+            syms[n].size = s->st_size;
+            syms[n].flags = 0;
+            name = get_string(obj, s->st_name);
+            // printf("%08x %8u %s\n", s->st_value, s->st_size, get_string(obj, s->st_name));
         }
+        if (name == NULL) name = "<unknown>";
+        syms[n].name = strdup(name);
+        n++;
     }
+    list->num = n;
+    list->ent = syms;
     return 0;
 }
+

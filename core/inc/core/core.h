@@ -24,6 +24,8 @@ extern "C" {
 
 #define CORE_INT_ENABLED(s) (s & (1u << CORE_STATE_INTERRUPTS_EN))
 
+typedef struct sym_list sym_list_t;
+
 typedef struct core_ops {
     void (*set_reg)(core_t *c, uint32_t reg, uint64_t value);
     uint64_t (*get_reg)(core_t *c, uint32_t reg);
@@ -51,6 +53,8 @@ struct core {
     cond_t cond_int_asserted;
     irq_endpoint_t irq_ep;
     uint32_t pending_irq;       // only updated under lock
+
+    sym_list_t *symbols;
 };
 
 // setup functions
@@ -61,6 +65,7 @@ void core_config_get(core_t *c, core_params_t *p);
 int core_config_set(core_t *c, core_params_t *p);
 
 void core_interrupt_set(core_t *c, bool enable);
+void core_add_symbols(core_t *c, sym_list_t *list);
 
 // runtime functions
 int core_endian_set(core_t *c, bool big);

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
+#include <inttypes.h>
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -9,6 +10,7 @@
 
 #include <core/common.h>
 #include <core/core.h>
+#include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/error.h>
 
@@ -74,6 +76,11 @@ int core_init(core_t *c, core_params_t *p, bus_t *b) {
 }
 
 int core_shutdown(core_t *c) {
+    sym_list_t *n = NULL;
+    for (sym_list_t *s = c->symbols; s != NULL; s = n) {
+        n = s->next;
+        sym_free(s);
+    }
     lock_destroy(&c->lock);
     return 0;
 }
@@ -154,3 +161,7 @@ uint32_t core_get_reg_count(core_t *c, int type) {
     return arch_get_reg_count(c->arch, c->subarch, type);
 }
 
+void core_add_symbols(core_t *c, sym_list_t *list) {
+    list->next = c->symbols;
+    c->symbols = list;
+}

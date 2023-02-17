@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022 Shac Ron and The Sled Project
+// Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -11,6 +11,7 @@
 #include <core/core.h>
 #include <core/mem.h>
 #include <core/riscv.h>
+#include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/core.h>
 #include <sled/elf.h>
@@ -147,6 +148,7 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure
     }
 
     int err;
+    sym_list_t *sl = NULL;
     const bool is64 = elf_is_64bit(o);
 
     for (uint32_t i = 0; ; i++) {
@@ -184,6 +186,18 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure
         }
     }
 
+    sl = calloc(1, sizeof(*sl));
+    if (sl == NULL) {
+        printf("failed to allocate symbol list\n");
+        goto out_err;
+    }
+    if ((err = elf_read_symbols(o, sl))) {
+        printf("failed to read symbols\n");
+        goto out_err;
+    }
+
+    core_add_symbols(c, sl);
+
     err = 0;
     if (!configure) goto out_err;
 
@@ -218,6 +232,7 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure
     err = 0;
 
 out_err:
+    if (err) sym_free(sl);
     return err;
 }
 
