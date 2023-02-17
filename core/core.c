@@ -76,11 +76,13 @@ int core_init(core_t *c, core_params_t *p, bus_t *b) {
 }
 
 int core_shutdown(core_t *c) {
+#if WITH_SYMBOLS
     sym_list_t *n = NULL;
     for (sym_list_t *s = c->symbols; s != NULL; s = n) {
         n = s->next;
         sym_free(s);
     }
+#endif
     lock_destroy(&c->lock);
     return 0;
 }
@@ -161,7 +163,25 @@ uint32_t core_get_reg_count(core_t *c, int type) {
     return arch_get_reg_count(c->arch, c->subarch, type);
 }
 
+#if WITH_SYMBOLS
 void core_add_symbols(core_t *c, sym_list_t *list) {
     list->next = c->symbols;
     c->symbols = list;
 }
+
+sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr) {
+    sym_entry_t *nearest = NULL;
+    uint64_t distance = ~0;
+    for (sym_list_t *list = c->symbols; list != NULL; list = list->next) {
+        for (uint64_t i = 0; i < list->num; i++) {
+            if (list->ent[i].addr > addr) continue;
+            if (list->ent[i].addr == addr) return &list->ent[i];
+            uint64_t d = addr - list->ent[i].addr;
+            if (d > distance) continue;
+            distance = d;
+            nearest = &list->ent[i];
+        }
+    }
+    return nearest;
+}
+#endif

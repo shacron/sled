@@ -148,8 +148,10 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure
     }
 
     int err;
-    sym_list_t *sl = NULL;
     const bool is64 = elf_is_64bit(o);
+#if WITH_SYMBOLS
+    sym_list_t *sl = NULL;
+#endif
 
     for (uint32_t i = 0; ; i++) {
         void *vph = elf_get_program_header(o, i);
@@ -186,6 +188,7 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure
         }
     }
 
+#if WITH_SYMBOLS
     sl = calloc(1, sizeof(*sl));
     if (sl == NULL) {
         printf("failed to allocate symbol list\n");
@@ -197,6 +200,7 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure
     }
 
     core_add_symbols(c, sl);
+#endif
 
     err = 0;
     if (!configure) goto out_err;
@@ -232,7 +236,9 @@ int machine_load_core(machine_t *m, uint32_t id, elf_object_t *o, bool configure
     err = 0;
 
 out_err:
+#if WITH_SYMBOLS
     if (err) sym_free(sl);
+#endif
     return err;
 }
 

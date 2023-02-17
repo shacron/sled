@@ -25,6 +25,7 @@ extern "C" {
 #define CORE_INT_ENABLED(s) (s & (1u << CORE_STATE_INTERRUPTS_EN))
 
 typedef struct sym_list sym_list_t;
+typedef struct sym_entry sym_entry_t;
 
 typedef struct core_ops {
     void (*set_reg)(core_t *c, uint32_t reg, uint64_t value);
@@ -53,8 +54,9 @@ struct core {
     cond_t cond_int_asserted;
     irq_endpoint_t irq_ep;
     uint32_t pending_irq;       // only updated under lock
-
+#if WITH_SYMBOLS
     sym_list_t *symbols;
+#endif
 };
 
 // setup functions
@@ -72,6 +74,8 @@ int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
+
+sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr);
 
 #ifdef __cplusplus
 }

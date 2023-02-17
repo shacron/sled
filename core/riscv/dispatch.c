@@ -12,6 +12,7 @@
 #include <core/riscv/inst.h>
 #include <core/riscv/rv.h>
 #include <core/riscv/trace.h>
+#include <core/sym.h>
 #include <sled/error.h>
 
 #define FENCE_W (1u << 0)
@@ -261,6 +262,15 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction) {
         }
 
         puts(buf);
+#if WITH_SYMBOLS
+        if (c->jump_taken) {
+            sym_entry_t *e = core_get_sym_for_addr(&c->core, c->pc);
+            if (e != NULL) {
+                uint64_t dist = c->pc - e->addr;
+                printf("<%s+%#"PRIx64">:\n", e->name, dist);
+            }
+        }
+#endif
     }
 #endif
 

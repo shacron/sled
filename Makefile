@@ -35,7 +35,7 @@ TOOLS :=
 BUILD ?= release
 
 ifeq ($(RV_TRACE),1)
-DEFINES += -DRV_TRACE=1
+DEFINES += -DRV_TRACE=1 -DWITH_SYMBOLS=1
 endif
 
 ifeq ($(BUILD),release)

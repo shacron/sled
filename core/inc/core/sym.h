@@ -4,13 +4,14 @@
 
 typedef struct elf_object elf_object_t;
 typedef struct sym_list sym_list_t;
+typedef struct sym_entry sym_entry_t;
 
-typedef struct {
+struct sym_entry {
     uint64_t addr;
     uint64_t size;
     uint32_t flags;
     char *name;
-} sym_entry_t;
+};
 
 struct sym_list {
     sym_list_t *next;
