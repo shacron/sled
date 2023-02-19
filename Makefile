@@ -7,7 +7,7 @@ BLD_HOST_OBJDIR ?= $(BLD_BASEDIR)/obj
 BLD_HOST_BINDIR ?= $(BLD_BASEDIR)
 BLD_HOST_LIBDIR ?= $(BLD_BASEDIR)/lib
 BLD_HOST_INCDIR ?= $(SDKDIR)/include
-
+BLD_HOST_OS ?= $(shell uname -s)
 
 ##############################################################################
 # C build environment
@@ -19,13 +19,19 @@ BLD_HOST_INCDIR ?= $(SDKDIR)/include
 BLD_HOST_CC ?= clang
 BLD_HOST_AS ?= clang
 BLD_HOST_LD := clang
+ifeq ($(BLD_HOST_OS),Darwin)
+# libtool required for fat archives
+BLD_HOST_AR := libtool
+BLD_HOST_ARFLAGS := -static -o
+else
 BLD_HOST_AR ?= ar
+BLD_HOST_ARFLAGS ?= -c -q
+endif
 
 LDFLAGS :=
 CFLAGS  := -Wall -g -MMD -fsanitize=address,nullability,undefined -ftrivial-auto-var-init=pattern
 DEFINES :=
 TOOLS :=
-
 
 ##############################################################################
 # build type
@@ -152,7 +158,7 @@ $(BLD_HOST_LIBDIR)/libsled.a: $(LIB_OBJS)
 	@echo " [ar]" $(notdir $@)
 	@mkdir -p $(dir $@)
 	@rm -f $@
-	@$(BLD_HOST_AR) -c -q $@ $^
+	@$(BLD_HOST_AR) $(BLD_HOST_ARFLAGS) $@ $^
 
 
 ##############################################################################
