@@ -9,6 +9,7 @@ BLD_HOST_LIBDIR ?= $(BLD_BASEDIR)/lib
 BLD_HOST_INCDIR ?= $(SDKDIR)/include
 BLD_HOST_OS ?= $(shell uname -s)
 BLD_HOST_UNIVERSAL ?= 0
+BLD_HOST_USE_SANITIZERS ?= 1
 
 ##############################################################################
 # C build environment
@@ -30,7 +31,7 @@ BLD_HOST_ARFLAGS ?= -c -q
 endif
 
 LDFLAGS :=
-CFLAGS  := -Wall -g -MMD -fsanitize=address,nullability,undefined -ftrivial-auto-var-init=pattern
+CFLAGS  := -Wall -g -MMD
 DEFINES :=
 TOOLS :=
 
@@ -50,6 +51,10 @@ CFLAGS += -O2
 else
 CFLAGS += -O0
 DEFINES += -DBUILD_DEBUG=1
+endif
+
+ifeq ($(BLD_HOST_USE_SANITIZERS),1)
+CFLAGS += -fsanitize=address,nullability,undefined -ftrivial-auto-var-init=pattern
 endif
 
 ifeq ($(BLD_HOST_UNIVERSAL),1)
