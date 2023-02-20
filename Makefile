@@ -8,6 +8,7 @@ BLD_HOST_BINDIR ?= $(BLD_BASEDIR)
 BLD_HOST_LIBDIR ?= $(BLD_BASEDIR)/lib
 BLD_HOST_INCDIR ?= $(SDKDIR)/include
 BLD_HOST_OS ?= $(shell uname -s)
+BLD_HOST_UNIVERSAL ?= 0
 
 ##############################################################################
 # C build environment
@@ -49,6 +50,10 @@ CFLAGS += -O2
 else
 CFLAGS += -O0
 DEFINES += -DBUILD_DEBUG=1
+endif
+
+ifeq ($(BLD_HOST_UNIVERSAL),1)
+CFLAGS += -arch arm64 -arch x86_64
 endif
 
 CXXFLAGS := $(CFLAGS) -std=c++17
