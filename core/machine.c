@@ -109,7 +109,8 @@ int machine_add_core(machine_t *m, core_params_t *opts) {
         if (m->core_list[i] == NULL) {
             m->core_list[i] = c;
             opts->id = i;
-            irq_endpoint_set_client(&m->intc->irq_ep, &c->irq_ep, 11); // todo: get proper irq number
+            if (m->intc != NULL)
+                irq_endpoint_set_client(&m->intc->irq_ep, &c->irq_ep, 11); // todo: get proper irq number
             return 0;
         }
     }
