@@ -10,10 +10,6 @@
 #include <core/itrace.h>
 #include <sled/core.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define MAX_PHYS_MEM_REGIONS    4
 #define MAX_DEVICES             8 
 
@@ -76,7 +72,3 @@ void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
 
 sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr);
-
-#ifdef __cplusplus
-}
-#endif
