@@ -7,8 +7,8 @@
 #include <core/core.h>
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
-#include <riscv/csr.h>
 #include <sled/error.h>
+#include <sled/riscv/csr.h>
 
 /*
 mstatus64 SD - MBE SBE SXL[1:0] UXL[1:0] - TSR TW TVM MXR SUM MPRV XS[1:0] FS[1:0] MPP[1:0] VS[1:0] SPP MPIE UBE SPIE - MIE - SIE

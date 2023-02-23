@@ -6,8 +6,7 @@
 #include <core/common.h>
 #include <core/core.h>
 #include <core/ex.h>
-#include <riscv/exception.h>
-#include <riscv/register.h>
+#include <sled/riscv.h>
 
 // #define RV_TRACE 1
 

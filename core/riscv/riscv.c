@@ -13,9 +13,9 @@
 #include <core/riscv.h>
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
-#include <riscv/csr.h>
 #include <sled/arch.h>
 #include <sled/error.h>
+#include <sled/riscv/csr.h>
 
 static int rv_load_pc(rv_core_t *c, uint32_t *inst) {
     return core_mem_read(&c->core, c->pc, 4, 1, inst);
