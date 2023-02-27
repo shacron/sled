@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022 Shac Ron and The Sled Project
+// Copyright (c) 202-2023 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <inttypes.h>
@@ -88,11 +88,11 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
 
     switch (ex) {
     case EX_SYSCALL:
-        if (c->core.options & CORE_OPT_TRAP_SYSCALL) return SL_ERR_SYSCALL;
+        if (c->core.options & SL_CORE_OPT_TRAP_SYSCALL) return SL_ERR_SYSCALL;
         return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->pl, value);
 
     case EX_UNDEFINDED:
-        if (c->core.options & CORE_OPT_TRAP_UNDEF) {
+        if (c->core.options & SL_CORE_OPT_TRAP_UNDEF) {
             inst.raw = (uint32_t)value;
             printf("UNDEFINED instruction %08x (op=%x) at pc=%" PRIx64 "\n", inst.raw, inst.b.opcode, c->pc);
             rv_dump_core_state(c);
@@ -102,7 +102,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
         }
 
     case EX_ABORT_LOAD:
-        if (c->core.options & CORE_OPT_TRAP_ABORT) {
+        if (c->core.options & SL_CORE_OPT_TRAP_ABORT) {
             printf("LOAD FAULT (rd) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
             rv_dump_core_state(c);
             return status;
@@ -113,7 +113,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
         }
 
     case EX_ABORT_STORE:
-        if (c->core.options & CORE_OPT_TRAP_ABORT) {
+        if (c->core.options & SL_CORE_OPT_TRAP_ABORT) {
             printf("STORE FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
             rv_dump_core_state(c);
             return status;
@@ -124,7 +124,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
         }
 
     case EX_ABORT_INST:
-        if (c->core.options & CORE_OPT_TRAP_PREFETCH_ABORT) {
+        if (c->core.options & SL_CORE_OPT_TRAP_PREFETCH_ABORT) {
             printf("PREFETCH FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
             rv_dump_core_state(c);
             return status;

@@ -9,6 +9,6 @@
 
 typedef struct bus bus_t;
 typedef struct core core_t;
-typedef struct core_params core_params_t;
+typedef struct sl_core_params sl_core_params_t;
 
-int riscv_core_create(core_params_t *p, bus_t *bus, core_t **core_out);
+int riscv_core_create(sl_core_params_t *p, bus_t *bus, core_t **core_out);

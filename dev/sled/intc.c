@@ -1,26 +1,5 @@
-// MIT License
-
-// Copyright (c) 2022 Shac Ron
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
 // SPDX-License-Identifier: MIT License
+// Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <stdlib.h>
@@ -39,10 +18,10 @@
 #define FROMDEV(d) containerof((d), intc_t, dev)
 
 typedef struct {
-    device_t dev;
+    sl_dev_t dev;
 } intc_t;
 
-static int intc_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int intc_read(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
@@ -61,7 +40,7 @@ static int intc_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, 
     return err;
 }
 
-static int intc_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int intc_write(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
@@ -86,19 +65,19 @@ static int intc_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count,
     return err;
 }
 
-void intc_destroy(device_t *d) {
+void intc_destroy(sl_dev_t *d) {
     if (d == NULL) return;
     dev_shutdown(d);
     intc_t *ic = FROMDEV(d);
     free(ic);
 }
 
-int intc_create(device_t **dev_out) {
+int intc_create(sl_dev_t **dev_out) {
     intc_t *ic = calloc(1, sizeof(intc_t));
     if (ic == NULL) return SL_ERR_MEM;
     *dev_out = &ic->dev;
 
-    dev_init(&ic->dev, DEVICE_INTC);
+    dev_init(&ic->dev, SL_DEV_INTC);
     ic->dev.length = INTC_APERTURE_LENGTH;
     ic->dev.read = intc_read;
     ic->dev.write = intc_write;

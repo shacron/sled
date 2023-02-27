@@ -18,7 +18,7 @@
 #define BARRIER_SYSTEM  (1u << 2)
 #define BARRIER_SYNC    (1u << 3)
 
-#define CORE_INT_ENABLED(s) (s & (1u << CORE_STATE_INTERRUPTS_EN))
+#define CORE_INT_ENABLED(s) (s & (1u << SL_CORE_STATE_INTERRUPTS_EN))
 
 typedef struct sym_list sym_list_t;
 typedef struct sym_entry sym_entry_t;
@@ -56,11 +56,11 @@ struct core {
 };
 
 // setup functions
-int core_init(core_t *c, core_params_t *p, bus_t *b);
+int core_init(core_t *c, sl_core_params_t *p, bus_t *b);
 int core_shutdown(core_t *c);
 
-void core_config_get(core_t *c, core_params_t *p);
-int core_config_set(core_t *c, core_params_t *p);
+void core_config_get(core_t *c, sl_core_params_t *p);
+int core_config_set(core_t *c, sl_core_params_t *p);
 
 void core_interrupt_set(core_t *c, bool enable);
 void core_add_symbols(core_t *c, sym_list_t *list);

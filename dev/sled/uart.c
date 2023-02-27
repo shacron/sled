@@ -1,26 +1,5 @@
-// MIT License
-
-// Copyright (c) 2022 Shac Ron
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-
 // SPDX-License-Identifier: MIT License
+// Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,7 +18,7 @@
 #define FROMDEV(d) containerof((d), uart_t, dev)
 
 typedef struct {
-    device_t dev;
+    sl_dev_t dev;
     int io_type;
     int fd_in;
     int fd_out;
@@ -58,7 +37,7 @@ static void uart_flush(uart_t *u) {
     u->buf_pos = 0;
 }
 
-static int uart_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int uart_read(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
@@ -80,7 +59,7 @@ static int uart_read(device_t *d, uint64_t addr, uint32_t size, uint32_t count, 
     return err;
 }
 
-static int uart_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int uart_write(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
@@ -112,7 +91,7 @@ static int uart_write(device_t *d, uint64_t addr, uint32_t size, uint32_t count,
     return err;
 }
 
-int sled_uart_set_channel(device_t *dev, int io, int fd_in, int fd_out) {
+int sled_uart_set_channel(sl_dev_t *dev, int io, int fd_in, int fd_out) {
     uart_t *u = FROMDEV(dev);
     switch (io) {
     case UART_IO_NULL:
@@ -137,7 +116,7 @@ int sled_uart_set_channel(device_t *dev, int io, int fd_in, int fd_out) {
     return 0;
 }
 
-void uart_destroy(device_t *dev) {
+void uart_destroy(sl_dev_t *dev) {
     if (dev == NULL) return;
     uart_t *u = FROMDEV(dev);
     if (u->buf_pos > 0) uart_flush(u);
@@ -145,12 +124,12 @@ void uart_destroy(device_t *dev) {
     free(u);
 }
 
-int uart_create(device_t **dev_out) {
+int uart_create(sl_dev_t **dev_out) {
     uart_t *u = calloc(1, sizeof(uart_t));
     if (u == NULL) return SL_ERR_MEM;
     *dev_out = &u->dev;
 
-    dev_init(&u->dev, DEVICE_UART);
+    dev_init(&u->dev, SL_DEV_UART);
     u->fd_in = STDIN_FILENO;
     u->fd_out = STDOUT_FILENO;
     u->dev.length = UART_APERTURE_LENGTH;

@@ -17,5 +17,5 @@ int bus_read(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 int bus_write(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 
 int bus_add_mem_region(bus_t *b, mem_region_t r);
-int bus_add_device(bus_t *b, device_t *dev, uint64_t base);
-device_t * bus_get_device_for_name(bus_t *b, const char *name);
+int bus_add_device(bus_t *b, sl_dev_t *dev, uint64_t base);
+sl_dev_t * bus_get_device_for_name(bus_t *b, const char *name);

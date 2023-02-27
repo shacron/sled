@@ -14,21 +14,21 @@ typedef struct {
 } reg_name_t;
 
 static const char * arch_name_map[] = {
-    [ARCH_MIPS] = "mips",
-    [ARCH_ARM] = "arm",
-    [ARCH_RISCV] = "riscv",
+    [SL_ARCH_MIPS] = "mips",
+    [SL_ARCH_ARM] = "arm",
+    [SL_ARCH_RISCV] = "riscv",
 };
 
 static const reg_name_t reg_common[] = {
-    { CORE_REG_PC, "pc" },
-    { CORE_REG_SP, "sp" },
-    { CORE_REG_LR, "lr" },
+    { SL_CORE_REG_PC, "pc" },
+    { SL_CORE_REG_SP, "sp" },
+    { SL_CORE_REG_LR, "lr" },
 };
 
 static const arch_ops_t arch_ops[] = {
-    [ARCH_MIPS] = { },
-    [ARCH_ARM] = { },
-    [ARCH_RISCV] = {
+    [SL_ARCH_MIPS] = { },
+    [SL_ARCH_ARM] = { },
+    [SL_ARCH_RISCV] = {
         .reg_for_name = rv_reg_for_name,
         .name_for_reg = rv_name_for_reg,
      },
@@ -44,26 +44,26 @@ typedef struct {
 
 static const arch_info_t arch_info[] = {
     {
-        .arch = ARCH_RISCV,
-        .subarch = SUBARCH_RV32,
+        .arch = SL_ARCH_RISCV,
+        .subarch = SL_SUBARCH_RV32,
         .subarch_name = "rv32",
         .int_reg_count = 32,
     },
     {
-        .arch = ARCH_RISCV,
-        .subarch = SUBARCH_RV64,
+        .arch = SL_ARCH_RISCV,
+        .subarch = SL_SUBARCH_RV64,
         .subarch_name = "rv64",
         .int_reg_count = 32,
     },
 };
 
-const char *arch_name(uint8_t arch) {
-    if (arch > ARCH_NUM) return NULL;
+const char * sl_arch_name(uint8_t arch) {
+    if (arch > SL_ARCH_NUM) return NULL;
     return arch_name_map[arch];
 }
 
-uint32_t arch_get_reg_count(uint8_t arch, uint8_t subarch, int type) {
-    if (type != CORE_REG_TYPE_INT) return 0;
+uint32_t sl_arch_get_reg_count(uint8_t arch, uint8_t subarch, int type) {
+    if (type != SL_CORE_REG_TYPE_INT) return 0;
 
     for (int i = 0; i < countof(arch_info); i++) {
         const arch_info_t *a = &arch_info[i];
@@ -74,7 +74,7 @@ uint32_t arch_get_reg_count(uint8_t arch, uint8_t subarch, int type) {
     return 0;
 }
 
-uint32_t arch_reg_for_name(uint8_t arch, const char *name) {
+uint32_t sl_arch_reg_for_name(uint8_t arch, const char *name) {
     for (int i = 0; i < countof(reg_common); i++) {
         const reg_name_t *r = &reg_common[i];
         if (!strcmp(name, r->name)) return r->value;
@@ -84,5 +84,5 @@ uint32_t arch_reg_for_name(uint8_t arch, const char *name) {
     if (ops->reg_for_name != NULL)
         return ops->reg_for_name(name);
 
-    return CORE_REG_INVALID;
+    return SL_CORE_REG_INVALID;
 }

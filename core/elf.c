@@ -47,7 +47,7 @@ SYMBOL TABLE:
 #define GET_HEADER_FIELD(o, f) (o->is64 ? ((Elf64_Ehdr *)(o->image))->f : ((Elf32_Ehdr *)(o->image))->f)
 #define GET_STRUCT_FIELD(o, p, t, f) (o->is64 ? ((Elf64_ ## t *)p)->f : ((Elf32_ ## t *)p)->f)
 
-struct elf_object {
+struct sl_elf_obj {
     int fd;
     void *image;
     size_t size;
@@ -64,31 +64,31 @@ struct elf_object {
 };
 
 
-void *elf_pointer_for_offset(elf_object_t *obj, uint64_t offset) {
+void *sl_elf_pointer_for_offset(sl_elf_obj_t *obj, uint64_t offset) {
     return obj->image + offset;
 }
 
-static char * get_string(elf_object_t *obj, Elf64_Word offset) {
+static char * get_string(sl_elf_obj_t *obj, Elf64_Word offset) {
     return obj->str + offset;
 }
 
-static char * get_sh_string(elf_object_t *obj, Elf64_Word offset) {
+static char * get_sh_string(sl_elf_obj_t *obj, Elf64_Word offset) {
     return obj->shstr + offset;
 }
 
-static void * get_section_header_base(elf_object_t *obj) {
+static void * get_section_header_base(sl_elf_obj_t *obj) {
     return obj->image + GET_HEADER_FIELD(obj, e_shoff);
 }
 
-bool elf_is_64bit(elf_object_t *obj) {
+bool sl_elf_is_64bit(sl_elf_obj_t *obj) {
     return obj->is64;
 }
 
-uint64_t elf_get_entry(elf_object_t *obj) {
+uint64_t sl_elf_get_entry(sl_elf_obj_t *obj) {
     return GET_HEADER_FIELD(obj, e_entry);
 }
 
-static int elf_riscv_attributes(elf_object_t *o, void *vsh) {
+static int elf_riscv_attributes(sl_elf_obj_t *o, void *vsh) {
     int err;
     Elf64_Off offset;
     // Elf64_Xword size;
@@ -130,17 +130,17 @@ static int elf_riscv_attributes(elf_object_t *o, void *vsh) {
             switch (c0) {
             case 'm':
                 printf("M attribute version %c\n", c1);
-                o->arch_options |= RISCV_EXT_M;
+                o->arch_options |= SL_RISCV_EXT_M;
                 break;
 
             case 'a':
                 printf("A attribute version %c\n", c1);
-                o->arch_options |= RISCV_EXT_A;
+                o->arch_options |= SL_RISCV_EXT_A;
                 break;
 
             case 'c':
                 printf("C attribute version %c\n", c1);
-                o->arch_options |= RISCV_EXT_C;
+                o->arch_options |= SL_RISCV_EXT_C;
                 break;
 
             // case 'f':
@@ -164,8 +164,8 @@ out:
     return err;
 }
 
-int elf_open(const char *filename, elf_object_t **obj_out) {
-    elf_object_t *obj = calloc(1, sizeof(elf_object_t));
+int sl_elf_open(const char *filename, sl_elf_obj_t **obj_out) {
+    sl_elf_obj_t *obj = calloc(1, sizeof(sl_elf_obj_t));
 
     obj->fd = open(filename, O_RDONLY);
     if (obj->fd == -1) {
@@ -210,19 +210,19 @@ int elf_open(const char *filename, elf_object_t **obj_out) {
 
     switch (GET_HEADER_FIELD(obj, e_machine)) {
     case EM_ARM:
-        obj->arch = ARCH_ARM;
-        obj->subarch = SUBARCH_ARM;
+        obj->arch = SL_ARCH_ARM;
+        obj->subarch = SL_SUBARCH_ARM;
         break;
 
     case EM_AARCH64:
-        obj->arch = ARCH_ARM;
-        obj->subarch = SUBARCH_ARM64;
+        obj->arch = SL_ARCH_ARM;
+        obj->subarch = SL_SUBARCH_ARM64;
         break;
 
     case EM_RISCV:
-        obj->arch = ARCH_RISCV;
-        if (obj->is64) obj->subarch = SUBARCH_RV64;
-        else           obj->subarch = SUBARCH_RV32;
+        obj->arch = SL_ARCH_RISCV;
+        if (obj->is64) obj->subarch = SL_SUBARCH_RV64;
+        else           obj->subarch = SL_SUBARCH_RV32;
         break;
 
     default:
@@ -279,30 +279,30 @@ int elf_open(const char *filename, elf_object_t **obj_out) {
     return 0;
 
 out_err:
-    elf_close(obj);
+    sl_elf_close(obj);
     return -1;
 }
 
-void elf_close(elf_object_t *obj) {
+void sl_elf_close(sl_elf_obj_t *obj) {
     if (obj == NULL) return;
     if (obj->image != NULL) munmap(obj->image, obj->size);
     if (obj->fd >= 0) close(obj->fd);
     free(obj);
 }
 
-int elf_arch(elf_object_t *obj) {
+int sl_elf_arch(sl_elf_obj_t *obj) {
     return obj->arch;
 }
 
-int elf_subarch(elf_object_t *obj) {
+int sl_elf_subarch(sl_elf_obj_t *obj) {
     return obj->subarch;
 }
 
-uint32_t elf_arch_options(elf_object_t *obj) {
+uint32_t sl_elf_arch_options(sl_elf_obj_t *obj) {
     return obj->arch_options;
 }
 
-static void * find_sym_for_name(elf_object_t *obj, const char *name) {
+static void * find_sym_for_name(sl_elf_obj_t *obj, const char *name) {
     Elf64_Off offset;
     Elf64_Xword size, entsize;
 
@@ -327,13 +327,13 @@ static void * find_sym_for_name(elf_object_t *obj, const char *name) {
     return NULL;
 }
 
-ssize_t elf_symbol_length(elf_object_t *obj, const char *name) {
+ssize_t sl_elf_symbol_length(sl_elf_obj_t *obj, const char *name) {
     void *s = find_sym_for_name(obj, name);
     if (s == NULL) return -1;
     return GET_STRUCT_FIELD(obj, s, Sym, st_size);
 }
 
-ssize_t elf_read_symbol(elf_object_t *obj, const char *name, void *buf, size_t buflen) {
+ssize_t sl_elf_read_symbol(sl_elf_obj_t *obj, const char *name, void *buf, size_t buflen) {
     void *s = find_sym_for_name(obj, name);
     if (s == NULL) return -1;
 
@@ -358,7 +358,7 @@ ssize_t elf_read_symbol(elf_object_t *obj, const char *name, void *buf, size_t b
     return size;
 }
 
-void *elf_get_program_header(elf_object_t *obj, uint32_t index) {
+void *sl_elf_get_program_header(sl_elf_obj_t *obj, uint32_t index) {
     Elf64_Half phnum, phentsize;
     Elf64_Off phoff;
     if (obj->is64) {
@@ -376,7 +376,7 @@ void *elf_get_program_header(elf_object_t *obj, uint32_t index) {
     return obj->image + phoff + (index * phentsize);
 }
 
-int elf_read_symbols(elf_object_t *obj, sym_list_t *list) {
+int elf_read_symbols(sl_elf_obj_t *obj, sym_list_t *list) {
     Elf64_Off offset;
     Elf64_Xword size, entsize;
 

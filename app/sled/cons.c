@@ -19,7 +19,7 @@
 #define MAX_ARGS 20
 
 typedef struct {
-    machine_t *machine;
+    sl_machine_t *machine;
     core_t *core;
 
     uint32_t len;
@@ -42,18 +42,18 @@ static int quit_handler(console_t *c, char *cmd, int argc, char **argv) {
 }
 
 static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
-    int arch = core_get_arch(c->core);
+    int arch = sl_core_get_arch(c->core);
     uint64_t val;
 
     if (argc == 0) {
-        val = core_get_reg(c->core, CORE_REG_PC);
+        val = sl_core_get_reg(c->core, SL_CORE_REG_PC);
         printf("pc : %" PRIx64 "\n", val);
-        uint32_t count = core_get_reg_count(c->core, CORE_REG_TYPE_INT);
+        uint32_t count = sl_core_get_reg_count(c->core, SL_CORE_REG_TYPE_INT);
         for (uint32_t a = 0; a < count; a += 4) {
             uint64_t r[4];
             for (int b = 0; b < 4; b++) {
                 if ((a + b) > count) break;
-                r[b] = core_get_reg(c->core, a + b);
+                r[b] = sl_core_get_reg(c->core, a + b);
             }
             printf("r%2u: %16" PRIx64 " %16" PRIx64 " %16" PRIx64 " %16" PRIx64 "\n", a, r[0], r[1], r[2], r[3]);
         }
@@ -62,21 +62,21 @@ static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
 
     char *rname = argv[0];
 
-    uint32_t r = arch_reg_for_name(arch, rname);
-    if (r == CORE_REG_INVALID) {
-        printf("invalid register name %s for architecture %s\n", rname, arch_name(arch));
+    uint32_t r = sl_arch_reg_for_name(arch, rname);
+    if (r == SL_CORE_REG_INVALID) {
+        printf("invalid register name %s for architecture %s\n", rname, sl_arch_name(arch));
         return 0;
     }
 
     if (argc == 1) {
         // read reg
-        val = core_get_reg(c->core, r);
+        val = sl_core_get_reg(c->core, r);
         printf("%#" PRIx64 "\n", val);
         return 0;
     }
 
     val = strtoull(argv[1], NULL, 0);
-    core_set_reg(c->core, r, val);
+    sl_core_set_reg(c->core, r, val);
     printf("%s = %#" PRIx64 "\n", rname, val);
     return 0;
 }
@@ -138,7 +138,7 @@ do_op:
             uint32_t j;
             for (j = i; j < num; j++) {
                 uint64_t d;
-                if ((err = core_mem_read(c->core, addr, size, 1, &d))) {
+                if ((err = sl_core_mem_read(c->core, addr, size, 1, &d))) {
                     printf("failed to read memory at %#"PRIx64": %s\n", addr, st_err(err));
                     return 0;
                 }
@@ -176,8 +176,8 @@ static int step_handler(console_t *c, char *cmd, int argc, char **argv) {
     if (argc > 0) {
         step = strtoul(argv[0], NULL, 0);
     }
-    int err = core_step(c->core, step);
-    uint64_t pc = core_get_reg(c->core, CORE_REG_PC);
+    int err = sl_core_step(c->core, step);
+    uint64_t pc = sl_core_get_reg(c->core, SL_CORE_REG_PC);
     if (err) {
         printf("instruction failed at pc=%#" PRIx64 ": %s\n", pc, st_err(err));
     } else {
@@ -284,11 +284,11 @@ static int read_line(console_t *c) {
     return 0;
 }
 
-int console_enter(machine_t *m) {
+int console_enter(sl_machine_t *m) {
     int err = 0;
     console_t c;
     c.machine = m;
-    c.core = machine_get_core(m, 0);
+    c.core = sl_machine_get_core(m, 0);
 
     c.line = malloc(MAX_LINE);
     if (c.line == NULL) {

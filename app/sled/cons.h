@@ -5,5 +5,5 @@
 
 #include <sled/machine.h>
 
-int console_enter(machine_t *m);
+int console_enter(sl_machine_t *m);
 

@@ -14,7 +14,7 @@
 #include <sled/arch.h>
 #include <sled/error.h>
 
-static void config_set_internal(core_t *c, core_params_t *p);
+static void config_set_internal(core_t *c, sl_core_params_t *p);
 
 static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
     core_t *c = containerof(ep, core_t, irq_ep);
@@ -31,7 +31,7 @@ static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
     return err;
 }
 
-uint8_t core_get_arch(core_t *c) {
+uint8_t sl_core_get_arch(core_t *c) {
     return c->arch;
 }
 
@@ -43,7 +43,7 @@ int core_wait_for_interrupt(core_t *c) {
     return 0;
 }
 
-void core_config_get(core_t *c, core_params_t *p) {
+void core_config_get(core_t *c, sl_core_params_t *p) {
     p->arch = c->arch;
     p->subarch = c->subarch;
     p->id = c->id;
@@ -51,13 +51,13 @@ void core_config_get(core_t *c, core_params_t *p) {
     p->arch_options = c->arch_options;
 }
 
-int core_config_set(core_t *c, core_params_t *p) {
+int core_config_set(core_t *c, sl_core_params_t *p) {
     if (c->arch != p->arch) return SL_ERR_ARG;
     config_set_internal(c, p);
     return 0;
 }
 
-static void config_set_internal(core_t *c, core_params_t *p) {
+static void config_set_internal(core_t *c, sl_core_params_t *p) {
     c->arch = p->arch;
     c->subarch = p->subarch;
     c->id = p->id;
@@ -65,7 +65,7 @@ static void config_set_internal(core_t *c, core_params_t *p) {
     c->arch_options = p->arch_options;
 }
 
-int core_init(core_t *c, core_params_t *p, bus_t *b) {
+int core_init(core_t *c, sl_core_params_t *p, bus_t *b) {
     config_set_internal(c, p);
     c->bus = b;
     c->irq_ep.assert = core_accept_irq;
@@ -91,18 +91,18 @@ const core_ops_t * core_get_ops(core_t *c) {
     return &c->ops;
 }
 
-uint64_t core_get_cycles(core_t *c) {
+uint64_t sl_core_get_cycles(core_t *c) {
     return c->ticks;
 }
 
 void core_interrupt_set(core_t *c, bool enable) {
-    uint32_t bit = (1u << CORE_STATE_INTERRUPTS_EN);
+    uint32_t bit = (1u << SL_CORE_STATE_INTERRUPTS_EN);
     if (enable) c->state |= bit;
     else c->state &= ~bit;
 }
 
 int core_endian_set(core_t *c, bool big) {
-    c->ops.set_state(c, CORE_OPT_ENDIAN_BIG, big);
+    c->ops.set_state(c, SL_CORE_OPT_ENDIAN_BIG, big);
     return 0;
 }
 
@@ -127,40 +127,40 @@ void core_memory_barrier(core_t *c, uint32_t type) {
     }
 }
 
-int core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     bus_t *b = c->bus;
     if (b == NULL) return SL_ERR_IO_NODEV;
     return bus_read(b, addr, size, count, buf);
 }
 
-int core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     bus_t *b = c->bus;
     if (b == NULL) return SL_ERR_IO_NODEV;
     return bus_write(b, addr, size, count, buf);
 }
 
-void core_set_reg(core_t *c, uint32_t reg, uint64_t value) {
+void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value) {
     c->ops.set_reg(c, reg, value);
 }
 
-uint64_t core_get_reg(core_t *c, uint32_t reg) {
+uint64_t sl_core_get_reg(core_t *c, uint32_t reg) {
     return c->ops.get_reg(c, reg);
 }
 
-int core_step(core_t *c, uint32_t num) {
+int sl_core_step(core_t *c, uint32_t num) {
     return c->ops.step(c, num);
 }
 
-int core_run(core_t *c) {
+int sl_core_run(core_t *c) {
     return c->ops.run(c);
 }
 
-int core_set_state(core_t *c, uint32_t state, bool enabled) {
+int sl_core_set_state(core_t *c, uint32_t state, bool enabled) {
     return c->ops.set_state(c, state, enabled);
 }
 
-uint32_t core_get_reg_count(core_t *c, int type) {
-    return arch_get_reg_count(c->arch, c->subarch, type);
+uint32_t sl_core_get_reg_count(core_t *c, int type) {
+    return sl_arch_get_reg_count(c->arch, c->subarch, type);
 }
 
 #if WITH_SYMBOLS

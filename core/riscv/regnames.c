@@ -238,31 +238,31 @@ static const csr_name_t csr_name_f[] = {
 
 const char *rv_name_for_reg(uint32_t reg) {
     switch (reg) {
-    case CORE_REG_PC: return "pc";
-    case CORE_REG_SP: reg = RV_SP; break;
-    case CORE_REG_LR: reg = RV_RA; break;
+    case SL_CORE_REG_PC: return "pc";
+    case SL_CORE_REG_SP: reg = RV_SP; break;
+    case SL_CORE_REG_LR: reg = RV_RA; break;
     default: break;
     }
     return reg_name[reg];
 }
 
 uint32_t rv_reg_for_name(const char *name) {
-    if (!strcmp(name, "pc")) return CORE_REG_PC;
+    if (!strcmp(name, "pc")) return SL_CORE_REG_PC;
     if (name[0] == 'x') {
         uint8_t c = name[1];
-        if (c < '0' || c > '9') return CORE_REG_INVALID;
+        if (c < '0' || c > '9') return SL_CORE_REG_INVALID;
         if (name[2] == '\0')
             return c - '0';
         uint8_t d = name[2];
-        if (d < '0' || d > '9') return CORE_REG_INVALID;
+        if (d < '0' || d > '9') return SL_CORE_REG_INVALID;
         c = ((c - '0') * 10) + (d - '0');
-        if (c > 31) return CORE_REG_INVALID;
+        if (c > 31) return SL_CORE_REG_INVALID;
         return c;
     }
     for (uint32_t i = 0; i < countof(reg_name); i++) {
         if (!strcmp(name, reg_name[i])) return i;
     }
-    return CORE_REG_INVALID;
+    return SL_CORE_REG_INVALID;
 }
 
 

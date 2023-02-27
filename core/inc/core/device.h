@@ -9,9 +9,9 @@
 #include <core/lock.h>
 #include <sled/device.h>
 
-typedef struct device device_t;
+typedef struct sl_dev sl_dev_t;
 
-struct device {
+struct sl_dev {
     uint32_t type;
     uint32_t id;
     uint64_t base;
@@ -21,17 +21,17 @@ struct device {
     lock_t lock;
     irq_endpoint_t irq_ep;
 
-    int (*read)(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-    int (*write)(device_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-    void (*destroy)(device_t *dev);
+    int (*read)(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+    int (*write)(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+    void (*destroy)(sl_dev_t *dev);
 };
 
 // device API
-int device_create(uint32_t type, const char *name, device_t **dev_out);
+int device_create(uint32_t type, const char *name, sl_dev_t **dev_out);
 
-static inline void dev_lock(device_t *d) { lock_lock(&d->lock); }
-static inline void dev_unlock(device_t *d) { lock_unlock(&d->lock); }
+static inline void dev_lock(sl_dev_t *d) { lock_lock(&d->lock); }
+static inline void dev_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 
 // internal device calls
-void dev_init(device_t *d, uint32_t type);
-void dev_shutdown(device_t *d);
+void dev_init(sl_dev_t *d, uint32_t type);
+void dev_shutdown(sl_dev_t *d);

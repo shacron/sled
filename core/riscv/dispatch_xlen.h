@@ -53,7 +53,7 @@ static int XLEN_PREFIX(exec_jump)(rv_core_t *c, rv_inst_t inst) {
     }
     c->pc = imm + c->pc;
     c->jump_taken = 1;
-    RV_TRACE_RD(c, CORE_REG_PC, c->pc);
+    RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
     return 0;
 }
 
@@ -105,7 +105,7 @@ static int XLEN_PREFIX(exec_branch)(rv_core_t *c, rv_inst_t inst) {
     if (cond) {
         c->pc = (uxlen_t)(c->pc + imm);
         c->jump_taken = 1;
-        RV_TRACE_RD(c, CORE_REG_PC, c->pc);
+        RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
     }
     return 0;
 }
@@ -127,7 +127,7 @@ static int XLEN_PREFIX(exec_jalr)(rv_core_t *c, rv_inst_t inst) {
     }
     c->pc = dest;
     c->jump_taken = 1;
-    RV_TRACE_RD(c, CORE_REG_PC, c->pc);
+    RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
     return 0;
 }
 
@@ -147,44 +147,44 @@ static int XLEN_PREFIX(exec_load)(rv_core_t *c, rv_inst_t inst) {
     switch (inst.i.funct3) {
     case 0b000: // LB
         RV_TRACE_OPSTR("lb");
-        err = core_mem_read(&c->core, dest, 1, 1, &b);
+        err = sl_core_mem_read(&c->core, dest, 1, 1, &b);
         x = (int8_t)b;
         break;
 
     case 0b001: // LH
         RV_TRACE_OPSTR("lh");
-        err = core_mem_read(&c->core, dest, 2, 1, &h);
+        err = sl_core_mem_read(&c->core, dest, 2, 1, &h);
         x = (int16_t)h;
         break;
 
     case 0b010: // LW
         RV_TRACE_OPSTR("lw");
-        err = core_mem_read(&c->core, dest, 4, 1, &w);
+        err = sl_core_mem_read(&c->core, dest, 4, 1, &w);
         x = (int32_t)w;
         break;
 
     case 0b100: // LBU
         RV_TRACE_OPSTR("lbu");
-        err = core_mem_read(&c->core, dest, 1, 1, &b);
+        err = sl_core_mem_read(&c->core, dest, 1, 1, &b);
         x = b;
         break;
 
     case 0b101: // LHU
         RV_TRACE_OPSTR("lhu");
-        err = core_mem_read(&c->core, dest, 2, 1, &h);
+        err = sl_core_mem_read(&c->core, dest, 2, 1, &h);
         x = h;
         break;
 
 #if USING_RV64
     case 0b110: // LWU
         RV_TRACE_OPSTR("lwu");
-        err = core_mem_read(&c->core, dest, 4, 1, &w);
+        err = sl_core_mem_read(&c->core, dest, 4, 1, &w);
         x = w;
         break;
 
     case 0b011: // LD
         RV_TRACE_OPSTR("ld");
-        err = core_mem_read(&c->core, dest, 8, 1, &x);
+        err = sl_core_mem_read(&c->core, dest, 8, 1, &x);
         break;
 #endif
 
@@ -215,28 +215,28 @@ static int XLEN_PREFIX(exec_store)(rv_core_t *c, rv_inst_t inst) {
     switch (inst.s.funct3) {
     case 0b000: // SB
         b = (uint8_t)val;
-        err = core_mem_write(&c->core, dest, 1, 1, &b);
+        err = sl_core_mem_write(&c->core, dest, 1, 1, &b);
         val = b;
         RV_TRACE_OPSTR("sb");
         break;
 
     case 0b001: // SH
         h = (uint16_t)val;
-        err = core_mem_write(&c->core, dest, 2, 1, &h);
+        err = sl_core_mem_write(&c->core, dest, 2, 1, &h);
         val = h;
         RV_TRACE_OPSTR("sh");
         break;
 
     case 0b010: // SW
         w = (uint32_t)val;
-        err = core_mem_write(&c->core, dest, 4, 1, &w);
+        err = sl_core_mem_write(&c->core, dest, 4, 1, &w);
         val = w;
         RV_TRACE_OPSTR("sw");
         break;
 
 #if USING_RV64
     case 0b011: // SD
-        err = core_mem_write(&c->core, dest, 8, 1, &val);
+        err = sl_core_mem_write(&c->core, dest, 8, 1, &val);
         RV_TRACE_OPSTR("sd");
         break;
 #endif
@@ -394,7 +394,7 @@ static int XLEN_PREFIX(exec_alu)(rv_core_t *c, rv_inst_t inst) {
         break;
 
     case 0b0000001: // M extensions
-        if (!(c->core.arch_options & RISCV_EXT_M)) goto undef;
+        if (!(c->core.arch_options & SL_RISCV_EXT_M)) goto undef;
         switch (inst.r.funct3) {
         case 0b000: // MUL
             result = u1 * u2;
@@ -558,7 +558,7 @@ static int rv64_exec_alu32(rv_core_t *c, rv_inst_t inst) {
         break;
 
     case 0b0000001: // RV64M extensions
-        if (!(c->core.arch_options & RISCV_EXT_M)) goto undef;
+        if (!(c->core.arch_options & SL_RISCV_EXT_M)) goto undef;
         switch (inst.r.funct3) {
         case 0b000: // MULW
             result = (int32_t)(u1 * u2);
@@ -740,7 +740,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint64_t dest = c->r[rs] + imm;
 
         uint32_t val;
-        err = core_mem_read(&c->core, dest, 4, 1, &val);
+        err = sl_core_mem_read(&c->core, dest, 4, 1, &val);
         RV_TRACE_RD(c, rd, c->r[rd]);
         RV_TRACE_PRINT(c, "c.lw x%u, %u(x%u)", rd, imm, rs);
         if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
@@ -759,7 +759,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint64_t dest = c->r[rs] + imm;
 
         uint64_t val;
-        err = core_mem_read(&c->core, dest, 8, 1, &val);
+        err = sl_core_mem_read(&c->core, dest, 8, 1, &val);
         RV_TRACE_RD(c, rd, val);
         RV_TRACE_PRINT(c, "c.ld x%u, %u(x%u)", rd, imm, rs);
         if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
@@ -778,7 +778,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint32_t rd = RVC_TO_REG(ci.cs.rs2);
         const uxlen_t dest = c->r[rs] + imm;
         uint32_t val = (uint32_t)c->r[rd];
-        err = core_mem_write(&c->core, dest, 4, 1, &val);
+        err = sl_core_mem_write(&c->core, dest, 4, 1, &val);
         RV_TRACE_STORE(c, dest, rd, val);
         RV_TRACE_PRINT(c, "c.sw x%u, %u(x%u)", rd, imm, rs);
         if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
@@ -795,7 +795,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint32_t rd = RVC_TO_REG(ci.cs.rs2);
         const uint64_t dest = c->r[rs] + imm;
         uint64_t val = c->r[rd];
-        err = core_mem_write(&c->core, dest, 8, 1, &val);
+        err = sl_core_mem_write(&c->core, dest, 8, 1, &val);
         RV_TRACE_STORE(c, dest, rd, val);
         RV_TRACE_PRINT(c, "c.sd x%u, %u(x%u)" PRIx64, rd, imm, rs);
         if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, dest, err);
@@ -826,7 +826,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const int32_t imm = sign_extend32(CJIMM(ci), 12);
         const uxlen_t result = c->pc + imm;
         c->r[RV_RA] = c->pc + 2;
-        RV_TRACE_RD(c, CORE_REG_PC, RV_BR_TARGET(result, imm));
+        RV_TRACE_RD(c, SL_CORE_REG_PC, RV_BR_TARGET(result, imm));
         RV_TRACE_PRINT(c, "c.jal %d", imm);
         c->pc = result;
         c->jump_taken = 1;
@@ -882,7 +882,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     {
         const int32_t imm = sign_extend32(CJIMM(ci), 12);
         uxlen_t result = c->pc + imm;
-        RV_TRACE_RD(c, CORE_REG_PC, result);
+        RV_TRACE_RD(c, SL_CORE_REG_PC, result);
         RV_TRACE_PRINT(c, "c.j %#" PRIXLENx, RV_BR_TARGET(result, imm));
         c->pc = result;
         c->jump_taken = 1;
@@ -897,7 +897,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         if (c->r[rs] == 0) {
             c->pc = result;
             c->jump_taken = 1;
-            RV_TRACE_RD(c, CORE_REG_PC, result);
+            RV_TRACE_RD(c, SL_CORE_REG_PC, result);
         }
         RV_TRACE_PRINT(c, "c.beqz x%u, %#" PRIXLENx, rs, RV_BR_TARGET(result, imm));
         break;
@@ -911,7 +911,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         if (c->r[rs] != 0) {
             c->pc = result;
             c->jump_taken = 1;
-            RV_TRACE_RD(c, CORE_REG_PC, result);
+            RV_TRACE_RD(c, SL_CORE_REG_PC, result);
         }
         RV_TRACE_PRINT(c, "c.bnez x%u, %#" PRIXLENx, rs, RV_BR_TARGET(result, imm));
         break;
@@ -943,7 +943,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             const uxlen_t addr = c->r[RV_SP] + imm;
 
             uint32_t val;
-            err = core_mem_read(&c->core, addr, 4, 1, &val);
+            err = sl_core_mem_read(&c->core, addr, 4, 1, &val);
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.lwsp x%u, %u", ci.ci.rsd, imm);
             if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
@@ -961,7 +961,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             const uint32_t imm = CLIDSPIMM(ci);
             const uint64_t addr = c->r[RV_SP] + imm;
             uint64_t val;
-            err = core_mem_read(&c->core, addr, 8, 1, &val);
+            err = sl_core_mem_read(&c->core, addr, 8, 1, &val);
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.ldsp x%u, %u", ci.ci.rsd, imm);
             if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
@@ -978,7 +978,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
                 const uxlen_t addr = c->r[ci.cr.rsd];
                 c->pc = addr;
                 c->jump_taken = 1;
-                RV_TRACE_RD(c, CORE_REG_PC, addr);
+                RV_TRACE_RD(c, SL_CORE_REG_PC, addr);
                 RV_TRACE_PRINT(c, "c.jr x%u", ci.ci.rsd);
             } else {
                 // C.MV
@@ -999,7 +999,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
                     c->r[ci.cr.rsd] = c->pc + 2;
                     c->pc = addr;
                     c->jump_taken = 1;
-                    RV_TRACE_RD(c, CORE_REG_PC, addr);
+                    RV_TRACE_RD(c, SL_CORE_REG_PC, addr);
                     RV_TRACE_PRINT(c, "c.jalr x%u", ci.ci.rsd);
                 }
             } else {
@@ -1020,7 +1020,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint32_t imm = CSSIMM_SCALED_W(ci);
         const uxlen_t addr = c->r[RV_SP] + imm;
         uint32_t val = c->r[ci.css.rs2];
-        err = core_mem_write(&c->core, addr, 4, 1, &val);
+        err = sl_core_mem_write(&c->core, addr, 4, 1, &val);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
         RV_TRACE_PRINT(c, "c.swsp x%u, %u", ci.css.rs2, imm);
         if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
@@ -1035,7 +1035,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const uint32_t imm = CSSIMM_SCALED_D(ci);
         const uint64_t addr = c->r[RV_SP] + imm;
         uint64_t val = c->r[ci.css.rs2];
-        err = core_mem_write(&c->core, addr, 8, 1, &val);
+        err = sl_core_mem_write(&c->core, addr, 8, 1, &val);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
         RV_TRACE_PRINT(c, "c.sdsp x%u, %u", ci.css.rs2, imm);
         if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
@@ -1057,7 +1057,7 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
 
     // 16 bit compressed instructions
     if ((inst.u.opcode & 3) != 3) {
-        if (!(c->core.arch_options & RISCV_EXT_C)) return rv_undef(c, inst);
+        if (!(c->core.arch_options & SL_RISCV_EXT_C)) return rv_undef(c, inst);
         c->c_inst = 1;
         return XLEN_PREFIX(dispatch16)(c, inst);
     }

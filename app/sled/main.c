@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022 Shac Ron and The Sled Project
+// Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -39,7 +39,7 @@ typedef struct bin_file {
 } bin_file_t;
 
 typedef struct {
-    machine_t *m;
+    sl_machine_t *m;
     pthread_t core0;
     int core_id;
 
@@ -187,7 +187,7 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
 void *core_runner(void *arg) {
     int err = 0;
     sm_t *sm = arg;
-    core_t *c = machine_get_core(sm->m, sm->core_id);
+    core_t *c = sl_machine_get_core(sm->m, sm->core_id);
 
     if (sm->cons_on_start) {
         err = console_enter(sm->m);
@@ -195,13 +195,13 @@ void *core_runner(void *arg) {
     }
 
     if (sm->steps == 0) {
-        for ( ; err == 0; ) err = core_step(c, DEFAULT_STEP_COUNT);
+        for ( ; err == 0; ) err = sl_core_step(c, DEFAULT_STEP_COUNT);
     } else {
         for (uint64_t s = sm->steps; s > 0; ) {
             uint64_t step;
             if (s > 0xffffffff) step = 0xffffffff;
             else step = s;
-            if ((err = core_step(c, step))) break;
+            if ((err = sl_core_step(c, step))) break;
             s -= step;
         }
     }
@@ -221,7 +221,7 @@ int start_thread_for_core(sm_t *sm) {
     return 0;
 }
 
-static int load_binary(machine_t *m, uint32_t core_id, bin_file_t *b) {
+static int load_binary(sl_machine_t *m, uint32_t core_id, bin_file_t *b) {
     int err = -1;
     void *buf = NULL;
     int fd = open(b->file, O_RDONLY);
@@ -248,7 +248,7 @@ static int load_binary(machine_t *m, uint32_t core_id, bin_file_t *b) {
         perror(b->file);
         goto out_err;
     }
-    err = machine_load_core_raw(m, core_id, b->addr, buf, size);
+    err = sl_machine_load_core_raw(m, core_id, b->addr, buf, size);
 
 out_err:
     free(buf);
@@ -258,7 +258,7 @@ out_err:
 
 
 int simple_machine(sm_t *sm) {
-    machine_t *m;
+    sl_machine_t *m;
     int err;
     uint64_t a0, a1;
     sm->uart_fd_in = -1;
@@ -281,74 +281,74 @@ int simple_machine(sm_t *sm) {
 
     // create machine
 
-    if ((err = machine_create(&m))) {
-        fprintf(stderr, "machine_init failed: %s\n", st_err(err));
+    if ((err = sl_machine_create(&m))) {
+        fprintf(stderr, "sl_machine_init failed: %s\n", st_err(err));
         goto out_err;
     }
     sm->m = m;
 
-    if ((err = machine_add_mem(m, PLAT_MEM_BASE, PLAT_MEM_SIZE))) {
-        fprintf(stderr, "machine_add_mem failed: %s\n", st_err(err));
+    if ((err = sl_machine_add_mem(m, PLAT_MEM_BASE, PLAT_MEM_SIZE))) {
+        fprintf(stderr, "sl_machine_add_mem failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    if ((err = machine_add_device(m, DEVICE_INTC, PLAT_INTC_BASE, "intc0"))) {
+    if ((err = sl_machine_add_device(m, SL_DEV_INTC, PLAT_INTC_BASE, "intc0"))) {
         fprintf(stderr, "add interrupt controller failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    if ((err = machine_add_device(m, DEVICE_RTC, PLAT_RTC_BASE, "rtc"))) {
+    if ((err = sl_machine_add_device(m, SL_DEV_RTC, PLAT_RTC_BASE, "rtc"))) {
         fprintf(stderr, "add real time clock failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    if ((err = machine_add_device(m, DEVICE_UART, PLAT_UART_BASE, "uart0"))) {
+    if ((err = sl_machine_add_device(m, SL_DEV_UART, PLAT_UART_BASE, "uart0"))) {
         fprintf(stderr, "add uart failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    device_t *d = machine_get_device_for_name(m, "uart0");
+    sl_dev_t *d = sl_machine_get_device_for_name(m, "uart0");
     sled_uart_set_channel(d, sm->uart_io, sm->uart_fd_in, sm->uart_fd_out);
 
     // create core
 
-    core_params_t params = {};
+    sl_core_params_t params = {};
     params.arch = PLAT_CORE_ARCH;
     params.subarch = PLAT_CORE_SUBARCH;
     params.id = 0;
-    params.options = CORE_OPT_TRAP_SYSCALL;
+    params.options = SL_CORE_OPT_TRAP_SYSCALL;
     params.arch_options = PLAT_ARCH_OPTIONS;
 
-    if ((err = machine_add_core(m, &params))) {
-        printf("machine_add_core failed: %s\n", st_err(err));
+    if ((err = sl_machine_add_core(m, &params))) {
+        printf("sl_machine_add_core failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
     bool configured = false;
     for (bin_file_t *b = sm->bin_list; b != NULL; b = b->next) {
         if (b->flags & BIN_FLAG_ELF) {
-            elf_object_t *eo = NULL;
-            if ((err = elf_open(b->file, &eo))) {
+            sl_elf_obj_t *eo = NULL;
+            if ((err = sl_elf_open(b->file, &eo))) {
                 printf("failed to open %s\n", b->file);
                 goto out_err_machine;
             }
             const bool config = (b->flags & BIN_FLAG_INIT) ? true : false;
             if (config && configured) printf("warning: cpu already configured\n");
-            if ((err = machine_load_core(m, params.id, eo, config))) {
-                fprintf(stderr, "machine_load_core failed: %s\n", st_err(err));
+            if ((err = sl_machine_load_core(m, params.id, eo, config))) {
+                fprintf(stderr, "sl_machine_load_core failed: %s\n", st_err(err));
                 goto out_err_machine;
             }
             configured = true;
-            elf_close(eo);
+            sl_elf_close(eo);
             eo = NULL;
         } else {
             if ((err = load_binary(m, params.id, b))) goto out_err_machine;
         }
     }
 
-    core_t *c = machine_get_core(m, sm->core_id);
+    core_t *c = sl_machine_get_core(m, sm->core_id);
 
-    if (sm->entry != 0) core_set_reg(c, CORE_REG_PC, sm->entry);
+    if (sm->entry != 0) sl_core_set_reg(c, SL_CORE_REG_PC, sm->entry);
 
     // run
     sm->core_id = params.id;
@@ -361,8 +361,8 @@ int simple_machine(sm_t *sm) {
     sleep(1);
     printf("sending interrupt\n");
     // pulse interrupt since there's no way for software to clear this
-    machine_set_interrupt(m, 0, true);
-    machine_set_interrupt(m, 0, false);
+    sl_machine_set_interrupt(m, 0, true);
+    sl_machine_set_interrupt(m, 0, false);
 #endif
 
     void *retval;
@@ -375,14 +375,14 @@ int simple_machine(sm_t *sm) {
         goto out_err_machine;
     }
 
-    a0 = core_get_reg(c, CORE_REG_ARG0);
+    a0 = sl_core_get_reg(c, SL_CORE_REG_ARG0);
     if (a0 != 0x666) {
         printf("unexpected exit syscall %#" PRIx64 "\n", a0);
         err = SL_ERR;
         goto out_err_machine;
     }
 
-    a1 = core_get_reg(c, CORE_REG_ARG1);
+    a1 = sl_core_get_reg(c, SL_CORE_REG_ARG1);
     if (a1 != 0) {
         printf("executable exit status: %" PRId64 "\n", a1);
         err = SL_ERR;
@@ -391,11 +391,11 @@ int simple_machine(sm_t *sm) {
 
     // printf("success\n");
 out:
-    printf("%" PRIu64 " instructions dispatched\n", core_get_cycles(c));
+    printf("%" PRIu64 " instructions dispatched\n", sl_core_get_cycles(c));
     err = 0;
 
 out_err_machine:
-    machine_destroy(m);
+    sl_machine_destroy(m);
 out_err:
     if (sm->uart_io != UART_IO_CONS) {
         if (sm->uart_fd_in >= 0) close(sm->uart_fd_in);

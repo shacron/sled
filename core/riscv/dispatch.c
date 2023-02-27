@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022 Shac Ron and The Sled Project
+// Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <inttypes.h>
@@ -66,7 +66,7 @@ undef:
 }
 
 int rv_exec_ebreak(rv_core_t *c) {
-    if (c->core.options & CORE_OPT_TRAP_BREAKPOINT)
+    if (c->core.options & SL_CORE_OPT_TRAP_BREAKPOINT)
         return SL_ERR_BREAKPOINT;
     // todo: debugger exception
     return SL_ERR_UNIMPLEMENTED;
@@ -94,7 +94,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
             RV_TRACE_PRINT(c, "mret");
             if (c->pl != RV_PL_MACHINE) goto undef;
             err = rv_exception_return(c, RV_OP_MRET);
-            if (!err) RV_TRACE_RD(c, CORE_REG_PC, c->pc);
+            if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
             return err;
 
         case 0b0001000:
@@ -102,7 +102,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
                 RV_TRACE_PRINT(c, "sret");
                 if (c->pl < RV_PL_SUPERVISOR) goto undef;
                 err = rv_exception_return(c, RV_OP_SRET);
-                if (!err) RV_TRACE_RD(c, CORE_REG_PC, c->pc);
+                if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
                 return err;
             }
             if (inst.r.rs2 == 0b00101) { // WFI
