@@ -10,6 +10,8 @@ BLD_HOST_OS ?= $(shell uname -s)
 BLD_HOST_UNIVERSAL ?= 0
 BLD_HOST_USE_SANITIZERS ?= 1
 
+SILENT ?= @
+
 ##############################################################################
 # C build environment
 ##############################################################################
@@ -120,14 +122,14 @@ all: apps
 
 
 $(BLD_HOST_OBJDIR)/core/%.c.o: core/%.c
-	@mkdir -p $(dir $@)
+	$(SILENT) mkdir -p $(dir $@)
 	@echo " [cc]" $<
-	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
+	$(SILENT) $(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
 
 $(BLD_HOST_OBJDIR)/dev/%.c.o: dev/%.c
-	@mkdir -p $(dir $@)
+	$(SILENT) mkdir -p $(dir $@)
 	@echo " [cc]" $<
-	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
+	$(SILENT) $(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
 
 ##############################################################################
 # device build rules
@@ -144,10 +146,10 @@ $(1): $(BLD_HOST_LIBDIR)/dev/$(1).a
 $(1)_OBJS := $$($(1)_CSOURCES:%.c=$(BLD_HOST_OBJDIR)/%.c.o)
 
 $(BLD_HOST_LIBDIR)/dev/$(1).a: $$($(1)_OBJS)
-	@mkdir -p $$(dir $$@)
+	$(SILENT) mkdir -p $$(dir $$@)
 	@echo " [ar]" $$(notdir $$@)
-	@rm -f $$@
-	@$(BLD_HOST_AR) $(BLD_HOST_ARFLAGS) $$@ $$^
+	$(SILENT) rm -f $$@
+	$(SILENT) $(BLD_HOST_AR) $(BLD_HOST_ARFLAGS) $$@ $$^
 
 endef
 
@@ -167,14 +169,14 @@ $(1)_DEVICE_LIBS := $$($$($(1)_PLATFORM)_DEVICES:%=$(BLD_HOST_LIBDIR)/dev/%.a)
 $(1): $(BLD_HOST_BINDIR)/$(1)
 
 $(BLD_HOST_BINDIR)/$(1): $($(1)_OBJS) $(BLD_HOST_LIBDIR)/libsled.a $$($(1)_DEVICE_LIBS)
-	@mkdir -p $$(dir $$@)
+	$(SILENT) mkdir -p $$(dir $$@)
 	@echo " [ld]" $$(notdir $$@)
-	@$(BLD_HOST_LD) $(CFLAGS) $(LDFLAGS) -o $$@ $$^
+	$(SILENT) $(BLD_HOST_LD) $(CFLAGS) $(LDFLAGS) -o $$@ $$^
 
 $(BLD_HOST_OBJDIR)/app/%.c.o: app/%.c
-	@mkdir -p $$(dir $$@)
+	$(SILENT) mkdir -p $$(dir $$@)
 	@echo " [cc]" $$<
-	@$(BLD_HOST_CC) $(CFLAGS) $$($(1)_INCLUDES) $($(1)_DEFINES) -c -o $$@ $$<
+	$(SILENT) $(BLD_HOST_CC) $(CFLAGS) $$($(1)_INCLUDES) $($(1)_DEFINES) -c -o $$@ $$<
 
 endef
 
@@ -187,8 +189,8 @@ apps: $(APPS:%=$(BLD_HOST_BINDIR)/%)
 ##############################################################################
 
 $(BLD_HOST_INCDIR)/%.h: include/%.h
-	@mkdir -p $(dir $@)
-	@cp $^ $@
+	$(SILENT) mkdir -p $(dir $@)
+	$(SILENT) cp $^ $@
 
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),install install_headers))
 PUB_HEADERS := $(shell find include -name '*.h')
@@ -216,9 +218,9 @@ lib: $(BLD_HOST_LIBDIR)/libsled.a
 
 $(BLD_HOST_LIBDIR)/libsled.a: $(LIB_OBJS)
 	@echo " [ar]" $(notdir $@)
-	@mkdir -p $(dir $@)
-	@rm -f $@
-	@$(BLD_HOST_AR) $(BLD_HOST_ARFLAGS) $@ $^
+	$(SILENT) mkdir -p $(dir $@)
+	$(SILENT) rm -f $@
+	$(SILENT) $(BLD_HOST_AR) $(BLD_HOST_ARFLAGS) $@ $^
 
 
 ##############################################################################
@@ -227,7 +229,7 @@ $(BLD_HOST_LIBDIR)/libsled.a: $(LIB_OBJS)
 
 .PHONY: clean
 clean:
-	@rm -rf $(BLD_BASEDIR)
+	$(SILENT) rm -rf $(BLD_BASEDIR)
 
 
 ifneq ($(MAKECMDGOALS),clean)
