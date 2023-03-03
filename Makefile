@@ -1,7 +1,6 @@
 SDKDIR ?= ../sdk
 BLD_BASEDIR ?= build
 APPS ?= sled
-APP_PLATFORM ?= simple
 
 BLD_HOST_OBJDIR ?= $(BLD_BASEDIR)/obj
 BLD_HOST_BINDIR ?= $(BLD_BASEDIR)
@@ -63,10 +62,12 @@ endif
 
 CXXFLAGS := $(CFLAGS) -std=c++17
 LIBTARGETS :=
-INCLUDES := -Iinclude -Iplat/$(APP_PLATFORM)/inc
+INCLUDES := -Iinclude
 CSOURCES :=
 CLIBFLAGS := -fvisibility=hidden -fPIC
 DOBJS :=
+PLATFORMS :=
+DEVICES :=
 
 ##############################################################################
 # include app defines
@@ -77,7 +78,8 @@ define include_app
 APP := $(1)
 $(1)_LINK_LIBS :=
 $(1)_CSOURCES :=
-$(1)_INCLUDES :=
+$(1)_DEFINES := $(DEFINES)
+$(1)_INCLUDES := $(INCLUDES)
 
 include app/$(1)/build.mk
 
@@ -85,15 +87,37 @@ LIBTARGETS += $$($(1)_LIBS)
 INCLUDES += $$($(1)_INCLUDES)
 $(1)_OBJS := $$($(1)_CSOURCES:%.c=$(BLD_HOST_OBJDIR)/%.c.o)
 DOBJS += $$($(1)_OBJS)
+PLATFORMS += $$($(1)_PLATFORM)
 
 endef
 
 $(foreach app,$(APPS),$(eval $(call include_app,$(app))))
 
+##############################################################################
+# include platform defines
+##############################################################################
+
+define include_plat
+
+PLAT := $(1)
+$(1)_INCLUDES :=
+$(1)_DEVICES :=
+
+include plat/$(1)/build.mk
+
+DEVICES += $$($(1)_DEVICES)
+
+endef
+
+$(foreach plat,$(PLATFORMS),$(eval $(call include_plat,$(plat))))
 
 ##############################################################################
 # top level build rules
 ##############################################################################
+
+.PHONY: all
+all: apps
+
 
 $(BLD_HOST_OBJDIR)/core/%.c.o: core/%.c
 	@mkdir -p $(dir $@)
@@ -105,11 +129,31 @@ $(BLD_HOST_OBJDIR)/dev/%.c.o: dev/%.c
 	@echo " [cc]" $<
 	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
 
-$(BLD_HOST_OBJDIR)/app/%.c.o: app/%.c
-	@mkdir -p $(dir $@)
-	@echo " [cc]" $<
-	@$(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -c -o $@ $<
+##############################################################################
+# device build rules
+##############################################################################
 
+include dev/build.mk
+
+DEVICES := $(sort $(DEVICES))
+
+define build_dev
+
+$(1): $(BLD_HOST_LIBDIR)/dev/$(1).a
+
+$(1)_OBJS := $$($(1)_CSOURCES:%.c=$(BLD_HOST_OBJDIR)/%.c.o)
+
+$(BLD_HOST_LIBDIR)/dev/$(1).a: $$($(1)_OBJS)
+	@mkdir -p $$(dir $$@)
+	@echo " [ar]" $$(notdir $$@)
+	@rm -f $$@
+	@$(BLD_HOST_AR) $(BLD_HOST_ARFLAGS) $$@ $$^
+
+endef
+
+$(foreach dev,$(DEVICES),$(eval $(call build_dev,$(dev))))
+
+devices: $(DEVICES:%=$(BLD_HOST_LIBDIR)/dev/%)
 
 ##############################################################################
 # app build rules
@@ -117,19 +161,26 @@ $(BLD_HOST_OBJDIR)/app/%.c.o: app/%.c
 
 define build_app
 
+$(1)_INCLUDES += $$($$($(1)_PLATFORM)_INCLUDES)
+$(1)_DEVICE_LIBS := $$($$($(1)_PLATFORM)_DEVICES:%=$(BLD_HOST_LIBDIR)/dev/%.a)
+
 $(1): $(BLD_HOST_BINDIR)/$(1)
 
-$(BLD_HOST_BINDIR)/$(1): $($(1)_OBJS) $(BLD_HOST_LIBDIR)/libsled.a
+$(BLD_HOST_BINDIR)/$(1): $($(1)_OBJS) $(BLD_HOST_LIBDIR)/libsled.a $$($(1)_DEVICE_LIBS)
 	@mkdir -p $$(dir $$@)
 	@echo " [ld]" $$(notdir $$@)
 	@$(BLD_HOST_LD) $(CFLAGS) $(LDFLAGS) -o $$@ $$^
+
+$(BLD_HOST_OBJDIR)/app/%.c.o: app/%.c
+	@mkdir -p $$(dir $$@)
+	@echo " [cc]" $$<
+	@$(BLD_HOST_CC) $(CFLAGS) $$($(1)_INCLUDES) $($(1)_DEFINES) -c -o $$@ $$<
 
 endef
 
 $(foreach app,$(APPS),$(eval $(call build_app,$(app))))
 
 apps: $(APPS:%=$(BLD_HOST_BINDIR)/%)
-
 
 ##############################################################################
 # install rules
@@ -155,7 +206,6 @@ install: apps install_headers
 
 LIB_CSOURCES :=
 
-include dev/build.mk
 include core/build.mk
 include core/extension/build.mk
 

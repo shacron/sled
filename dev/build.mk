@@ -1,7 +1,6 @@
 SRCDIR := dev
 
-LIB_CSOURCES += \
-	$(SRCDIR)/sled/intc.c \
-	$(SRCDIR)/sled/rtc.c \
-	$(SRCDIR)/sled/uart.c \
+sled_intc_CSOURCES := $(SRCDIR)/sled/intc.c
+sled_rtc_CSOURCES  := $(SRCDIR)/sled/rtc.c
+sled_uart_CSOURCES := $(SRCDIR)/sled/uart.c
 
