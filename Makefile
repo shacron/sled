@@ -20,8 +20,9 @@ SILENT ?= @
 .SECONDARY:
 
 BLD_HOST_CC ?= clang
+BLD_HOST_CXX ?= clang++
 BLD_HOST_AS ?= clang
-BLD_HOST_LD := clang
+BLD_HOST_LD := clang++
 ifeq ($(BLD_HOST_OS),Darwin)
 # libtool required for fat archives
 BLD_HOST_AR := libtool
@@ -34,7 +35,6 @@ endif
 LDFLAGS :=
 CFLAGS  := -Wall -g -MMD
 DEFINES :=
-TOOLS :=
 
 ##############################################################################
 # build type
@@ -80,6 +80,7 @@ define include_app
 APP := $(1)
 $(1)_LINK_LIBS :=
 $(1)_CSOURCES :=
+$(1)_CXXSOURCES :=
 $(1)_DEFINES := $(DEFINES)
 $(1)_INCLUDES := $(INCLUDES)
 
@@ -87,7 +88,7 @@ include app/$(1)/build.mk
 
 LIBTARGETS += $$($(1)_LIBS)
 INCLUDES += $$($(1)_INCLUDES)
-$(1)_OBJS := $$($(1)_CSOURCES:%.c=$(BLD_HOST_OBJDIR)/%.c.o)
+$(1)_OBJS := $$($(1)_CSOURCES:%.c=$(BLD_HOST_OBJDIR)/%.c.o) $$($(1)_CXXSOURCES:%.cpp=$(BLD_HOST_OBJDIR)/%.cpp.o)
 DOBJS += $$($(1)_OBJS)
 PLATFORMS += $$($(1)_PLATFORM)
 
@@ -177,6 +178,11 @@ $(BLD_HOST_OBJDIR)/app/%.c.o: app/%.c
 	$(SILENT) mkdir -p $$(dir $$@)
 	@echo " [cc]" $$<
 	$(SILENT) $(BLD_HOST_CC) $(CFLAGS) $$($(1)_INCLUDES) $($(1)_DEFINES) -c -o $$@ $$<
+
+$(BLD_HOST_OBJDIR)/app/%.cpp.o: app/%.cpp
+	$(SILENT) mkdir -p $$(dir $$@)
+	@echo " [c++]" $$<
+	$(SILENT) $(BLD_HOST_CXX) $(CXXFLAGS) $$($(1)_INCLUDES) $($(1)_DEFINES) -c -o $$@ $$<
 
 endef
 
