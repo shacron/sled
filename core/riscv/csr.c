@@ -147,6 +147,30 @@ static result64_t rv_tick_csr(rv_core_t *c, int op, int64_t *offset, uint64_t va
     return result;
 }
 
+static result64_t rv_csr_pmpcfg(rv_core_t *c, int op, uint32_t index, uint64_t value) {
+    result64_t result = {};
+
+    uint64_t cfg = c->pmpcfg[index];
+    if (c->mode == RV_MODE_RV64) {
+        if (index & 1) {
+            result.err = SL_ERR_UNDEF;
+            return result;
+        }
+        cfg |= ((uint64_t)c->pmpcfg[index + 1]) << 32;
+    }
+    // uint64_t prev_cfg = cfg;
+    result = rv_csr_update(c, op, &cfg, value);
+    if (result.err) return result;
+
+    // todo: update MPU
+
+    if (c->mode == RV_MODE_RV64) {
+        c->pmpcfg[index + 1] = (uint32_t)(cfg >> 32);
+    }
+    c->pmpcfg[index] = (uint32_t)cfg;
+    return result;
+}
+
 result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
     result64_t result = {};
     csr_addr_t addr;
@@ -212,8 +236,8 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
         }
 
         if ((addr.raw >= RV_CSR_PMPCFG_BASE) && (addr.raw < (RV_CSR_PMPCFG_BASE + RV_CSR_PMPCFG_NUM))) {
-            const uint32_t i = addr.raw - RV_CSR_PMPCFG_BASE;
-            result = rv_csr_update(c, op, &c->pmpcfg[i], value);
+            const uint32_t index = addr.raw - RV_CSR_PMPCFG_BASE;
+            result = rv_csr_pmpcfg(c, op, index, value);
             goto out;
         }
 

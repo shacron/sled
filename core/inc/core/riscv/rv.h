@@ -65,7 +65,7 @@ struct rv_core {
     int64_t mcycle_offset;
     int64_t minstret_offset;
 
-    uint64_t pmpcfg[16];
+    uint32_t pmpcfg[16];
     uint64_t pmpaddr[64];
     uint64_t mhpmcounter[29];
     uint64_t mhpevent[29]; // mhpevent3-mhpevent31
