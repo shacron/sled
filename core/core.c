@@ -19,16 +19,47 @@ static void config_set_internal(core_t *c, sl_core_params_t *p);
 static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
     core_t *c = containerof(ep, core_t, irq_ep);
 
-    lock_lock(&c->lock);
+    core_lock(c);
     bool was_clear = (ep->asserted == 0);
     int err = irq_endpoint_assert(ep, num, high);
     if (!err && was_clear && (ep->asserted > 0)) {
         c->pending_irq = 1;
         cond_signal_all(&c->cond_int_asserted);
     }
-    lock_unlock(&c->lock);
+    core_unlock(c);
 
     return err;
+}
+
+// Core Events are a way to send events to the core's dispatch loop.
+// Events are a means to synchronize asynchronous inputs to the core.
+// Events can be interrupts or other changes initiated from outside the
+// dispatch loop. Events will be handled before the next instruction is
+// dispatched.
+
+#define CORE_PENDING_EVENT  (1u << 0)
+
+void core_event_set(core_t *c, core_ev_t *ev) {
+    core_lock(c);
+    list_add_tail(&c->event_list, &ev->node);
+    c->pending_event = CORE_PENDING_EVENT;
+    core_unlock(c);
+}
+
+// This function is inherently racy. Its view of pending_event may not
+// reflect changes another thread has recently made. This is okay.
+// The core lock must be taken to access events, which will synchronize
+// the thread's view of the data being touched.
+uint32_t core_event_read_pending(core_t *c) {
+    return atomic_load_explicit((_Atomic uint32_t*)&c->pending_event, memory_order_relaxed);
+}
+
+core_ev_t * core_event_get_all(core_t *c) {
+    core_lock(c);
+    list_node_t *n = list_remove_all(&c->event_list);
+    c->pending_event = 0;
+    core_unlock(c);
+    return (core_ev_t *)n;
 }
 
 uint8_t sl_core_get_arch(core_t *c) {
@@ -37,9 +68,9 @@ uint8_t sl_core_get_arch(core_t *c) {
 
 int core_wait_for_interrupt(core_t *c) {
     irq_endpoint_t *ep = &c->irq_ep;
-    lock_lock(&c->lock);
+    core_lock(c);
     if (ep->asserted == 0) cond_wait(&c->cond_int_asserted, &c->lock);
-    lock_unlock(&c->lock);
+    core_unlock(c);
     return 0;
 }
 
@@ -72,6 +103,8 @@ int core_init(core_t *c, sl_core_params_t *p, bus_t *b) {
     lock_init(&c->lock);
     cond_init(&c->cond_int_asserted);
     irq_endpoint_set_enabled(&c->irq_ep, IRQ_VEC_ALL);
+    c->pending_event = 0;
+    list_init(&c->event_list);
     return 0;
 }
 
@@ -83,6 +116,8 @@ int core_shutdown(core_t *c) {
         sym_free(s);
     }
 #endif
+    // delete all pending events...
+
     lock_destroy(&c->lock);
     return 0;
 }

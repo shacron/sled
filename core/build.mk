@@ -8,6 +8,7 @@ LIB_CSOURCES += \
 	$(SRCDIR)/elf.c \
 	$(SRCDIR)/error.c \
 	$(SRCDIR)/irq.c \
+	$(SRCDIR)/list.c \
 	$(SRCDIR)/lock.c \
 	$(SRCDIR)/machine.c \
 	$(SRCDIR)/mem.c \

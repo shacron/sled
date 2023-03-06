@@ -123,6 +123,18 @@ static void rv_handle_pending_irq(rv_core_t *c) {
     lock_unlock(&c->core.lock);
 }
 
+static void rv_handle_pending_events(rv_core_t *c) {
+    core_ev_t *ev_list = core_event_get_all(&c->core);
+    for ( ; ; ) {
+        core_ev_t *ev = ev_list;
+        if (ev == NULL) break;
+        ev_list = (core_ev_t *)ev->node.next;
+
+        // do something with it.
+        printf("got event %u\n", ev->type);
+    }
+}
+
 // Synchronous irq handler - invokes an exception before the next instruction is dispatched.
 static int rv_interrupt_taken(rv_core_t *c) {
     uint32_t asserted = c->irq_asserted;
@@ -149,6 +161,7 @@ static int riscv_core_step(core_t *c, uint32_t num) {
     rv_core_t *rc = (rv_core_t *)c;
     int err = 0;
     for (uint32_t i = 0; i < num; i++) {
+        if (core_event_read_pending(c)) rv_handle_pending_events(rc);
         if (rv_get_pending_irq(rc)) rv_handle_pending_irq(rc);
         if (CORE_INT_ENABLED(c->state)) {
             if ((err = rv_interrupt_taken(rc))) break;

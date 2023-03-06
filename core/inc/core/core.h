@@ -8,6 +8,7 @@
 #include <core/bus.h>
 #include <core/irq.h>
 #include <core/itrace.h>
+#include <core/list.h>
 #include <sled/core.h>
 
 #define MAX_PHYS_MEM_REGIONS    4
@@ -22,6 +23,13 @@
 
 typedef struct sym_list sym_list_t;
 typedef struct sym_entry sym_entry_t;
+
+typedef struct {
+    list_node_t node;
+    uint32_t type;
+    uint32_t option;
+    void *context;
+} core_ev_t;
 
 typedef struct core_ops {
     void (*set_reg)(core_t *c, uint32_t reg, uint64_t value);
@@ -50,6 +58,11 @@ struct core {
     cond_t cond_int_asserted;
     irq_endpoint_t irq_ep;
     uint32_t pending_irq;       // only updated under lock
+
+    uint32_t pending_event;     // notification of pending events
+    // protected by core lock
+    list_t event_list;          // async events delivered to core
+
 #if WITH_SYMBOLS
     sym_list_t *symbols;
 #endif
@@ -62,13 +75,22 @@ int core_shutdown(core_t *c);
 void core_config_get(core_t *c, sl_core_params_t *p);
 int core_config_set(core_t *c, sl_core_params_t *p);
 
-void core_interrupt_set(core_t *c, bool enable);
 void core_add_symbols(core_t *c, sym_list_t *list);
 
+// core async event notification
+void core_event_set(core_t *c, core_ev_t *ev);
+
 // runtime functions
+// these may only be called by the core's dispatch loop
+void core_interrupt_set(core_t *c, bool enable);
 int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
+uint32_t core_event_read_pending(core_t *c);
+core_ev_t * core_event_get_all(core_t *c);
+
+static inline void core_lock(core_t *c) { lock_lock(&c->lock); }
+static inline void core_unlock(core_t *c) { lock_unlock(&c->lock); }
 
 sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr);
