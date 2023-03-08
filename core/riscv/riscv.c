@@ -68,10 +68,6 @@ static uint64_t riscv_get_reg(core_t *c, uint32_t reg) {
     }
 }
 
-uint32_t rv_get_pending_irq(rv_core_t *c) {
-    return atomic_load_explicit((_Atomic uint32_t*)&c->core.pending_irq, memory_order_relaxed);
-}
-
 static int riscv_core_set_state(core_t *c, uint32_t state, bool enabled) {
     rv_core_t *rc = (rv_core_t *)c;
 
@@ -119,7 +115,7 @@ static void rv_handle_pending_irq(rv_core_t *c) {
     irq_endpoint_t *ep = &c->core.irq_ep;
     lock_lock(&c->core.lock);
     c->irq_asserted = ep->asserted;
-    c->core.pending_irq = 0;
+    c->core.pending_event &= ~CORE_PENDING_IRQ;
     lock_unlock(&c->core.lock);
 }
 
@@ -161,11 +157,12 @@ static int riscv_core_step(core_t *c, uint32_t num) {
     rv_core_t *rc = (rv_core_t *)c;
     int err = 0;
     for (uint32_t i = 0; i < num; i++) {
-        if (core_event_read_pending(c)) rv_handle_pending_events(rc);
-        if (rv_get_pending_irq(rc)) rv_handle_pending_irq(rc);
+        uint32_t events = core_event_read_pending(c);
+        if (events & CORE_PENDING_IRQ) rv_handle_pending_irq(rc);
         if (CORE_INT_ENABLED(c->state)) {
             if ((err = rv_interrupt_taken(rc))) break;
         }
+        if (events & CORE_PENDING_EVENT) rv_handle_pending_events(rc);
         uint32_t inst;
         if ((err = rv_load_pc(rc, &inst)))
             return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);

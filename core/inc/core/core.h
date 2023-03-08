@@ -19,6 +19,9 @@
 #define BARRIER_SYSTEM  (1u << 2)
 #define BARRIER_SYNC    (1u << 3)
 
+#define CORE_PENDING_IRQ    (1u << 0)
+#define CORE_PENDING_EVENT  (1u << 1)
+
 #define CORE_INT_ENABLED(s) (s & (1u << SL_CORE_STATE_INTERRUPTS_EN))
 
 typedef struct sym_list sym_list_t;
@@ -57,7 +60,6 @@ struct core {
     lock_t lock;
     cond_t cond_int_asserted;
     irq_endpoint_t irq_ep;
-    uint32_t pending_irq;       // only updated under lock
 
     uint32_t pending_event;     // notification of pending events
     // protected by core lock

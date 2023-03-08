@@ -23,7 +23,7 @@ static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
     bool was_clear = (ep->asserted == 0);
     int err = irq_endpoint_assert(ep, num, high);
     if (!err && was_clear && (ep->asserted > 0)) {
-        c->pending_irq = 1;
+        c->pending_event |= CORE_PENDING_IRQ;
         cond_signal_all(&c->cond_int_asserted);
     }
     core_unlock(c);
@@ -37,12 +37,10 @@ static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
 // dispatch loop. Events will be handled before the next instruction is
 // dispatched.
 
-#define CORE_PENDING_EVENT  (1u << 0)
-
 void core_event_set(core_t *c, core_ev_t *ev) {
     core_lock(c);
     list_add_tail(&c->event_list, &ev->node);
-    c->pending_event = CORE_PENDING_EVENT;
+    c->pending_event |= CORE_PENDING_EVENT;
     core_unlock(c);
 }
 
@@ -57,7 +55,7 @@ uint32_t core_event_read_pending(core_t *c) {
 core_ev_t * core_event_get_all(core_t *c) {
     core_lock(c);
     list_node_t *n = list_remove_all(&c->event_list);
-    c->pending_event = 0;
+    c->pending_event &= ~CORE_PENDING_EVENT;
     core_unlock(c);
     return (core_ev_t *)n;
 }
