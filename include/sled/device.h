@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,6 +23,27 @@ extern "C" {
 #define SL_DEV_RESERVED     1024
 
 typedef struct sl_dev sl_dev_t;
+typedef struct sl_dev_ops sl_dev_ops_t;
+typedef struct sl_irq_ep sl_irq_ep_t;
+
+struct sl_dev_ops {
+    int (*read)(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+    int (*write)(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+    void (*destroy)(void *ctx);
+    uint32_t aperture;
+};
+
+int sl_device_create(uint32_t type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
+
+void sl_device_set_context(sl_dev_t *d, void *ctx);
+void * sl_device_get_context(sl_dev_t *d);
+
+void sl_device_lock(sl_dev_t *d);
+void sl_device_unlock(sl_dev_t *d);
+
+sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d);
+
+void sl_device_destroy(sl_dev_t *dev);
 
 // common device calls
 

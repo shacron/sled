@@ -15,15 +15,13 @@ struct sl_dev {
     uint32_t type;
     uint32_t id;
     uint64_t base;
-    uint32_t length;
     const char *name;
 
     lock_t lock;
-    irq_endpoint_t irq_ep;
+    sl_irq_ep_t irq_ep;
 
-    int (*read)(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-    int (*write)(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-    void (*destroy)(sl_dev_t *dev);
+    void *context;
+    sl_dev_ops_t ops;
 };
 
 // device API

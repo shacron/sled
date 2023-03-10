@@ -59,7 +59,7 @@ struct core {
 
     lock_t lock;
     cond_t cond_int_asserted;
-    irq_endpoint_t irq_ep;
+    sl_irq_ep_t irq_ep;
 
     uint32_t pending_event;     // notification of pending events
     // protected by core lock

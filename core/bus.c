@@ -23,7 +23,7 @@
 #define MAX_DEVICES         8
 
 struct bus {
-    sl_dev_t dev;
+    sl_dev_t *dev;
     mem_region_t mem[MAX_MEM_REGIONS];
     sl_dev_t *dev_list[MAX_DEVICES];
 };
@@ -41,9 +41,13 @@ static sl_dev_t * get_device_for_addr(bus_t *b, uint64_t addr) {
     for (int i = 0; i < MAX_DEVICES; i++) {
         sl_dev_t *d = b->dev_list[i];
         if (d == NULL) continue;
-        if ((d->base <= addr) && ((d->base + d->length) > addr)) return d;
+        if ((d->base <= addr) && ((d->base + d->ops.aperture) > addr)) return d;
     }
     return NULL;
+}
+
+static int bus_op_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+    return bus_read(ctx, addr, size, count, buf);
 }
 
 int bus_read(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
@@ -56,7 +60,11 @@ int bus_read(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf) 
 
     sl_dev_t *d = get_device_for_addr(b, addr);
     if (d == NULL) return SL_ERR_IO_NODEV;
-    return d->read(d, addr - d->base, size, count, buf);
+    return d->ops.read(d->context, addr - d->base, size, count, buf);
+}
+
+static int bus_op_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+    return bus_write(ctx, addr, size, count, buf);
 }
 
 int bus_write(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
@@ -71,7 +79,7 @@ int bus_write(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf)
 
     sl_dev_t *d = get_device_for_addr(b, addr);
     if (d == NULL) return SL_ERR_IO_NODEV;
-    return d->write(d, addr - d->base, size, count, buf);
+    return d->ops.write(d->context, addr - d->base, size, count, buf);
 }
 
 int bus_add_mem_region(bus_t *b, mem_region_t r) {
@@ -125,22 +133,39 @@ sl_dev_t * bus_get_device_for_name(bus_t *b, const char *name) {
     return NULL;
 }
 
-int bus_create(bus_t **bus_out) {
-    bus_t *b = calloc(1, sizeof(*b));
-    if (b == NULL) return SL_ERR_MEM;
-    dev_init(&b->dev, SL_DEV_BUS);
-    *bus_out = b;
-    return 0;
-}
-
-void bus_destroy(bus_t *bus) {
+static void bus_op_destroy(void *ctx) {
+    bus_t *bus = ctx;
     for (int i = 0; i < MAX_DEVICES; i++) {
         sl_dev_t *d = bus->dev_list[i];
-        if (d != NULL) d->destroy(d);
+        if (d != NULL) sl_device_destroy(d);
     }
 
     for (int i = 0; i < MAX_MEM_REGIONS; i++)
         mem_region_destroy(&bus->mem[i]);
 
     free(bus);
+}
+
+void bus_destroy(bus_t *bus) {
+    sl_device_destroy(bus->dev);
+}
+
+static const sl_dev_ops_t bus_ops = {
+    .read = bus_op_read,
+    .write = bus_op_write,
+    .destroy = bus_op_destroy,
+};
+
+int bus_create(const char *name, bus_t **bus_out) {
+    bus_t *b = calloc(1, sizeof(*b));
+    if (b == NULL) return SL_ERR_MEM;
+
+    int err = sl_device_create(SL_DEV_UART, name, &bus_ops, &b->dev);
+    if (err) {
+        free(b);
+        return err;
+    }
+    sl_device_set_context(b->dev, b);
+    *bus_out = b;
+    return 0;
 }

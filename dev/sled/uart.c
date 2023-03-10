@@ -5,9 +5,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <core/common.h>
-#include <core/device.h>
 #include <device/sled/uart.h>
+#include <sled/device.h>
 #include <sled/error.h>
 
 #define UART_TYPE 'rxtx'
@@ -15,10 +14,8 @@
 
 #define BUFLEN  255
 
-#define FROMDEV(d) containerof((d), uart_t, dev)
-
 typedef struct {
-    sl_dev_t dev;
+    sl_dev_t *dev;
     int io_type;
     int fd_in;
     int fd_out;
@@ -37,15 +34,15 @@ static void uart_flush(uart_t *u) {
     u->buf_pos = 0;
 }
 
-static int uart_read(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int uart_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
-    uart_t *u = FROMDEV(d);
+    uart_t *u = ctx;
     uint32_t *val = buf;
     int err = 0;
 
-    lock_lock(&d->lock);
+    sl_device_lock(u->dev);
     switch (addr) {
     case UART_REG_DEV_TYPE:     *val = UART_TYPE;           break;
     case UART_REG_DEV_VERSION:  *val = UART_VERSION;        break;
@@ -55,20 +52,20 @@ static int uart_read(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, 
     case UART_REG_FIFO_WRITE:   err = SL_ERR_IO_NORD;       break;
     default:                    err = SL_ERR_IO_INVALID;    break;
     }
-    lock_unlock(&d->lock);
+    sl_device_unlock(u->dev);
     return err;
 }
 
-static int uart_write(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int uart_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
-    uart_t *u = FROMDEV(d);
+    uart_t *u = ctx;
     uint32_t val = *(uint32_t *)buf;
     uint8_t c;
     int err = 0;
 
-    lock_lock(&d->lock);
+    sl_device_lock(u->dev);
     switch (addr) {
     case UART_REG_CONFIG:   u->config = val;        break;
 
@@ -87,12 +84,12 @@ static int uart_write(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count,
 
     default:    err = SL_ERR_IO_INVALID;        break;
     }
-    lock_unlock(&d->lock);
+    sl_device_unlock(u->dev);
     return err;
 }
 
 int sled_uart_set_channel(sl_dev_t *dev, int io, int fd_in, int fd_out) {
-    uart_t *u = FROMDEV(dev);
+    uart_t *u = sl_device_get_context(dev);
     switch (io) {
     case UART_IO_NULL:
         u->fd_in = u->fd_out = -1;
@@ -116,26 +113,33 @@ int sled_uart_set_channel(sl_dev_t *dev, int io, int fd_in, int fd_out) {
     return 0;
 }
 
-void uart_destroy(sl_dev_t *dev) {
-    if (dev == NULL) return;
-    uart_t *u = FROMDEV(dev);
+static void uart_destroy(void *ctx) {
+    uart_t *u = ctx;
+    if (ctx == NULL) return;
     if (u->buf_pos > 0) uart_flush(u);
-    dev_shutdown(dev);
     free(u);
 }
 
-int uart_create(sl_dev_t **dev_out) {
+static const sl_dev_ops_t uart_ops = {
+    .read = uart_read,
+    .write = uart_write,
+    .destroy = uart_destroy,
+    .aperture = UART_APERTURE_LENGTH,
+};
+
+int uart_create(const char *name, sl_dev_t **dev_out) {
     uart_t *u = calloc(1, sizeof(uart_t));
     if (u == NULL) return SL_ERR_MEM;
-    *dev_out = &u->dev;
 
-    dev_init(&u->dev, SL_DEV_UART);
+    int err = sl_device_create(SL_DEV_UART, name, &uart_ops, dev_out);
+    if (err) {
+        free(u);
+        return err;
+    }
+    u->dev = *dev_out;
+    sl_device_set_context(u->dev, u);
     u->fd_in = STDIN_FILENO;
     u->fd_out = STDOUT_FILENO;
-    u->dev.length = UART_APERTURE_LENGTH;
-    u->dev.read = uart_read;
-    u->dev.write = uart_write;
-    u->dev.destroy = uart_destroy;
     return 0;
 }
 

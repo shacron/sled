@@ -4,21 +4,14 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include <core/common.h>
-#include <core/device.h>
 #include <device/sled/rtc.h>
+#include <sled/device.h>
 #include <sled/error.h>
 
 #define RTC_TYPE 'time'
 #define RTC_VERSION 0
 
-#define FROMDEV(d) ((rtc_t *)(d))
-
-typedef struct {
-    sl_dev_t dev;
-} rtc_t;
-
-static int rtc_read(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int rtc_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
     if (count != 1) return SL_ERR_IO_COUNT;
 
     uint32_t *val = buf;
@@ -62,20 +55,11 @@ static int rtc_read(sl_dev_t *d, uint64_t addr, uint32_t size, uint32_t count, v
     }
 }
 
-static void rtc_destroy(sl_dev_t *dev) {
-    if (dev == NULL) return;
-    dev_shutdown(dev);
-    free(FROMDEV(dev));
-}
+static const sl_dev_ops_t rtc_ops = {
+    .read = rtc_read,
+    .aperture = RTC_APERTURE_LENGTH,
+};
 
-int rtc_create(sl_dev_t **dev_out) {
-    rtc_t *u = calloc(1, sizeof(rtc_t));
-    if (u == NULL) return SL_ERR_MEM;
-    *dev_out = &u->dev;
-
-    dev_init(&u->dev, SL_DEV_RTC);
-    u->dev.length = RTC_APERTURE_LENGTH;
-    u->dev.read = rtc_read;
-    u->dev.destroy = rtc_destroy;
-    return 0;
+int rtc_create(const char *name, sl_dev_t **dev_out) {
+    return sl_device_create(SL_DEV_RTC, name, &rtc_ops, dev_out);
 }

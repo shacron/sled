@@ -10,7 +10,7 @@
 
 typedef struct bus bus_t;
 
-int bus_create(bus_t **bus_out);
+int bus_create(const char *name, bus_t **bus_out);
 void bus_destroy(bus_t *bus);
 
 int bus_read(bus_t *b, uint64_t addr, uint32_t size, uint32_t count, void *buf);

@@ -16,12 +16,12 @@
 
 static void config_set_internal(core_t *c, sl_core_params_t *p);
 
-static int core_accept_irq(irq_endpoint_t *ep, uint32_t num, bool high) {
+static int core_accept_irq(sl_irq_ep_t *ep, uint32_t num, bool high) {
     core_t *c = containerof(ep, core_t, irq_ep);
 
     core_lock(c);
     bool was_clear = (ep->asserted == 0);
-    int err = irq_endpoint_assert(ep, num, high);
+    int err = sl_irq_endpoint_assert(ep, num, high);
     if (!err && was_clear && (ep->asserted > 0)) {
         c->pending_event |= CORE_PENDING_IRQ;
         cond_signal_all(&c->cond_int_asserted);
@@ -65,7 +65,7 @@ uint8_t sl_core_get_arch(core_t *c) {
 }
 
 int core_wait_for_interrupt(core_t *c) {
-    irq_endpoint_t *ep = &c->irq_ep;
+    sl_irq_ep_t *ep = &c->irq_ep;
     core_lock(c);
     if (ep->asserted == 0) cond_wait(&c->cond_int_asserted, &c->lock);
     core_unlock(c);
@@ -100,7 +100,7 @@ int core_init(core_t *c, sl_core_params_t *p, bus_t *b) {
     c->irq_ep.assert = core_accept_irq;
     lock_init(&c->lock);
     cond_init(&c->cond_int_asserted);
-    irq_endpoint_set_enabled(&c->irq_ep, IRQ_VEC_ALL);
+    sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
     c->pending_event = 0;
     list_init(&c->event_list);
     return 0;

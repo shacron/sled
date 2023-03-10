@@ -7,7 +7,6 @@
 #include <string.h>
 
 #include <core/bus.h>
-#include <core/dev/intc.h>
 #include <core/core.h>
 #include <core/mem.h>
 #include <core/riscv.h>
@@ -34,7 +33,7 @@ int sl_machine_create(sl_machine_t **m_out) {
     }
 
     int err;
-    if ((err = bus_create(&m->bus))) {
+    if ((err = bus_create("bus0", &m->bus))) {
         free(m);
         return err;
     }
@@ -68,7 +67,7 @@ int sl_machine_add_device(sl_machine_t *m, uint32_t type, uint64_t base, const c
 
     if ((err = bus_add_device(m->bus, d, base))) {
         fprintf(stderr, "bus_add_device failed: %s\n", st_err(err));
-        d->destroy(d);
+        sl_device_destroy(d);
     }
     if (type == SL_DEV_INTC) m->intc = d;
 
@@ -80,7 +79,7 @@ int sl_machine_add_device_prefab(sl_machine_t *m, uint64_t base, sl_dev_t *d) {
     int err;
     if ((err = bus_add_device(m->bus, d, base))) {
         fprintf(stderr, "bus_add_device failed: %s\n", st_err(err));
-        d->destroy(d);
+        sl_device_destroy(d);
     }
     return err;
 }
@@ -110,7 +109,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
             m->core_list[i] = c;
             opts->id = i;
             if (m->intc != NULL)
-                irq_endpoint_set_client(&m->intc->irq_ep, &c->irq_ep, 11); // todo: get proper irq number
+                sl_irq_endpoint_set_client(&m->intc->irq_ep, &c->irq_ep, 11); // todo: get proper irq number
             return 0;
         }
     }
@@ -129,7 +128,7 @@ sl_dev_t * sl_machine_get_device_for_name(sl_machine_t *m, const char *name) {
 
 int sl_machine_set_interrupt(sl_machine_t *m, uint32_t irq, bool high) {
     if (m->intc == NULL) return SL_ERR_IO_NODEV;
-    return irq_endpoint_assert(&m->intc->irq_ep, irq, high);
+    return sl_irq_endpoint_assert(&m->intc->irq_ep, irq, high);
 }
 
 void sl_machine_destroy(sl_machine_t *m) {
