@@ -160,7 +160,7 @@ int bus_create(const char *name, bus_t **bus_out) {
     bus_t *b = calloc(1, sizeof(*b));
     if (b == NULL) return SL_ERR_MEM;
 
-    int err = sl_device_create(SL_DEV_UART, name, &bus_ops, &b->dev);
+    int err = sl_device_create(SL_DEV_BUS, name, &bus_ops, &b->dev);
     if (err) {
         free(b);
         return err;
