@@ -119,9 +119,9 @@ static void riscv_core_next_pc(rv_core_t *c) {
 //     // lock_unlock(&c->core.lock);
 // }
 
-static int rv_handle_pending_events(rv_core_t *c) {
+static int rv_handle_pending_events(rv_core_t *c, bool wait) {
     int err = 0;
-    list_node_t *ev_list = queue_remove_all(&c->core.event_q, false);
+    list_node_t *ev_list = queue_remove_all(&c->core.event_q, wait);
 
     while (err == 0) {
         core_ev_t *ev = (core_ev_t *)ev_list;
@@ -152,6 +152,8 @@ static int rv_interrupt_taken(rv_core_t *c) {
         RV_INT_EXTERNAL_M, RV_INT_TIMER_M, RV_INT_SW_M, RV_INT_EXTERNAL_S, RV_INT_TIMER_S, RV_INT_SW_S
     };
 
+    c->core.state &= ~(1u << SL_CORE_STATE_WFI); // clear WFI state if active
+
     for (int i = 0; i < 6; i++) {
         const uint8_t bit = irq_pri[i];
         const uint32_t num = (1u << bit);
@@ -161,22 +163,39 @@ static int rv_interrupt_taken(rv_core_t *c) {
     return SL_ERR_STATE;
 }
 
+static int rv_handle_events(rv_core_t *rc) {
+    int err = 0;
+
+    if (likely(!CORE_IS_WFI(rc->core.state))) {
+        if (queue_maybe_has_entries(&rc->core.event_q))
+            if ((err = rv_handle_pending_events(rc, false))) goto out_err;
+        if (CORE_INT_ENABLED(rc->core.state))
+            if ((err = rv_interrupt_taken(rc))) goto out_err;
+        return 0;
+    }
+
+    if (!CORE_INT_ENABLED(rc->core.state)) {
+        // interrupts are disabled but WFI was called. This is technically legal, but results
+        // in a core deadlock. Users probably want to be informed about that.
+        printf("Guest state error: core is in WFI but interrupts are disabled.\n");
+        return SL_ERR_STATE;
+    }
+
+    do {
+        if ((err = rv_handle_pending_events(rc, true))) goto out_err;
+        if ((err = rv_interrupt_taken(rc))) goto out_err;
+    } while (CORE_IS_WFI(rc->core.state));
+    return 0;
+
+out_err:
+    return err;
+}
+
 static int riscv_core_step(core_t *c, uint32_t num) {
     rv_core_t *rc = (rv_core_t *)c;
     int err = 0;
     for (uint32_t i = 0; i < num; i++) {
-        if (queue_maybe_has_entries(&c->event_q)) {
-            if ((err = rv_handle_pending_events(rc))) break;
-            if (CORE_INT_ENABLED(c->state)) {
-                if ((err = rv_interrupt_taken(rc))) break;
-            }
-        }
-        // uint32_t events = core_event_read_pending(c);
-        // if (events & CORE_PENDING_IRQ) rv_handle_pending_irq(rc);
-        // if (CORE_INT_ENABLED(c->state)) {
-        //     if ((err = rv_interrupt_taken(rc))) break;
-        // }
-        // if (events & CORE_PENDING_EVENT) rv_handle_pending_events(rc);
+        if ((err = rv_handle_events(rc))) break;
         uint32_t inst;
         if ((err = rv_load_pc(rc, &inst)))
             return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);

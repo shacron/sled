@@ -76,12 +76,9 @@ uint8_t sl_core_get_arch(core_t *c) {
 }
 
 int core_wait_for_interrupt(core_t *c) {
-    assert(false); // TODO
-
-    // sl_irq_ep_t *ep = &c->irq_ep;
-    // core_lock(c);
-    // if (ep->asserted == 0) cond_wait(&c->cond_int_asserted, &c->lock);
-    // core_unlock(c);
+    sl_irq_ep_t *ep = &c->irq_ep;
+    if (ep->asserted) return 0;
+    c->state |= (1u << SL_CORE_STATE_WFI);
     return 0;
 }
 

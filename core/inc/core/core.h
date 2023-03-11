@@ -19,10 +19,13 @@
 #define BARRIER_SYSTEM  (1u << 2)
 #define BARRIER_SYNC    (1u << 3)
 
+#define SL_CORE_STATE_WFI   31
+
 #define CORE_PENDING_IRQ    (1u << 0)
 #define CORE_PENDING_EVENT  (1u << 1)
 
 #define CORE_INT_ENABLED(s) (s & (1u << SL_CORE_STATE_INTERRUPTS_EN))
+#define CORE_IS_WFI(s) (s & (1u << SL_CORE_STATE_WFI))
 
 #define CORE_EV_IRQ     1
 
