@@ -56,13 +56,22 @@ struct sl_core_params {
 #define SL_CORE_STATE_64BIT            1
 #define SL_CORE_STATE_ENDIAN_BIG       2
 
-uint8_t sl_core_get_arch(core_t *c);
-uint32_t sl_core_get_reg_count(core_t *c, int type);
+/*
+There are two ways to run a core
+Synchronous execution - this is accomplished by a series of iterated calls to
+sl_core_step(). Between steps, all core accessor functions are safe to call.
+Note that these functions are NOT generally thread safe and thus core_t must
+be protected by an external lock if accessed from multiple threads.
+
+Asynchronous execution - the involves a call to sl_core_dispatch_loop(). The
+dispatch loop is a blocking call and should be done on a separate thread.
+Control of the core is accomplished via async events. No other core accessor
+functions may be called unless specified while the dispatch loop is running.
+*/
 
 void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value);
 uint64_t sl_core_get_reg(core_t *c, uint32_t reg);
 int sl_core_step(core_t *c, uint32_t num);
-int sl_core_run(core_t *c);
 int sl_core_set_state(core_t *c, uint32_t state, bool enabled);
 
 // memory access through core
@@ -70,6 +79,12 @@ int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, vo
 int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 
 uint64_t sl_core_get_cycles(core_t *c);
+
+
+// Always safe to call on a valid core
+uint8_t sl_core_get_arch(core_t *c);
+uint32_t sl_core_get_reg_count(core_t *c, int type);
+
 
 #ifdef __cplusplus
 }

@@ -197,14 +197,6 @@ static int riscv_core_step(core_t *c, uint32_t num) {
     return err;
 }
 
-static int riscv_core_run(core_t *c) {
-    int err = 0;
-    do {
-        err = riscv_core_step(c, 1000000);
-    } while (!err);
-    return err;
-}
-
 static int riscv_core_destroy(core_t *c) {
     core_shutdown(c);
     rv_core_t *rc = (rv_core_t *)c;
@@ -228,10 +220,9 @@ int riscv_core_create(sl_core_params_t *p, bus_t *bus, core_t **core_out) {
 
     rc->core.options |= (SL_CORE_OPT_ENDIAN_BIG | SL_CORE_OPT_ENDIAN_LITTLE);
 
+    rc->core.ops.step = riscv_core_step;
     rc->core.ops.set_reg = riscv_set_reg;
     rc->core.ops.get_reg = riscv_get_reg;
-    rc->core.ops.step = riscv_core_step;
-    rc->core.ops.run = riscv_core_run;
     rc->core.ops.set_state = riscv_core_set_state;
     rc->core.ops.destroy = riscv_core_destroy;
 

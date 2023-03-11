@@ -40,10 +40,9 @@ typedef struct {
 } core_ev_t;
 
 typedef struct core_ops {
+    int (*step)(core_t *c, uint32_t num);
     void (*set_reg)(core_t *c, uint32_t reg, uint64_t value);
     uint64_t (*get_reg)(core_t *c, uint32_t reg);
-    int (*step)(core_t *c, uint32_t num);
-    int (*run)(core_t *c);
     int (*set_state)(core_t *c, uint32_t state, bool enabled);
     int (*destroy)(core_t *c);
 } core_ops_t;

@@ -166,9 +166,9 @@ int sl_core_step(core_t *c, uint32_t num) {
     return c->ops.step(c, num);
 }
 
-int sl_core_run(core_t *c) {
-    return c->ops.run(c);
-}
+// int sl_core_run(core_t *c) {
+//     return c->ops.run(c);
+// }
 
 int sl_core_set_state(core_t *c, uint32_t state, bool enabled) {
     return c->ops.set_state(c, state, enabled);
