@@ -93,12 +93,6 @@ int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
-// uint32_t core_event_read_pending(core_t *c);
-// core_ev_t * core_event_get_all(core_t *c);
-
 int core_handle_irq_event(core_t *c, core_ev_t *ev);
-
-// static inline void core_lock(core_t *c) { lock_lock(&c->lock); }
-// static inline void core_unlock(core_t *c) { lock_unlock(&c->lock); }
 
 sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr);

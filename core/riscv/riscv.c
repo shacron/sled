@@ -119,7 +119,7 @@ static int rv_handle_pending_events(rv_core_t *c, bool wait) {
         ev_list = ev->node.next;
 
         // do something with it.
-        printf("got event %u\n", ev->type);
+        // printf("got event %u\n", ev->type);
 
         switch (ev->type) {
         case CORE_EV_IRQ:   err = core_handle_irq_event(&c->core, ev);    break;
