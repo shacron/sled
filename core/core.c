@@ -36,40 +36,15 @@ static int core_accept_irq(sl_irq_ep_t *ep, uint32_t num, bool high) {
 // Called in dispatch loop context
 int core_handle_irq_event(core_t *c, core_ev_t *ev) {
     sl_irq_ep_t *ep = &c->irq_ep;
-    // bool was_clear = (ep->asserted == 0);
     uint32_t num = ev->arg[0];
     bool high = ev->arg[1];
     int err = sl_irq_endpoint_assert(ep, num, high);
-    // if (!err && was_clear && (ep->asserted > 0)) {
-    //     c->pending_event |= CORE_PENDING_IRQ;
-    //     cond_signal_all(&c->cond_int_asserted);
-    // }
     return err;
 }
 
 void core_event_send(core_t *c, core_ev_t *ev) {
     queue_add(&c->event_q, &ev->node);
-    // core_lock(c);
-    // list_add_tail(&c->event_list, &ev->node);
-    // c->pending_event |= CORE_PENDING_EVENT;
-    // core_unlock(c);
 }
-
-// This function is inherently racy. Its view of pending_event may not
-// reflect changes another thread has recently made. This is okay.
-// The core lock must be taken to access events, which will synchronize
-// the thread's view of the data being touched.
-// uint32_t core_event_read_pending(core_t *c) {
-//     return atomic_load_explicit((_Atomic uint32_t*)&c->pending_event, memory_order_relaxed);
-// }
-
-// core_ev_t * core_event_get_all(core_t *c) {
-//     core_lock(c);
-//     list_node_t *n = list_remove_all(&c->event_list);
-//     c->pending_event &= ~CORE_PENDING_EVENT;
-//     core_unlock(c);
-//     return (core_ev_t *)n;
-// }
 
 uint8_t sl_core_get_arch(core_t *c) {
     return c->arch;
@@ -108,12 +83,8 @@ int core_init(core_t *c, sl_core_params_t *p, bus_t *b) {
     config_set_internal(c, p);
     c->bus = b;
     c->irq_ep.assert = core_accept_irq;
-    // lock_init(&c->lock);
-    // cond_init(&c->cond_int_asserted);
     queue_init(&c->event_q);
     sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
-    // c->pending_event = 0;
-    // list_init(&c->event_list);
     return 0;
 }
 
@@ -128,7 +99,6 @@ int core_shutdown(core_t *c) {
     // delete all pending events...
 
     queue_shutdown(&c->event_q);
-    // lock_destroy(&c->lock);
     return 0;
 }
 

@@ -109,16 +109,6 @@ static void riscv_core_next_pc(rv_core_t *c) {
     }
 }
 
-// // rv_handle_pending_irq copies asynchronous pending IRQs to the synchronous
-// // irq_asserted flag. irq_asserted is only touched in the dispatch loop.
-// static void rv_handle_pending_irq(rv_core_t *c) {
-//     // sl_irq_ep_t *ep = &c->core.irq_ep;
-//     // lock_lock(&c->core.lock);
-//     // c->irq_asserted = ep->asserted;
-//     // c->core.pending_event &= ~CORE_PENDING_IRQ;
-//     // lock_unlock(&c->core.lock);
-// }
-
 static int rv_handle_pending_events(rv_core_t *c, bool wait) {
     int err = 0;
     list_node_t *ev_list = queue_remove_all(&c->core.event_q, wait);
