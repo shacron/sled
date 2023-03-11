@@ -8,7 +8,7 @@
 #include <core/bus.h>
 #include <core/irq.h>
 #include <core/itrace.h>
-#include <core/list.h>
+#include <core/queue.h>
 #include <sled/core.h>
 
 #define MAX_PHYS_MEM_REGIONS    4
@@ -24,6 +24,8 @@
 
 #define CORE_INT_ENABLED(s) (s & (1u << SL_CORE_STATE_INTERRUPTS_EN))
 
+#define CORE_EV_IRQ     1
+
 typedef struct sym_list sym_list_t;
 typedef struct sym_entry sym_entry_t;
 
@@ -31,7 +33,7 @@ typedef struct {
     list_node_t node;
     uint32_t type;
     uint32_t option;
-    void *context;
+    uint64_t arg[2];
 } core_ev_t;
 
 typedef struct core_ops {
@@ -57,13 +59,8 @@ struct core {
     itrace_t *trace;
     core_ops_t ops;
 
-    lock_t lock;
-    cond_t cond_int_asserted;
     sl_irq_ep_t irq_ep;
-
-    uint32_t pending_event;     // notification of pending events
-    // protected by core lock
-    list_t event_list;          // async events delivered to core
+    queue_t event_q;
 
 #if WITH_SYMBOLS
     sym_list_t *symbols;
@@ -79,8 +76,12 @@ int core_config_set(core_t *c, sl_core_params_t *p);
 
 void core_add_symbols(core_t *c, sym_list_t *list);
 
-// core async event notification
-void core_event_set(core_t *c, core_ev_t *ev);
+// Core Events are a way to send events to the core's dispatch loop.
+// Events are a means to synchronize asynchronous inputs to the core.
+// Events can be interrupts or other changes initiated from outside the
+// dispatch loop. Events will be handled before the next instruction is
+// dispatched.
+void core_event_send(core_t *c, core_ev_t *ev);
 
 // runtime functions
 // these may only be called by the core's dispatch loop
@@ -89,10 +90,12 @@ int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
-uint32_t core_event_read_pending(core_t *c);
-core_ev_t * core_event_get_all(core_t *c);
+// uint32_t core_event_read_pending(core_t *c);
+// core_ev_t * core_event_get_all(core_t *c);
 
-static inline void core_lock(core_t *c) { lock_lock(&c->lock); }
-static inline void core_unlock(core_t *c) { lock_unlock(&c->lock); }
+int core_handle_irq_event(core_t *c, core_ev_t *ev);
+
+// static inline void core_lock(core_t *c) { lock_lock(&c->lock); }
+// static inline void core_unlock(core_t *c) { lock_unlock(&c->lock); }
 
 sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr);

@@ -109,46 +109,54 @@ static void riscv_core_next_pc(rv_core_t *c) {
     }
 }
 
-// rv_handle_pending_irq copies asynchronous pending IRQs to the synchronous
-// irq_asserted flag. irq_asserted is only touched in the dispatch loop.
-static void rv_handle_pending_irq(rv_core_t *c) {
-    sl_irq_ep_t *ep = &c->core.irq_ep;
-    lock_lock(&c->core.lock);
-    c->irq_asserted = ep->asserted;
-    c->core.pending_event &= ~CORE_PENDING_IRQ;
-    lock_unlock(&c->core.lock);
-}
+// // rv_handle_pending_irq copies asynchronous pending IRQs to the synchronous
+// // irq_asserted flag. irq_asserted is only touched in the dispatch loop.
+// static void rv_handle_pending_irq(rv_core_t *c) {
+//     // sl_irq_ep_t *ep = &c->core.irq_ep;
+//     // lock_lock(&c->core.lock);
+//     // c->irq_asserted = ep->asserted;
+//     // c->core.pending_event &= ~CORE_PENDING_IRQ;
+//     // lock_unlock(&c->core.lock);
+// }
 
-static void rv_handle_pending_events(rv_core_t *c) {
-    core_ev_t *ev_list = core_event_get_all(&c->core);
-    for ( ; ; ) {
-        core_ev_t *ev = ev_list;
+static int rv_handle_pending_events(rv_core_t *c) {
+    int err = 0;
+    list_node_t *ev_list = queue_remove_all(&c->core.event_q, false);
+
+    while (err == 0) {
+        core_ev_t *ev = (core_ev_t *)ev_list;
         if (ev == NULL) break;
-        ev_list = (core_ev_t *)ev->node.next;
+        ev_list = ev->node.next;
 
         // do something with it.
         printf("got event %u\n", ev->type);
+
+        switch (ev->type) {
+        case CORE_EV_IRQ:   err = core_handle_irq_event(&c->core, ev);    break;
+        default:
+            printf("unknown event type %u\n", ev->type);
+            err = SL_ERR_STATE;
+            break;
+        }
+        free(ev);
     }
+    return err;
 }
 
 // Synchronous irq handler - invokes an exception before the next instruction is dispatched.
 static int rv_interrupt_taken(rv_core_t *c) {
-    uint32_t asserted = c->irq_asserted;
-    if (asserted == 0) return 0;
+    sl_irq_ep_t *ep = &c->core.irq_ep;
+    if (ep->asserted == 0) return 0;
 
     static const uint8_t irq_pri[] = {
         RV_INT_EXTERNAL_M, RV_INT_TIMER_M, RV_INT_SW_M, RV_INT_EXTERNAL_S, RV_INT_TIMER_S, RV_INT_SW_S
     };
 
-    int err = 0;
     for (int i = 0; i < 6; i++) {
         const uint8_t bit = irq_pri[i];
         const uint32_t num = (1u << bit);
-        if (asserted & num) {
-            if ((err = rv_exception_enter(c, bit | RV_CAUSE64_INT, 0))) return err;
-            c->irq_asserted &= ~(num);
-            return 0;
-        }
+        if (ep->asserted & num)
+            return rv_exception_enter(c, bit | RV_CAUSE64_INT, 0);
     }
     return SL_ERR_STATE;
 }
@@ -157,12 +165,18 @@ static int riscv_core_step(core_t *c, uint32_t num) {
     rv_core_t *rc = (rv_core_t *)c;
     int err = 0;
     for (uint32_t i = 0; i < num; i++) {
-        uint32_t events = core_event_read_pending(c);
-        if (events & CORE_PENDING_IRQ) rv_handle_pending_irq(rc);
-        if (CORE_INT_ENABLED(c->state)) {
-            if ((err = rv_interrupt_taken(rc))) break;
+        if (queue_maybe_has_entries(&c->event_q)) {
+            if ((err = rv_handle_pending_events(rc))) break;
+            if (CORE_INT_ENABLED(c->state)) {
+                if ((err = rv_interrupt_taken(rc))) break;
+            }
         }
-        if (events & CORE_PENDING_EVENT) rv_handle_pending_events(rc);
+        // uint32_t events = core_event_read_pending(c);
+        // if (events & CORE_PENDING_IRQ) rv_handle_pending_irq(rc);
+        // if (CORE_INT_ENABLED(c->state)) {
+        //     if ((err = rv_interrupt_taken(rc))) break;
+        // }
+        // if (events & CORE_PENDING_EVENT) rv_handle_pending_events(rc);
         uint32_t inst;
         if ((err = rv_load_pc(rc, &inst)))
             return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);

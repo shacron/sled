@@ -12,6 +12,7 @@ LIB_CSOURCES += \
 	$(SRCDIR)/lock.c \
 	$(SRCDIR)/machine.c \
 	$(SRCDIR)/mem.c \
+	$(SRCDIR)/queue.c \
 	$(SRCDIR)/riscv/csr.c \
 	$(SRCDIR)/riscv/dispatch.c \
 	$(SRCDIR)/riscv/dispatch_rv32.c \
