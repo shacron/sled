@@ -70,7 +70,13 @@ struct core {
 #endif
 };
 
+// ----------------------------------------------------------------------------
 // setup functions
+// ----------------------------------------------------------------------------
+
+// Setup functions may only be called when the core dispatch loop is not
+// running.
+
 int core_init(core_t *c, sl_core_params_t *p, bus_t *b);
 int core_shutdown(core_t *c);
 
@@ -79,6 +85,10 @@ int core_config_set(core_t *c, sl_core_params_t *p);
 
 void core_add_symbols(core_t *c, sym_list_t *list);
 
+// ----------------------------------------------------------------------------
+// async functions
+// ----------------------------------------------------------------------------
+
 // Core Events are a way to send events to the core's dispatch loop.
 // Events are a means to synchronize asynchronous inputs to the core.
 // Events can be interrupts or other changes initiated from outside the
@@ -86,8 +96,12 @@ void core_add_symbols(core_t *c, sym_list_t *list);
 // dispatched.
 void core_event_send(core_t *c, core_ev_t *ev);
 
-// runtime functions
-// these may only be called by the core's dispatch loop
+// ----------------------------------------------------------------------------
+// dispatch functions
+// ----------------------------------------------------------------------------
+
+// These functions may only be invoked by the core dispatch loop
+
 void core_interrupt_set(core_t *c, bool enable);
 int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
@@ -95,4 +109,9 @@ void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
 int core_handle_irq_event(core_t *c, core_ev_t *ev);
 
+// ----------------------------------------------------------------------------
+// Misc
+// ----------------------------------------------------------------------------
+
+// safe to call in any context as long as the core is not shut down.
 sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr);
