@@ -18,6 +18,8 @@ extern "C" {
 #define SL_ERR_FULL          -6 // queue is full
 #define SL_ERR_RANGE         -7 // request out of range
 #define SL_ERR_STATE         -8 // bad state
+#define SL_ERR_TIMEOUT       -9 // timeout
+#define SL_ERR_BUSY          -10 // busy
 
 // instruction execution errors
 #define SL_ERR_UNDEF        -16 // undefined (illegal) instruction

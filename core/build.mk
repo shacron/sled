@@ -20,5 +20,6 @@ LIB_CSOURCES += \
 	$(SRCDIR)/riscv/ex.c \
 	$(SRCDIR)/riscv/regnames.c \
 	$(SRCDIR)/riscv/riscv.c \
+	$(SRCDIR)/sem.c \
 	$(SRCDIR)/sym.c \
 
