@@ -195,7 +195,7 @@ void *core_runner(void *arg) {
     }
 
     if (sm->steps == 0) {
-        for ( ; err == 0; ) err = sl_core_step(c, DEFAULT_STEP_COUNT);
+        err = sl_core_dispatch_loop(c, true);
     } else {
         for (uint64_t s = sm->steps; s > 0; ) {
             uint64_t step;
@@ -205,9 +205,9 @@ void *core_runner(void *arg) {
             s -= step;
         }
     }
-    if (err && sm->cons_on_err) {
+    if (err && sm->cons_on_err)
         console_enter(sm->m);
-    }
+
 out_err:
     return (void *)(uintptr_t)err;
 }

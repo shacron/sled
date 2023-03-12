@@ -33,6 +33,11 @@ static int core_accept_irq(sl_irq_ep_t *ep, uint32_t num, bool high) {
     return 0;
 }
 
+void core_set_wfi(core_t *c, bool enable) {
+    if (enable) c->state |= (1u << SL_CORE_STATE_WFI);
+    else c->state &= ~(1u << SL_CORE_STATE_WFI);
+}
+
 // Called in dispatch loop context
 int core_handle_irq_event(core_t *c, core_ev_t *ev) {
     sl_irq_ep_t *ep = &c->irq_ep;
@@ -53,7 +58,7 @@ uint8_t sl_core_get_arch(core_t *c) {
 int core_wait_for_interrupt(core_t *c) {
     sl_irq_ep_t *ep = &c->irq_ep;
     if (ep->asserted) return 0;
-    c->state |= (1u << SL_CORE_STATE_WFI);
+    core_set_wfi(c, true);
     return 0;
 }
 
@@ -162,13 +167,84 @@ uint64_t sl_core_get_reg(core_t *c, uint32_t reg) {
     return c->ops.get_reg(c, reg);
 }
 
-int sl_core_step(core_t *c, uint32_t num) {
-    return c->ops.step(c, num);
+static int core_handle_events(core_t *c, bool wait) {
+    int err = 0;
+    list_node_t *ev_list = queue_remove_all(&c->event_q, wait);
+
+    while (err == 0) {
+        core_ev_t *ev = (core_ev_t *)ev_list;
+        if (ev == NULL) break;
+        ev_list = ev->node.next;
+
+        // do something with it.
+        // printf("got event %u\n", ev->type);
+
+        switch (ev->type) {
+        case CORE_EV_IRQ:   err = core_handle_irq_event(c, ev);    break;
+        default:
+            printf("unknown event type %u\n", ev->type);
+            err = SL_ERR_STATE;
+            break;
+        }
+        free(ev);
+    }
+    return err;
 }
 
-// int sl_core_run(core_t *c) {
-//     return c->ops.run(c);
-// }
+static int core_handle_interrupts(core_t *c) {
+    sl_irq_ep_t *ep = &c->irq_ep;
+    if (ep->asserted == 0) return 0;
+    core_set_wfi(c, false);
+    return c->ops.interrupt(c);
+}
+
+static int core_service_event_queue(core_t *c) {
+    int err = 0;
+
+    if (likely(!CORE_IS_WFI(c->state))) {
+        if (queue_maybe_has_entries(&c->event_q))
+            if ((err = core_handle_events(c, false))) goto out_err;
+        if (CORE_INT_ENABLED(c->state))
+            if ((err = core_handle_interrupts(c))) goto out_err;
+        return 0;
+    }
+
+    if (unlikely(!CORE_INT_ENABLED(c->state))) {
+        // interrupts are disabled but WFI was called. This is technically legal, but results
+        // in a core deadlock. Users probably want to be informed about that.
+        printf("Guest state error: core is in WFI but interrupts are disabled.\n");
+        return SL_ERR_STATE;
+    }
+
+    do {
+        if ((err = core_handle_events(c, true))) goto out_err;
+        if ((err = core_handle_interrupts(c))) goto out_err;
+    } while (CORE_IS_WFI(c->state));
+    return 0;
+
+out_err:
+    return err;
+}
+
+int sl_core_step(core_t *c, uint32_t num) {
+    int err = 0;
+    for (uint32_t i = 0; i < num; i++) {
+        if ((err = core_service_event_queue(c))) break;
+        if ((err = c->ops.step(c))) break;
+    }
+    return err;
+}
+
+int sl_core_dispatch_loop(core_t *c, bool run) {
+    core_set_wfi(c, !run);
+
+    int err = 0;
+    for ( ; ; ) {
+        if ((err = core_service_event_queue(c))) break;
+
+    }
+    return err;
+}
 
 int sl_core_set_state(core_t *c, uint32_t state, bool enabled) {
     return c->ops.set_state(c, state, enabled);
