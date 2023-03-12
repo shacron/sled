@@ -240,8 +240,7 @@ int sl_core_dispatch_loop(core_t *c, bool run) {
 
     int err = 0;
     for ( ; ; ) {
-        if ((err = core_service_event_queue(c))) break;
-
+        if ((err = sl_core_step(c, 0x80000000))) break;
     }
     return err;
 }
