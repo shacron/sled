@@ -9,6 +9,7 @@
 #include <core/irq.h>
 #include <core/itrace.h>
 #include <core/queue.h>
+#include <core/sem.h>
 #include <sled/core.h>
 
 #define MAX_PHYS_MEM_REGIONS    4
@@ -28,16 +29,24 @@
 #define CORE_IS_WFI(s) (s & (1u << SL_CORE_STATE_WFI))
 
 #define CORE_EV_IRQ     1
+#define CORE_EV_RUNMODE 2
 
+#define CORE_EV_FLAG_RETAIN     (1u << 0)
+#define CORE_EV_FLAG_CALLBACK   (1u << 1)
+#define CORE_EV_FLAG_SIGNAL     (1u << 2)
+
+typedef struct core_ev core_ev_t;
 typedef struct sym_list sym_list_t;
 typedef struct sym_entry sym_entry_t;
 
-typedef struct {
+struct core_ev {
     list_node_t node;
     uint32_t type;
+    uint32_t flags;
     uint32_t option;
     uint64_t arg[2];
-} core_ev_t;
+    int (*callback)(core_t *c, core_ev_t *ev);
+};
 
 typedef struct core_ops {
     int (*step)(core_t *c);

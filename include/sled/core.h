@@ -86,6 +86,16 @@ int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, vo
 int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 uint64_t sl_core_get_cycles(core_t *c);
 
+
+// ----------------------------------------------------------------------------
+// Async control functions
+// ----------------------------------------------------------------------------
+#define SL_CORE_CMD_RUN     0
+#define SL_CORE_CMD_HALT    1
+#define SL_CORE_CMD_EXIT    2
+
+int sl_core_async_command(core_t *c, uint32_t cmd, bool wait);
+
 // ----------------------------------------------------------------------------
 // Always safe to call on a valid core
 // ----------------------------------------------------------------------------

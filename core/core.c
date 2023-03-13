@@ -11,6 +11,7 @@
 
 #include <core/common.h>
 #include <core/core.h>
+#include <core/sem.h>
 #include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/error.h>
@@ -49,6 +50,33 @@ int core_handle_irq_event(core_t *c, core_ev_t *ev) {
 
 void core_event_send(core_t *c, core_ev_t *ev) {
     queue_add(&c->event_q, &ev->node);
+}
+
+int sl_core_async_command(core_t *c, uint32_t cmd, bool wait) {
+    int err = 0;
+    sl_sem_t sem;
+
+    core_ev_t *ev = calloc(1, sizeof(*ev));
+    if (ev == NULL) return SL_ERR_MEM;
+
+    ev->type = CORE_EV_RUNMODE;
+    ev->option = cmd;
+    ev->flags = 0;
+    if (wait) {
+        ev->flags |= CORE_EV_FLAG_SIGNAL;
+        if (sl_sem_init(&sem, 0)) goto out_err;
+        ev->arg[0] = (uintptr_t)&sem;
+    }
+    core_event_send(c, ev);
+    if (wait) {
+        sl_sem_wait(&sem);
+        sl_sem_destroy(&sem);
+    }
+    return 0;
+
+out_err:
+    free(ev);
+    return err;
 }
 
 uint8_t sl_core_get_arch(core_t *c) {
@@ -167,6 +195,24 @@ uint64_t sl_core_get_reg(core_t *c, uint32_t reg) {
     return c->ops.get_reg(c, reg);
 }
 
+static int core_handle_runmode_event(core_t *c, core_ev_t *ev) {
+    int err = 0;
+    switch(ev->option) {
+    case SL_CORE_CMD_RUN:   core_set_wfi(c, false); break;
+    case SL_CORE_CMD_HALT:  core_set_wfi(c, true);  break;
+    case SL_CORE_CMD_EXIT:  err = SL_ERR_EXITED;    break;
+    default:
+        printf("unknown core cmd option %u\n", ev->option);
+        err = SL_ERR_ARG;
+        break;
+    }
+    if (ev->flags & CORE_EV_FLAG_SIGNAL) {
+        sl_sem_t *sem = (sl_sem_t *)ev->arg[0];
+        sl_sem_post(sem);
+    }
+    return err;
+}
+
 static int core_handle_events(core_t *c, bool wait) {
     int err = 0;
     list_node_t *ev_list = queue_remove_all(&c->event_q, wait);
@@ -180,7 +226,8 @@ static int core_handle_events(core_t *c, bool wait) {
         // printf("got event %u\n", ev->type);
 
         switch (ev->type) {
-        case CORE_EV_IRQ:   err = core_handle_irq_event(c, ev);    break;
+        case CORE_EV_IRQ:       err = core_handle_irq_event(c, ev);     break;
+        case CORE_EV_RUNMODE:   err = core_handle_runmode_event(c, ev); break;
         default:
             printf("unknown event type %u\n", ev->type);
             err = SL_ERR_STATE;
@@ -209,12 +256,12 @@ static int core_service_event_queue(core_t *c) {
         return 0;
     }
 
-    if (unlikely(!CORE_INT_ENABLED(c->state))) {
-        // interrupts are disabled but WFI was called. This is technically legal, but results
-        // in a core deadlock. Users probably want to be informed about that.
-        printf("Guest state error: core is in WFI but interrupts are disabled.\n");
-        return SL_ERR_STATE;
-    }
+    // if (unlikely(!CORE_INT_ENABLED(c->state))) {
+    //     // interrupts are disabled but WFI was called. This is technically legal, but results
+    //     // in a core deadlock. Users probably want to be informed about that.
+    //     printf("Guest state error: core is in WFI but interrupts are disabled.\n");
+    //     return SL_ERR_STATE;
+    // }
 
     do {
         if ((err = core_handle_events(c, true))) goto out_err;

@@ -24,7 +24,7 @@
 #include "cons.h"
 
 #define ISSUE_INTERRUPT 1
-#define DEFAULT_STEP_COUNT (1 * 1000 * 1000)
+#define DEFAULT_STEP_COUNT 0
 #define DEFAULT_CONSOLE    0
 
 #define BIN_FLAG_ELF        (1u << 0)
@@ -195,7 +195,7 @@ void *core_runner(void *arg) {
     }
 
     if (sm->steps == 0) {
-        err = sl_core_dispatch_loop(c, true);
+        err = sl_core_dispatch_loop(c, false);
     } else {
         for (uint64_t s = sm->steps; s > 0; ) {
             uint64_t step;
@@ -356,6 +356,8 @@ int simple_machine(sm_t *sm) {
         fprintf(stderr, "start_thread_for_core failed\n");
         goto out_err_machine;
     }
+
+    sl_core_async_command(c, SL_CORE_CMD_RUN, true);
 
 #if ISSUE_INTERRUPT
     sleep(1);
