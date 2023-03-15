@@ -3,21 +3,23 @@
 
 #pragma once
 
+#include <core/types.h>
+
 #if __APPLE__
 
 #include <dispatch/dispatch.h>
 
-typedef struct {
+struct sl_sem {
     dispatch_semaphore_t dsem;
-} sl_sem_t;
+};
 
 #else
 
 #include <semaphore.h>
 
-typedef struct {
+struct sl_sem {
     sem_t psem;
-} sl_sem_t;
+};
 
 #endif
 

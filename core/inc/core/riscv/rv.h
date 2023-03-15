@@ -3,14 +3,12 @@
 
 #pragma once
 
-#include <core/common.h>
 #include <core/core.h>
 #include <core/ex.h>
+#include <core/types.h>
 #include <sled/riscv.h>
 
 // #define RV_TRACE 1
-
-typedef struct rv_core rv_core_t;
 
 #define RV_MODE_RV32    0
 #define RV_MODE_RV64    1

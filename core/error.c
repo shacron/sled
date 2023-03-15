@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
+#include <core/common.h>
 #include <sled/error.h>
-
-#define countof(ar) (sizeof(ar) / sizeof(ar[0]))
 
 #define ESTR(e) [-(e)] = #e
 

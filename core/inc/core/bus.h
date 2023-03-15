@@ -3,12 +3,9 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <core/device.h>
 #include <core/mem.h>
-
-typedef struct bus bus_t;
+#include <core/types.h>
 
 int bus_create(const char *name, bus_t **bus_out);
 void bus_destroy(bus_t *bus);

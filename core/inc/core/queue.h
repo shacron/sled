@@ -3,12 +3,8 @@
 
 #pragma once
 
-#include <stdbool.h>
-
 #include <core/list.h>
 #include <core/lock.h>
-
-typedef struct queue queue_t;
 
 struct queue {
     lock_t lock;

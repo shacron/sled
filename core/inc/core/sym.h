@@ -2,9 +2,7 @@
 
 #include <stdint.h>
 
-typedef struct sl_elf_obj sl_elf_obj_t;
-typedef struct sym_list sym_list_t;
-typedef struct sym_entry sym_entry_t;
+#include <core/types.h>
 
 struct sym_entry {
     uint64_t addr;

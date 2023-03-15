@@ -3,17 +3,18 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <stddef.h>
+
+#include <core/types.h>
 
 typedef struct list_node_s {
     struct list_node_s *next;
 } list_node_t;
 
-typedef struct {
+struct list {
     list_node_t *head;
     list_node_t *tail;
-} list_t;
+};
 
 void list_init(list_t *c);  // this is equivalent to zeroing the list struct
 void list_add_tail(list_t *c, list_node_t *n);

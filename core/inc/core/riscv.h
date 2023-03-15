@@ -3,12 +3,10 @@
 
 #pragma once
 
+#include <core/types.h>
+
 #define RV_HAS_PRIV_LEVEL_USER       (1u << 0)
 #define RV_HAS_PRIV_LEVEL_SUPERVISOR (1u << 1)
 #define RV_HAS_PRIV_LEVEL_HYPERVISOR (1u << 2)
-
-typedef struct bus bus_t;
-typedef struct core core_t;
-typedef struct sl_core_params sl_core_params_t;
 
 int riscv_core_create(sl_core_params_t *p, bus_t *bus, core_t **core_out);

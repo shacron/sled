@@ -4,7 +4,9 @@
 #include <string.h>
 
 #include <core/arch.h>
+#include <core/common.h>
 #include <core/riscv/rv.h>
+#include <core/types.h>
 #include <sled/arch.h>
 #include <sled/core.h>
 

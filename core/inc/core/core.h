@@ -3,13 +3,10 @@
 
 #pragma once
 
-#include <stdint.h>
-
-#include <core/bus.h>
 #include <core/irq.h>
 #include <core/itrace.h>
 #include <core/queue.h>
-#include <core/sem.h>
+#include <core/types.h>
 #include <sled/core.h>
 
 #define MAX_PHYS_MEM_REGIONS    4
@@ -34,10 +31,6 @@
 #define CORE_EV_FLAG_RETAIN     (1u << 0)
 #define CORE_EV_FLAG_CALLBACK   (1u << 1)
 #define CORE_EV_FLAG_SIGNAL     (1u << 2)
-
-typedef struct core_ev core_ev_t;
-typedef struct sym_list sym_list_t;
-typedef struct sym_entry sym_entry_t;
 
 struct core_ev {
     list_node_t node;

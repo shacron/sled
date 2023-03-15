@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <core/bus.h>
 #include <core/common.h>
 #include <core/core.h>
 #include <core/sem.h>

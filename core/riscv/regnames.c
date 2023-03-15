@@ -3,6 +3,7 @@
 
 #include <string.h>
 
+#include <core/common.h>
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
 

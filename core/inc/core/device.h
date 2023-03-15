@@ -3,13 +3,10 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <core/irq.h>
 #include <core/lock.h>
+#include <core/types.h>
 #include <sled/device.h>
-
-typedef struct sl_dev sl_dev_t;
 
 struct sl_dev {
     uint32_t type;

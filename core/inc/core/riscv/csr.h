@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022 Shac Ron and The Sled Project
+// Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #pragma once
 
-#include <stdint.h>
-
-#include <core/common.h>
-
-typedef struct rv_core rv_core_t;
+#include <core/types.h>
 
 #define RV_CSR_OP_READ       0b000
 #define RV_CSR_OP_SWAP       0b001 // CSRRW/CSRRWI
