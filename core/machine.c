@@ -42,16 +42,16 @@ int sl_machine_create(sl_machine_t **m_out) {
 }
 
 int sl_machine_add_mem(sl_machine_t *m, uint64_t base, uint64_t size) {
-    mem_region_t mem;
+    mem_region_t *mem;
     int err;
 
-    if ((err = mem_region_create(&mem, base, size))) {
+    if ((err = mem_region_create(base, size, &mem))) {
         fprintf(stderr, "mem_region_create failed: %s\n", st_err(err));
         return err;
     }
     if ((err = bus_add_mem_region(m->bus, mem))) {
         fprintf(stderr, "bus_add_mem_region failed: %s\n", st_err(err));
-        mem_region_destroy(&mem);
+        mem_region_destroy(mem);
     }
     return err;
 }

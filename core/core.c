@@ -16,6 +16,7 @@
 #include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/error.h>
+#include <sled/io.h>
 
 static void config_set_internal(core_t *c, sl_core_params_t *p);
 
@@ -116,6 +117,7 @@ static void config_set_internal(core_t *c, sl_core_params_t *p) {
 int core_init(core_t *c, sl_core_params_t *p, bus_t *b) {
     config_set_internal(c, p);
     c->bus = b;
+    c->port = bus_get_port(b);
     c->irq_ep.assert = core_accept_irq;
     queue_init(&c->event_q);
     sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
@@ -177,15 +179,27 @@ void core_memory_barrier(core_t *c, uint32_t type) {
 }
 
 int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    bus_t *b = c->bus;
-    if (b == NULL) return SL_ERR_IO_NODEV;
-    return bus_read(b, addr, size, count, buf);
+    sl_io_op_t op;
+    op.addr = addr;
+    op.count = count;
+    op.size = size;
+    op.direction = IO_DIR_IN;
+    op.align = 1;
+    op.buf = buf;
+    op.agent = c;
+    return c->port->io(c->port, &op, NULL);
 }
 
 int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    bus_t *b = c->bus;
-    if (b == NULL) return SL_ERR_IO_NODEV;
-    return bus_write(b, addr, size, count, buf);
+    sl_io_op_t op;
+    op.addr = addr;
+    op.count = count;
+    op.size = size;
+    op.direction = IO_DIR_OUT;
+    op.align = 1;
+    op.buf = buf;
+    op.agent = c;
+    return c->port->io(c->port, &op, NULL);
 }
 
 void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value) {

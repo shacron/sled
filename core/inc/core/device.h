@@ -7,12 +7,15 @@
 #include <core/lock.h>
 #include <core/types.h>
 #include <sled/device.h>
+#include <sled/io.h>
 
 struct sl_dev {
     uint32_t type;
     uint32_t id;
     uint64_t base;
     const char *name;
+
+    sl_io_port_t port;
 
     lock_t lock;
     sl_irq_ep_t irq_ep;

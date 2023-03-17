@@ -38,6 +38,7 @@ extern "C" {
 #define SL_ERR_IO_NOWR      -38 // no write allowed
 #define SL_ERR_IO_NORD      -39 // no read allowed
 #define SL_ERR_IO_INVALID   -40 // invalid io operation
+#define SL_ERR_IO_NOMAP     -41 // no valid mapping
 
 const char *st_err(int err);
 

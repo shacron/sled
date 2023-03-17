@@ -26,11 +26,15 @@ typedef struct rv_core rv_core_t;
 typedef struct sl_sem sl_sem_t;
 
 // public types
+typedef struct bus bus_t;
 typedef struct core core_t;
 typedef struct sl_core_params sl_core_params_t;
-typedef struct bus bus_t;
 typedef struct sl_dev sl_dev_t;
 typedef struct sl_elf_obj sl_elf_obj_t;
+typedef struct sl_io_op sl_io_op_t;
+typedef struct sl_io_port sl_io_port_t;
+typedef struct sl_map sl_map_t;
+typedef struct sl_map_entry sl_map_entry_t;
 typedef struct sym_list sym_list_t;
 typedef struct sym_entry sym_entry_t;
 

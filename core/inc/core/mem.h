@@ -5,11 +5,14 @@
 
 #include <stdint.h>
 
+#include <core/list.h>
+
 typedef struct {
+    list_node_t node;
     uint64_t base;
-    uint64_t end;
-    void *data;
+    uint64_t length;
+    uint8_t data[];
 } mem_region_t;
 
-int mem_region_create(mem_region_t *m, uint64_t base, uint64_t length);
-int mem_region_destroy(mem_region_t *m);
+int mem_region_create(uint64_t base, uint64_t length, mem_region_t **m_out);
+void mem_region_destroy(mem_region_t *m);

@@ -50,6 +50,13 @@ static int dev_dummy_write(void *d, uint64_t addr, uint32_t size, uint32_t count
     return SL_ERR_IO_NOWR;
 }
 
+// Ugh, redirect for now until io port is everywhere
+static int dev_port_io(sl_io_port_t *p, sl_io_op_t *op, void *cookie) {
+    sl_dev_t *d = containerof(p, sl_dev_t, port);
+    if (op->direction == IO_DIR_IN) return d->ops.read(d->context, op->addr, op->size, op->count, op->buf);
+    return d->ops.write(d->context, op->addr, op->size, op->count, op->buf);
+}
+
 void sl_device_set_context(sl_dev_t *d, void *ctx) { d->context = ctx; }
 void * sl_device_get_context(sl_dev_t *d) { return d->context; }
 void sl_device_lock(sl_dev_t *d) { lock_lock(&d->lock); }
@@ -76,6 +83,7 @@ int sl_device_create(uint32_t type, const char *name, const sl_dev_ops_t *ops, s
     memcpy(&d->ops, ops, sizeof(*ops));
     if (d->ops.read == NULL) d->ops.read = dev_dummy_read;
     if (d->ops.write == NULL) d->ops.write = dev_dummy_write;
+    d->port.io = dev_port_io;
     lock_init(&d->lock);
     return 0;
 }
