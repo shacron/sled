@@ -22,8 +22,6 @@
 #define TRACE(format, ...) do {} while(0)
 #endif
 
-#define MAX_DEVICES         8
-
 static int mem_port_io(sl_io_port_t *p, sl_io_op_t *op, void *cookie);
 
 sl_io_port_t mem_port = {
@@ -36,7 +34,7 @@ struct bus {
     sl_io_port_t port;      // incoming io port
 
     list_t mem_list;
-    sl_dev_t *dev_list[MAX_DEVICES];
+    list_t dev_list;
 };
 
 sl_io_port_t * bus_get_port(bus_t *b) { return &b->port; }
@@ -101,52 +99,34 @@ int bus_add_mem_region(bus_t *b, mem_region_t *r) {
 }
 
 int bus_add_device(bus_t *b, sl_dev_t *dev, uint64_t base) {
-    int index = -1;
-
     dev->base = base;
-    for (int i = 0; i < MAX_DEVICES; i++) {
-        if (b->dev_list[i] == NULL) {
-            b->dev_list[i] = dev;
-            index = i;
-            break;
-        }
-    }
-    if (index == -1) return SL_ERR_FULL;
-
     sl_map_entry_t ent = {};
     ent.input_base = dev->base;
     ent.length = dev->ops.aperture;
     ent.output_base = 0;
     ent.port = &dev->port;
     int err = sl_mappper_add_mapping(b->map, &ent);
-    if (err) {
-        b->dev_list[index] = NULL;
-        return err;
-    }
+    if (err) return err;
+    list_add_tail(&b->dev_list, &dev->node);
     return 0;
 }
 
 sl_dev_t * bus_get_device_for_name(bus_t *b, const char *name) {
-    for (int i = 0; i < MAX_DEVICES; i++) {
-        sl_dev_t *d = b->dev_list[i];
-        if (d != NULL) {
-            if (!strcmp(name, d->name)) return d;
-        }
+    list_node_t *n = list_peek_head(&b->dev_list);
+    for ( ; n != NULL; n = n->next) {
+        sl_dev_t *d = (sl_dev_t *)n;
+        if (!strcmp(name, d->name)) return d;
     }
     return NULL;
 }
 
 static void bus_op_destroy(void *ctx) {
     bus_t *bus = ctx;
-    for (int i = 0; i < MAX_DEVICES; i++) {
-        sl_dev_t *d = bus->dev_list[i];
-        if (d != NULL) sl_device_destroy(d);
-    }
-
     list_node_t *c;
+    while ((c = list_remove_head(&bus->dev_list)) != NULL)
+        sl_device_destroy((sl_dev_t *)c);
     while ((c = list_remove_head(&bus->mem_list)) != NULL)
         mem_region_destroy((mem_region_t *)c);
-
     sl_mapper_destroy(bus->map);
     free(bus);
 }
@@ -175,6 +155,7 @@ int bus_create(const char *name, bus_t **bus_out) {
 
     sl_device_set_context(b->dev, b);
     list_init(&b->mem_list);
+    list_init(&b->dev_list);
     b->port.io = bus_port_io;
     *bus_out = b;
     return 0;
