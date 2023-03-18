@@ -230,7 +230,7 @@ static int core_handle_runmode_event(core_t *c, core_ev_t *ev) {
 
 static int core_handle_events(core_t *c, bool wait) {
     int err = 0;
-    list_node_t *ev_list = queue_remove_all(&c->event_q, wait);
+    sl_list_node_t *ev_list = queue_remove_all(&c->event_q, wait);
 
     while (err == 0) {
         core_ev_t *ev = (core_ev_t *)ev_list;

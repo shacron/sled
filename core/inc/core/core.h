@@ -33,7 +33,7 @@
 #define CORE_EV_FLAG_SIGNAL     (1u << 2)
 
 struct core_ev {
-    list_node_t node;
+    sl_list_node_t node;
     uint32_t type;
     uint32_t flags;
     uint32_t option;

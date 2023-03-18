@@ -3,20 +3,20 @@
 
 #pragma once
 
-#include <core/list.h>
 #include <core/lock.h>
+#include <sled/list.h>
 
 struct queue {
     lock_t lock;
     cond_t available;
-    list_t list;
+    sl_list_t list;
 };
 
 int queue_init(queue_t *q);
 
-void queue_add(queue_t *q, list_node_t *n);
-list_node_t * queue_remove(queue_t *q, bool wait);
-list_node_t * queue_remove_all(queue_t *q, bool wait);
+void queue_add(queue_t *q, sl_list_node_t *n);
+sl_list_node_t * queue_remove(queue_t *q, bool wait);
+sl_list_node_t * queue_remove_all(queue_t *q, bool wait);
 
 void queue_wait(queue_t *q);
 

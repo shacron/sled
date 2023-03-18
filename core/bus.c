@@ -33,8 +33,8 @@ struct bus {
     sl_map_t *map;
     sl_io_port_t port;      // incoming io port
 
-    list_t mem_list;
-    list_t dev_list;
+    sl_list_t mem_list;
+    sl_list_t dev_list;
 };
 
 sl_io_port_t * bus_get_port(bus_t *b) { return &b->port; }
@@ -94,7 +94,7 @@ int bus_add_mem_region(bus_t *b, mem_region_t *r) {
     ent.cookie = r;
     int err = sl_mappper_add_mapping(b->map, &ent);
     if (err) return err;
-    list_add_tail(&b->mem_list, &r->node);
+    sl_list_add_tail(&b->mem_list, &r->node);
     return 0;
 }
 
@@ -107,12 +107,12 @@ int bus_add_device(bus_t *b, sl_dev_t *dev, uint64_t base) {
     ent.port = &dev->port;
     int err = sl_mappper_add_mapping(b->map, &ent);
     if (err) return err;
-    list_add_tail(&b->dev_list, &dev->node);
+    sl_list_add_tail(&b->dev_list, &dev->node);
     return 0;
 }
 
 sl_dev_t * bus_get_device_for_name(bus_t *b, const char *name) {
-    list_node_t *n = list_peek_head(&b->dev_list);
+    sl_list_node_t *n = sl_list_peek_head(&b->dev_list);
     for ( ; n != NULL; n = n->next) {
         sl_dev_t *d = (sl_dev_t *)n;
         if (!strcmp(name, d->name)) return d;
@@ -122,10 +122,10 @@ sl_dev_t * bus_get_device_for_name(bus_t *b, const char *name) {
 
 static void bus_op_destroy(void *ctx) {
     bus_t *bus = ctx;
-    list_node_t *c;
-    while ((c = list_remove_head(&bus->dev_list)) != NULL)
+    sl_list_node_t *c;
+    while ((c = sl_list_remove_head(&bus->dev_list)) != NULL)
         sl_device_destroy((sl_dev_t *)c);
-    while ((c = list_remove_head(&bus->mem_list)) != NULL)
+    while ((c = sl_list_remove_head(&bus->mem_list)) != NULL)
         mem_region_destroy((mem_region_t *)c);
     sl_mapper_destroy(bus->map);
     free(bus);
@@ -154,8 +154,8 @@ int bus_create(const char *name, bus_t **bus_out) {
     if ((err = sl_device_create(SL_DEV_BUS, name, &bus_ops, &b->dev))) goto out_err;
 
     sl_device_set_context(b->dev, b);
-    list_init(&b->mem_list);
-    list_init(&b->dev_list);
+    sl_list_init(&b->mem_list);
+    sl_list_init(&b->dev_list);
     b->port.io = bus_port_io;
     *bus_out = b;
     return 0;

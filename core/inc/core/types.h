@@ -18,7 +18,6 @@ typedef struct {
 
 // private types
 typedef struct core_ev core_ev_t;
-typedef struct list list_t;
 typedef struct queue queue_t;
 typedef struct lock lock_t;
 typedef struct cond cond_t;
@@ -33,6 +32,7 @@ typedef struct sl_dev sl_dev_t;
 typedef struct sl_elf_obj sl_elf_obj_t;
 typedef struct sl_io_op sl_io_op_t;
 typedef struct sl_io_port sl_io_port_t;
+typedef struct sl_list sl_list_t;
 typedef struct sl_map sl_map_t;
 typedef struct sl_map_entry sl_map_entry_t;
 typedef struct sym_list sym_list_t;

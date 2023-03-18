@@ -4,14 +4,14 @@
 #pragma once
 
 #include <core/irq.h>
-#include <core/list.h>
 #include <core/lock.h>
 #include <core/types.h>
 #include <sled/device.h>
 #include <sled/io.h>
+#include <sled/list.h>
 
 struct sl_dev {
-    list_node_t node;
+    sl_list_node_t node;
 
     uint32_t type;
     uint32_t id;

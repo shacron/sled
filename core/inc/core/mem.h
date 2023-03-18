@@ -5,10 +5,10 @@
 
 #include <stdint.h>
 
-#include <core/list.h>
+#include <sled/list.h>
 
 typedef struct {
-    list_node_t node;
+    sl_list_node_t node;
     uint64_t base;
     uint64_t length;
     uint8_t data[];

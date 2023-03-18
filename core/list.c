@@ -3,14 +3,14 @@
 
 #include <assert.h>
 
-#include <core/list.h>
+#include <sled/list.h>
 
-void list_init(list_t *c) {
+void sl_list_init(sl_list_t *c) {
     c->head = NULL;
     c->tail = NULL;
 }
 
-void list_add_tail(list_t *c, list_node_t *n) {
+void sl_list_add_tail(sl_list_t *c, sl_list_node_t *n) {
     n->next = NULL;
     if (c->head == NULL) {
         c->head = n;
@@ -21,30 +21,30 @@ void list_add_tail(list_t *c, list_node_t *n) {
     }
 }
 
-void list_add_head(list_t *c, list_node_t *n) {
+void sl_list_add_head(sl_list_t *c, sl_list_node_t *n) {
     n->next = c->head;
     c->head = n;
     if (c->tail == NULL) c->tail = n;
 }
 
-list_node_t * list_remove_head(list_t *c) {
+sl_list_node_t * sl_list_remove_head(sl_list_t *c) {
     if (c->head == NULL) return NULL;
-    list_node_t *n = c->head;
+    sl_list_node_t *n = c->head;
     c->head = n->next;
     if(c->head == NULL) c->tail = NULL;
     return n;
 }
 
-list_node_t * list_remove_all(list_t *c) {
-    list_node_t *n = c->head;
+sl_list_node_t * sl_list_remove_all(sl_list_t *c) {
+    sl_list_node_t *n = c->head;
     c->head = NULL;
     c->tail = NULL;
     return n;
 }
 
-void list_insert_sorted(list_t *c, int(*compare)(const list_node_t *, const list_node_t *), list_node_t *n) {
+void sl_list_insert_sorted(sl_list_t *c, int(*compare)(const sl_list_node_t *, const sl_list_node_t *), sl_list_node_t *n) {
     if (c->head == NULL) {
-        list_add_head(c, n);
+        sl_list_add_head(c, n);
         return;
     }
 
@@ -54,8 +54,8 @@ void list_insert_sorted(list_t *c, int(*compare)(const list_node_t *, const list
         return;
     }
 
-    list_node_t *cur = c->head->next;
-    list_node_t *prev = c->head;
+    sl_list_node_t *cur = c->head->next;
+    sl_list_node_t *prev = c->head;
     for ( ; cur != NULL; cur = cur->next) {
         if (compare(n, cur) <= 0) {
             n->next = cur;
@@ -64,12 +64,12 @@ void list_insert_sorted(list_t *c, int(*compare)(const list_node_t *, const list
         }
         prev = cur;
     }
-    list_add_head(c, n);
+    sl_list_add_head(c, n);
 }
 
-void list_remove_node(list_t *c, list_node_t *n, list_node_t *prev) {
+void sl_list_remove_node(sl_list_t *c, sl_list_node_t *n, sl_list_node_t *prev) {
     if (c->head == NULL) return;
-    list_node_t *next;
+    sl_list_node_t *next;
     if (prev == NULL) {
         assert(n == c->head);
         next = c->head->next;
