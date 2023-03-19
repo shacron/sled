@@ -42,8 +42,7 @@ void core_set_wfi(core_t *c, bool enable) {
     else c->state &= ~(1u << SL_CORE_STATE_WFI);
 }
 
-// Called in dispatch loop context
-int core_handle_irq_event(core_t *c, sl_event_t *ev) {
+static int core_handle_irq_event(core_t *c, sl_event_t *ev) {
     sl_irq_ep_t *ep = &c->irq_ep;
     uint32_t num = ev->arg[0];
     bool high = ev->arg[1];

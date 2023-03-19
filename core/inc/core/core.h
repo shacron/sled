@@ -97,7 +97,6 @@ int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
-int core_handle_irq_event(core_t *c, sl_event_t *ev);
 
 // ----------------------------------------------------------------------------
 // Misc
