@@ -17,8 +17,6 @@ typedef struct {
 } result64_t;
 
 // private types
-typedef struct core_ev core_ev_t;
-typedef struct queue queue_t;
 typedef struct lock lock_t;
 typedef struct cond cond_t;
 typedef struct rv_core rv_core_t;
@@ -30,6 +28,8 @@ typedef struct core core_t;
 typedef struct sl_core_params sl_core_params_t;
 typedef struct sl_dev sl_dev_t;
 typedef struct sl_elf_obj sl_elf_obj_t;
+typedef struct sl_event sl_event_t;
+typedef struct sl_event_queue sl_event_queue_t;
 typedef struct sl_io_op sl_io_op_t;
 typedef struct sl_io_port sl_io_port_t;
 typedef struct sl_list sl_list_t;

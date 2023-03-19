@@ -7,13 +7,13 @@ LIB_CSOURCES += \
 	$(SRCDIR)/device.c \
 	$(SRCDIR)/elf.c \
 	$(SRCDIR)/error.c \
+	$(SRCDIR)/event.c \
 	$(SRCDIR)/irq.c \
 	$(SRCDIR)/list.c \
 	$(SRCDIR)/lock.c \
 	$(SRCDIR)/machine.c \
 	$(SRCDIR)/map.c \
 	$(SRCDIR)/mem.c \
-	$(SRCDIR)/queue.c \
 	$(SRCDIR)/riscv/csr.c \
 	$(SRCDIR)/riscv/dispatch.c \
 	$(SRCDIR)/riscv/dispatch_rv32.c \

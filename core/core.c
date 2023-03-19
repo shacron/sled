@@ -16,6 +16,7 @@
 #include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/error.h>
+#include <sled/event.h>
 #include <sled/io.h>
 
 static void config_set_internal(core_t *c, sl_core_params_t *p);
@@ -23,7 +24,7 @@ static void config_set_internal(core_t *c, sl_core_params_t *p);
 // Called in device context
 // Send a message to dispatch loop to handle interrupt change
 static int core_accept_irq(sl_irq_ep_t *ep, uint32_t num, bool high) {
-    core_ev_t *ev = malloc(sizeof(*ev));
+    sl_event_t *ev = malloc(sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
 
     ev->type = CORE_EV_IRQ;
@@ -32,7 +33,7 @@ static int core_accept_irq(sl_irq_ep_t *ep, uint32_t num, bool high) {
     ev->arg[1] = high;
 
     core_t *c = containerof(ep, core_t, irq_ep);
-    queue_add(&c->event_q, &ev->node);
+    ev_queue_add(&c->event_q, ev);
     return 0;
 }
 
@@ -42,7 +43,7 @@ void core_set_wfi(core_t *c, bool enable) {
 }
 
 // Called in dispatch loop context
-int core_handle_irq_event(core_t *c, core_ev_t *ev) {
+int core_handle_irq_event(core_t *c, sl_event_t *ev) {
     sl_irq_ep_t *ep = &c->irq_ep;
     uint32_t num = ev->arg[0];
     bool high = ev->arg[1];
@@ -50,24 +51,24 @@ int core_handle_irq_event(core_t *c, core_ev_t *ev) {
     return err;
 }
 
-void core_event_send(core_t *c, core_ev_t *ev) {
-    queue_add(&c->event_q, &ev->node);
+void core_event_send(core_t *c, sl_event_t *ev) {
+    ev_queue_add(&c->event_q, ev);
 }
 
 int sl_core_async_command(core_t *c, uint32_t cmd, bool wait) {
     int err = 0;
     sl_sem_t sem;
 
-    core_ev_t *ev = calloc(1, sizeof(*ev));
+    sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
 
     ev->type = CORE_EV_RUNMODE;
     ev->option = cmd;
-    ev->flags = 0;
+    ev->flags = SL_EV_FLAG_FREE;
     if (wait) {
-        ev->flags |= CORE_EV_FLAG_SIGNAL;
+        ev->flags |= SL_EV_FLAG_WAIT;
         if (sl_sem_init(&sem, 0)) goto out_err;
-        ev->arg[0] = (uintptr_t)&sem;
+        ev->signal = (uintptr_t)&sem;
     }
     core_event_send(c, ev);
     if (wait) {
@@ -119,7 +120,7 @@ int core_init(core_t *c, sl_core_params_t *p, bus_t *b) {
     c->bus = b;
     c->port = bus_get_port(b);
     c->irq_ep.assert = core_accept_irq;
-    queue_init(&c->event_q);
+    ev_queue_init(&c->event_q);
     sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
     return 0;
 }
@@ -134,7 +135,7 @@ int core_shutdown(core_t *c) {
 #endif
     // delete all pending events...
 
-    queue_shutdown(&c->event_q);
+    ev_queue_shutdown(&c->event_q);
     return 0;
 }
 
@@ -210,7 +211,7 @@ uint64_t sl_core_get_reg(core_t *c, uint32_t reg) {
     return c->ops.get_reg(c, reg);
 }
 
-static int core_handle_runmode_event(core_t *c, core_ev_t *ev) {
+static int core_handle_runmode_event(core_t *c, sl_event_t *ev) {
     int err = 0;
     switch(ev->option) {
     case SL_CORE_CMD_RUN:   core_set_wfi(c, false); break;
@@ -221,8 +222,8 @@ static int core_handle_runmode_event(core_t *c, core_ev_t *ev) {
         err = SL_ERR_ARG;
         break;
     }
-    if (ev->flags & CORE_EV_FLAG_SIGNAL) {
-        sl_sem_t *sem = (sl_sem_t *)ev->arg[0];
+    if (ev->flags & SL_EV_FLAG_WAIT) {
+        sl_sem_t *sem = (sl_sem_t *)ev->signal;
         sl_sem_post(sem);
     }
     return err;
@@ -230,10 +231,10 @@ static int core_handle_runmode_event(core_t *c, core_ev_t *ev) {
 
 static int core_handle_events(core_t *c, bool wait) {
     int err = 0;
-    sl_list_node_t *ev_list = queue_remove_all(&c->event_q, wait);
+    sl_list_node_t *ev_list = ev_queue_remove_all(&c->event_q, wait);
 
     while (err == 0) {
-        core_ev_t *ev = (core_ev_t *)ev_list;
+        sl_event_t *ev = (sl_event_t *)ev_list;
         if (ev == NULL) break;
         ev_list = ev->node.next;
 
@@ -248,7 +249,7 @@ static int core_handle_events(core_t *c, bool wait) {
             err = SL_ERR_STATE;
             break;
         }
-        free(ev);
+        if (ev->flags & SL_EV_FLAG_FREE) free(ev);
     }
     return err;
 }
@@ -264,7 +265,7 @@ static int core_service_event_queue(core_t *c) {
     int err = 0;
 
     if (likely(!CORE_IS_WFI(c->state))) {
-        if (queue_maybe_has_entries(&c->event_q))
+        if (ev_queue_maybe_has_entries(&c->event_q))
             if ((err = core_handle_events(c, false))) goto out_err;
         if (CORE_INT_ENABLED(c->state))
             if ((err = core_handle_interrupts(c))) goto out_err;

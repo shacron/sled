@@ -5,7 +5,7 @@
 
 #include <core/irq.h>
 #include <core/itrace.h>
-#include <core/queue.h>
+#include <core/event.h>
 #include <core/types.h>
 #include <sled/core.h>
 
@@ -27,19 +27,6 @@
 
 #define CORE_EV_IRQ     1
 #define CORE_EV_RUNMODE 2
-
-#define CORE_EV_FLAG_RETAIN     (1u << 0)
-#define CORE_EV_FLAG_CALLBACK   (1u << 1)
-#define CORE_EV_FLAG_SIGNAL     (1u << 2)
-
-struct core_ev {
-    sl_list_node_t node;
-    uint32_t type;
-    uint32_t flags;
-    uint32_t option;
-    uint64_t arg[2];
-    int (*callback)(core_t *c, core_ev_t *ev);
-};
 
 typedef struct core_ops {
     int (*step)(core_t *c);
@@ -66,7 +53,7 @@ struct core {
     core_ops_t ops;
 
     sl_irq_ep_t irq_ep;
-    queue_t event_q;
+    sl_event_queue_t event_q;
 
 #if WITH_SYMBOLS
     sym_list_t *symbols;
@@ -97,7 +84,7 @@ void core_add_symbols(core_t *c, sym_list_t *list);
 // Events can be interrupts or other changes initiated from outside the
 // dispatch loop. Events will be handled before the next instruction is
 // dispatched.
-void core_event_send(core_t *c, core_ev_t *ev);
+void core_event_send(core_t *c, sl_event_t *ev);
 
 // ----------------------------------------------------------------------------
 // dispatch functions
@@ -110,7 +97,7 @@ int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
-int core_handle_irq_event(core_t *c, core_ev_t *ev);
+int core_handle_irq_event(core_t *c, sl_event_t *ev);
 
 // ----------------------------------------------------------------------------
 // Misc
