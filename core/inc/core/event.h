@@ -23,7 +23,7 @@ sl_list_node_t * ev_queue_remove_all(sl_event_queue_t *q, bool wait);
 
 void ev_queue_wait(sl_event_queue_t *q);
 
-// queue_has_entries does not take the lock, it suitable for polling where
+// ev_queue_maybe_has_entries does not take the lock, it suitable for polling where
 // eventual consistency is sufficient.
 bool ev_queue_maybe_has_entries(sl_event_queue_t *q);
 

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include <core/common.h>
+#include <core/event.h>
 #include <sled/error.h>
 #include <sled/map.h>
 
@@ -24,6 +25,7 @@ struct sl_map {
     uint32_t num_ents;
     map_ent_t **list;
     sl_io_port_t port;
+    sl_event_queue_t *q;
 };
 
 static int ent_compare(const void *v0, const void *v1) {
@@ -117,6 +119,13 @@ int sl_mapper_io(sl_map_t *m, sl_io_op_t *op) {
         subop.buf += avail;
     }
     return 0;
+}
+
+void sl_mapper_set_event_queue(sl_map_t *m, sl_event_queue_t *eq) { m->q = eq; }
+
+int sl_mapper_event_send_async(sl_map_t *m, sl_event_t *ev) {
+    if (m->q == NULL) return SL_ERR_UNSUPPORTED;
+    return sl_event_send_async(m->q, ev);
 }
 
 int sl_mapper_create(sl_map_t **map_out) {

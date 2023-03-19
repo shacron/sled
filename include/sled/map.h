@@ -46,11 +46,9 @@ void sl_mapper_destroy(sl_map_t *m);
 int sl_mappper_add_mapping(sl_map_t *m, sl_map_entry_t *ent);
 int sl_mapper_io(sl_map_t *m, sl_io_op_t *op);
 
-// async calls can only be called with 
+void sl_mapper_set_event_queue(sl_map_t *m, sl_event_queue_t *eq);
 
-int sl_mapper_enable_async(sl_map_t *m, bool enable);
+// async calls - must not block the event queue associated with this map
 
-// int sl_mapper_clear_mappings_async(sl_map_t *m);
-int sl_mapper_update_mappings_async(sl_map_t *m);
-
+int sl_mapper_event_send_async(sl_map_t *m, sl_event_t *ev);
 
