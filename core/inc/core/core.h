@@ -84,7 +84,7 @@ void core_add_symbols(core_t *c, sym_list_t *list);
 // Events can be interrupts or other changes initiated from outside the
 // dispatch loop. Events will be handled before the next instruction is
 // dispatched.
-void core_event_send(core_t *c, sl_event_t *ev);
+int core_event_send_async(core_t *c, sl_event_t *ev);
 
 // ----------------------------------------------------------------------------
 // dispatch functions

@@ -23,10 +23,11 @@ static void config_set_internal(core_t *c, sl_core_params_t *p);
 
 // Called in device context
 // Send a message to dispatch loop to handle interrupt change
-static int core_accept_irq(sl_irq_ep_t *ep, uint32_t num, bool high) {
-    sl_event_t *ev = malloc(sizeof(*ev));
+static int core_irq_transition_async(sl_irq_ep_t *ep, uint32_t num, bool high) {
+    sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
 
+    ev->flags |= SL_EV_FLAG_FREE;
     ev->type = CORE_EV_IRQ;
     ev->option = 0;
     ev->arg[0] = num;
@@ -50,8 +51,8 @@ static int core_handle_irq_event(core_t *c, sl_event_t *ev) {
     return err;
 }
 
-void core_event_send(core_t *c, sl_event_t *ev) {
-    ev_queue_add(&c->event_q, ev);
+int core_event_send_async(core_t *c, sl_event_t *ev) {
+    return sl_event_send_async(&c->event_q, ev);
 }
 
 int sl_core_async_command(core_t *c, uint32_t cmd, bool wait) {
@@ -105,7 +106,7 @@ int core_init(core_t *c, sl_core_params_t *p, bus_t *b) {
     config_set_internal(c, p);
     c->bus = b;
     c->port = bus_get_port(b);
-    c->irq_ep.assert = core_accept_irq;
+    c->irq_ep.assert = core_irq_transition_async;
     ev_queue_init(&c->event_q);
     sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
     return 0;
