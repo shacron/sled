@@ -16,7 +16,7 @@ extern "C" {
 #define SL_EV_FLAG_WAIT       (1u << 2) // wait on call completion before returning
 
 typedef struct sl_event sl_event_t;
-typedef struct sl_event_loop sl_event_loop_t;
+typedef struct sl_event_queue sl_event_queue_t;
 
 struct sl_event {
     sl_list_node_t node;        // internal, should be zero
@@ -29,7 +29,7 @@ struct sl_event {
     void *cookie;               // user-defined, may be NULL
 };
 
-int sl_event_send(sl_event_loop_t *el, sl_event_t *ev);
+int sl_event_send_async(sl_event_queue_t *el, sl_event_t *ev);
 
 #ifdef __cplusplus
 }

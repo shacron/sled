@@ -57,28 +57,15 @@ void core_event_send(core_t *c, sl_event_t *ev) {
 
 int sl_core_async_command(core_t *c, uint32_t cmd, bool wait) {
     int err = 0;
-    sl_sem_t sem;
-
     sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
 
     ev->type = CORE_EV_RUNMODE;
     ev->option = cmd;
     ev->flags = SL_EV_FLAG_FREE;
-    if (wait) {
-        ev->flags |= SL_EV_FLAG_WAIT;
-        if (sl_sem_init(&sem, 0)) goto out_err;
-        ev->signal = (uintptr_t)&sem;
-    }
-    core_event_send(c, ev);
-    if (wait) {
-        sl_sem_wait(&sem);
-        sl_sem_destroy(&sem);
-    }
-    return 0;
-
-out_err:
-    free(ev);
+    if (wait) ev->flags |= SL_EV_FLAG_WAIT;
+    err = sl_event_send_async(&c->event_q, ev);
+    if (err) free(ev);
     return err;
 }
 
@@ -210,6 +197,8 @@ void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value) {
 uint64_t sl_core_get_reg(core_t *c, uint32_t reg) {
     return c->ops.get_reg(c, reg);
 }
+
+sl_event_queue_t * sl_core_get_event_queue(core_t *c) { return &c->event_q; }
 
 static int core_handle_runmode_event(core_t *c, sl_event_t *ev) {
     int err = 0;

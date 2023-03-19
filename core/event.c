@@ -4,6 +4,8 @@
 #include <stdatomic.h>
 
 #include <core/event.h>
+#include <core/sem.h>
+#include <sled/error.h>
 
 int ev_queue_init(sl_event_queue_t *q) {
     lock_init(&q->lock);
@@ -61,4 +63,21 @@ bool ev_queue_maybe_has_entries(sl_event_queue_t *q) {
 void ev_queue_shutdown(sl_event_queue_t *q) {
     cond_destroy(&q->available);
     lock_destroy(&q->lock);
+}
+
+int sl_event_send_async(sl_event_queue_t *q, sl_event_t *ev) {
+    int err = 0;
+    sl_sem_t sem;
+
+    if (ev->flags & SL_EV_FLAG_WAIT) {
+        if ((err = sl_sem_init(&sem, 0))) return err;
+        ev->signal = (uintptr_t)&sem;
+    }
+
+    ev_queue_add(q, ev);
+    if (ev->flags & SL_EV_FLAG_WAIT) {
+        sl_sem_wait(&sem);
+        sl_sem_destroy(&sem);
+    }
+    return 0;
 }

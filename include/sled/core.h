@@ -14,6 +14,7 @@ extern "C" {
 
 typedef struct core core_t;
 typedef struct sl_core_params sl_core_params_t;
+typedef struct sl_event_queue sl_event_queue_t;
 
 #define SL_CORE_OPT_TRAP_SYSCALL           (1u << 0)
 #define SL_CORE_OPT_TRAP_BREAKPOINT        (1u << 1)
@@ -82,6 +83,7 @@ int sl_core_dispatch_loop(core_t *c, bool run);
 void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value);
 uint64_t sl_core_get_reg(core_t *c, uint32_t reg);
 int sl_core_set_state(core_t *c, uint32_t state, bool enabled);
+sl_event_queue_t * sl_core_get_event_queue(core_t *c);
 int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 uint64_t sl_core_get_cycles(core_t *c);
