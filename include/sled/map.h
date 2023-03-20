@@ -3,10 +3,7 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#include <sled/io.h>
+#include <sled/types.h>
 
 /*
 A mapper is an abstract address translation device.

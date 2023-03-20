@@ -3,18 +3,13 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <sled/types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // Public core interface
-
-typedef struct core core_t;
-typedef struct sl_core_params sl_core_params_t;
-typedef struct sl_event_queue sl_event_queue_t;
 
 #define SL_CORE_OPT_TRAP_SYSCALL           (1u << 0)
 #define SL_CORE_OPT_TRAP_BREAKPOINT        (1u << 1)

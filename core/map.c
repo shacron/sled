@@ -7,6 +7,7 @@
 #include <core/common.h>
 #include <core/event.h>
 #include <sled/error.h>
+#include <sled/io.h>
 #include <sled/map.h>
 
 #define MAP_ALLOC_INCREMENT 256

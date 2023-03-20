@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <sled/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,10 +21,6 @@ extern "C" {
 
 
 #define SL_DEV_RESERVED     1024
-
-typedef struct sl_dev sl_dev_t;
-typedef struct sl_dev_ops sl_dev_ops_t;
-typedef struct sl_irq_ep sl_irq_ep_t;
 
 struct sl_dev_ops {
     int (*read)(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf);

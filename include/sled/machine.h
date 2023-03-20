@@ -3,18 +3,12 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include <sled/core.h>
+#include <sled/types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct sl_dev sl_dev_t;
-typedef struct sl_elf_obj sl_elf_obj_t;
-typedef struct sl_machine sl_machine_t;
 
 int sl_machine_create(sl_machine_t **m_out);
 

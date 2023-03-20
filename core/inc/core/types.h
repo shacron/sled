@@ -3,39 +3,10 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-
-typedef struct {
-    uint32_t value;
-    int err;
-} result32_t;
-
-typedef struct {
-    uint64_t value;
-    int err;
-} result64_t;
+#include <sled/types.h>
 
 // private types
 typedef struct lock lock_t;
 typedef struct cond cond_t;
 typedef struct rv_core rv_core_t;
 typedef struct sl_sem sl_sem_t;
-
-// public types
-typedef struct bus bus_t;
-typedef struct core core_t;
-typedef struct sl_core_params sl_core_params_t;
-typedef struct sl_dev sl_dev_t;
-typedef struct sl_elf_obj sl_elf_obj_t;
-typedef struct sl_event sl_event_t;
-typedef struct sl_event_queue sl_event_queue_t;
-typedef struct sl_io_op sl_io_op_t;
-typedef struct sl_io_port sl_io_port_t;
-typedef struct sl_list sl_list_t;
-typedef struct sl_map sl_map_t;
-typedef struct sl_map_entry sl_map_entry_t;
-typedef struct sym_list sym_list_t;
-typedef struct sym_entry sym_entry_t;
-
-

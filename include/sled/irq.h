@@ -3,12 +3,9 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <sled/types.h>
 
 #define SL_IRQ_VEC_ALL 0xffffffff
-
-typedef struct sl_irq_ep sl_irq_ep_t;
 
 // input irq functions
 int sl_irq_endpoint_assert(sl_irq_ep_t *ep, uint32_t num, bool high);

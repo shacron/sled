@@ -3,9 +3,8 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <sled/list.h>
+#include <sled/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,9 +13,6 @@ extern "C" {
 #define SL_EV_FLAG_FREE       (1u << 0) // free event pointer when done
 #define SL_EV_FLAG_CALLBACK   (1u << 1) // invoke callback
 #define SL_EV_FLAG_WAIT       (1u << 2) // wait on call completion before returning
-
-typedef struct sl_event sl_event_t;
-typedef struct sl_event_queue sl_event_queue_t;
 
 struct sl_event {
     sl_list_node_t node;        // internal, should be zero
