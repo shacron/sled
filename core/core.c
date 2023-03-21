@@ -102,7 +102,7 @@ static void config_set_internal(core_t *c, sl_core_params_t *p) {
     c->arch_options = p->arch_options;
 }
 
-int core_init(core_t *c, sl_core_params_t *p, bus_t *b) {
+int core_init(core_t *c, sl_core_params_t *p, sl_bus_t *b) {
     config_set_internal(c, p);
     c->bus = b;
     c->port = bus_get_port(b);

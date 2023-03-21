@@ -28,7 +28,7 @@ sl_io_port_t mem_port = {
     .io = mem_port_io,
 };
 
-struct bus {
+struct sl_bus {
     sl_dev_t *dev;
     sl_map_t *map;
     sl_io_port_t port;      // incoming io port
@@ -37,7 +37,7 @@ struct bus {
     sl_list_t dev_list;
 };
 
-sl_io_port_t * bus_get_port(bus_t *b) { return &b->port; }
+sl_io_port_t * bus_get_port(sl_bus_t *b) { return &b->port; }
 
 // emulate an io port for memory
 static int mem_port_io(sl_io_port_t *p, sl_io_op_t *op, void *cookie) {
@@ -51,12 +51,12 @@ static int mem_port_io(sl_io_port_t *p, sl_io_op_t *op, void *cookie) {
 }
 
 static int bus_port_io(sl_io_port_t *p, sl_io_op_t *op, void *cookie) {
-    bus_t *b = containerof(p, bus_t, port);
+    sl_bus_t *b = containerof(p, sl_bus_t, port);
     return sl_mapper_io(b->map, op);
 }
 
 static int bus_op_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    bus_t *b = ctx;
+    sl_bus_t *b = ctx;
 
     sl_io_op_t op = {};
     op.addr = addr;
@@ -70,7 +70,7 @@ static int bus_op_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, 
 }
 
 static int bus_op_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
-    bus_t *b = ctx;
+    sl_bus_t *b = ctx;
 
     TRACE("[[ bus: %#" PRIx64 "(%u@%u) ]]\n", addr, count, size);
 
@@ -85,7 +85,7 @@ static int bus_op_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count,
     return bus_port_io(&b->port, &op, NULL);
 }
 
-int bus_add_mem_region(bus_t *b, mem_region_t *r) {
+int bus_add_mem_region(sl_bus_t *b, mem_region_t *r) {
     sl_map_entry_t ent = {};
     ent.input_base = r->base;
     ent.length = r->length;
@@ -98,7 +98,7 @@ int bus_add_mem_region(bus_t *b, mem_region_t *r) {
     return 0;
 }
 
-int bus_add_device(bus_t *b, sl_dev_t *dev, uint64_t base) {
+int bus_add_device(sl_bus_t *b, sl_dev_t *dev, uint64_t base) {
     dev->base = base;
     sl_map_entry_t ent = {};
     ent.input_base = dev->base;
@@ -111,7 +111,7 @@ int bus_add_device(bus_t *b, sl_dev_t *dev, uint64_t base) {
     return 0;
 }
 
-sl_dev_t * bus_get_device_for_name(bus_t *b, const char *name) {
+sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
     sl_list_node_t *n = sl_list_peek_head(&b->dev_list);
     for ( ; n != NULL; n = n->next) {
         sl_dev_t *d = (sl_dev_t *)n;
@@ -121,7 +121,7 @@ sl_dev_t * bus_get_device_for_name(bus_t *b, const char *name) {
 }
 
 static void bus_op_destroy(void *ctx) {
-    bus_t *bus = ctx;
+    sl_bus_t *bus = ctx;
     sl_list_node_t *c;
     while ((c = sl_list_remove_head(&bus->dev_list)) != NULL)
         sl_device_destroy((sl_dev_t *)c);
@@ -131,7 +131,7 @@ static void bus_op_destroy(void *ctx) {
     free(bus);
 }
 
-void bus_destroy(bus_t *bus) {
+void bus_destroy(sl_bus_t *bus) {
     sl_device_destroy(bus->dev);
 }
 
@@ -141,10 +141,10 @@ static const sl_dev_ops_t bus_ops = {
     .destroy = bus_op_destroy,
 };
 
-int bus_create(const char *name, bus_t **bus_out) {
+int bus_create(const char *name, sl_bus_t **bus_out) {
     int err = 0;
 
-    bus_t *b = calloc(1, sizeof(*b));
+    sl_bus_t *b = calloc(1, sizeof(*b));
     if (b == NULL) return SL_ERR_MEM;
 
     sl_map_t *m = NULL;

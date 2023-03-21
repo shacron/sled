@@ -148,7 +148,7 @@ static int riscv_core_destroy(core_t *c) {
     return 0;
 }
 
-int riscv_core_create(sl_core_params_t *p, bus_t *bus, core_t **core_out) {
+int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, core_t **core_out) {
     int err;
     rv_core_t *rc = calloc(1, sizeof(*rc));
     if (rc == NULL) return SL_ERR_MEM;

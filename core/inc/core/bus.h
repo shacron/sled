@@ -7,10 +7,10 @@
 #include <core/mem.h>
 #include <core/types.h>
 
-int bus_create(const char *name, bus_t **bus_out);
-void bus_destroy(bus_t *bus);
+int bus_create(const char *name, sl_bus_t **bus_out);
+void bus_destroy(sl_bus_t *bus);
 
-int bus_add_mem_region(bus_t *b, mem_region_t *r);
-int bus_add_device(bus_t *b, sl_dev_t *dev, uint64_t base);
-sl_dev_t * bus_get_device_for_name(bus_t *b, const char *name);
-sl_io_port_t * bus_get_port(bus_t *b);
+int bus_add_mem_region(sl_bus_t *b, mem_region_t *r);
+int bus_add_device(sl_bus_t *b, sl_dev_t *dev, uint64_t base);
+sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name);
+sl_io_port_t * bus_get_port(sl_bus_t *b);

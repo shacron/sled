@@ -48,7 +48,7 @@ struct core {
     uint64_t ticks;
 
     sl_io_port_t *port;
-    bus_t *bus;
+    sl_bus_t *bus;
     itrace_t *trace;
     core_ops_t ops;
 
@@ -67,7 +67,7 @@ struct core {
 // Setup functions may only be called when the core dispatch loop is not
 // running.
 
-int core_init(core_t *c, sl_core_params_t *p, bus_t *b);
+int core_init(core_t *c, sl_core_params_t *p, sl_bus_t *b);
 int core_shutdown(core_t *c);
 
 void core_config_get(core_t *c, sl_core_params_t *p);

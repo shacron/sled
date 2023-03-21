@@ -20,7 +20,7 @@
 #define MACHINE_MAX_CORES   4
 
 struct sl_machine {
-    bus_t *bus;
+    sl_bus_t *bus;
     sl_dev_t *intc;
     core_t *core_list[MACHINE_MAX_CORES];
 };

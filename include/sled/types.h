@@ -12,7 +12,7 @@ extern "C" {
 
 // public types
 
-typedef struct bus bus_t;
+typedef struct sl_bus sl_bus_t;
 typedef struct core core_t;
 typedef struct sl_core_params sl_core_params_t;
 typedef struct sl_dev sl_dev_t;
