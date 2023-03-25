@@ -48,6 +48,7 @@ typedef struct {
     bin_file_t *bin_list;
     bool cons_on_start;
     bool cons_on_err;
+    bool trap;
 
     int uart_fd_in;
     int uart_fd_out;
@@ -64,11 +65,12 @@ static const struct option longopts[] = {
     { "raw",       required_argument,  NULL,   'r' },
     { "serial",    required_argument,  NULL,   1   },
     { "step",      required_argument,  NULL,   's' },
+    { "trap",      required_argument,  NULL,   't' },
     { "verbose",   no_argument,        NULL,   'v' },
     { NULL,        0,                  NULL,   0 }
 };
 
-static const char *shortopts = "ce:hk:m:r:s:v";
+static const char *shortopts = "ce:hk:m:r:s:t:v";
 
 static void usage(void) {
     puts(
@@ -97,6 +99,11 @@ static void usage(void) {
     "  -s, --step=<num>\n"
     "       Number of instructions to execute before exiting. 0 for infinite.\n"
     "\n"
+    "  -t, --trap=<bool>\n"
+    "       Trap all runtime exceptions.\n"
+    "       0 - don't trap anything except the emulator exit trap. Best for kernels that handle exceptions.\n"
+    "       1 - trap all exceptions. Best for standalone binaries.\n"
+    "\n"
     "  --serial=<output>\n"
     "       Set serial input and output. Possible 'output' values are:\n"
     "         '-' direct io to stdio (default)\n"
@@ -108,6 +115,31 @@ static void usage(void) {
     "  -h, --help\n"
     "       Print this help text and exit.\n"
     );
+}
+
+static bool parse_bool(const char *s, bool fallback) {
+    if (s == NULL) return fallback;
+    if (strlen(s) == 1) {
+        switch (tolower(s[0])) {
+        case '0':
+        case 'f':
+        case 'n':
+            return false;
+
+        case '1':
+        case 't':
+        case 'y':
+            return true;
+
+        default:
+            return fallback;
+        }
+    }
+    if (!strcmp(s, "true")) return true;
+    if (!strcmp(s, "yes")) return true;
+    if (!strcmp(s, "false")) return false;
+    if (!strcmp(s, "no")) return false;
+    return fallback;
 }
 
 static int add_binary(sm_t *sm, uint32_t flags, char *file, uint64_t addr) {
@@ -132,6 +164,7 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
         case 'k': add_binary(sm, BIN_FLAG_ELF, optarg, 0);   break;
         case 'm': add_binary(sm, BIN_FLAG_ELF | BIN_FLAG_INIT, optarg, 0);   break;
         case 's': sm->steps = strtoull(optarg, NULL, 0); break;
+        case 't': sm->trap = parse_bool(optarg, true); break;
         case 'v': break;                // todo
 
         case 'r':
@@ -154,6 +187,7 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
             add_binary(sm, BIN_FLAG_FREE_NAME, s, addr);
             break;
         }
+
 
         case 1:
             if (!strcmp(optarg, "-")) {
@@ -316,7 +350,10 @@ int simple_machine(sm_t *sm) {
     params.arch = PLAT_CORE_ARCH;
     params.subarch = PLAT_CORE_SUBARCH;
     params.id = 0;
-    params.options = SL_CORE_OPT_TRAP_SYSCALL;
+    if (sm->trap)
+        params.options = SL_CORE_OPT_TRAP_SYSCALL | SL_CORE_OPT_TRAP_BREAKPOINT | SL_CORE_OPT_TRAP_ABORT | SL_CORE_OPT_TRAP_UNDEF | SL_CORE_OPT_TRAP_PREFETCH_ABORT;
+    else
+        params.options = SL_CORE_OPT_TRAP_SYSCALL;
     params.arch_options = PLAT_ARCH_OPTIONS;
 
     if ((err = sl_machine_add_core(m, &params))) {
@@ -412,6 +449,7 @@ int main(int argc, char *argv[]) {
         .uart_io = UART_IO_CONS,
         .steps = DEFAULT_STEP_COUNT,
         .cons_on_err = DEFAULT_CONSOLE,
+        .trap = true,
     };
 
     int ret = parse_opts(argc, argv, &sm);
