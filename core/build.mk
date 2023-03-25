@@ -12,7 +12,7 @@ LIB_CSOURCES += \
 	$(SRCDIR)/list.c \
 	$(SRCDIR)/lock.c \
 	$(SRCDIR)/machine.c \
-	$(SRCDIR)/map.c \
+	$(SRCDIR)/mapper.c \
 	$(SRCDIR)/mem.c \
 	$(SRCDIR)/riscv/csr.c \
 	$(SRCDIR)/riscv/dispatch.c \

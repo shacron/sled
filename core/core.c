@@ -19,8 +19,6 @@
 #include <sled/event.h>
 #include <sled/io.h>
 
-static void config_set_internal(core_t *c, sl_core_params_t *p);
-
 // Called in device context
 // Send a message to dispatch loop to handle interrupt change
 static int core_irq_transition_async(sl_irq_ep_t *ep, uint32_t num, bool high) {
@@ -88,12 +86,6 @@ void core_config_get(core_t *c, sl_core_params_t *p) {
     p->arch_options = c->arch_options;
 }
 
-int core_config_set(core_t *c, sl_core_params_t *p) {
-    if (c->arch != p->arch) return SL_ERR_ARG;
-    config_set_internal(c, p);
-    return 0;
-}
-
 static void config_set_internal(core_t *c, sl_core_params_t *p) {
     c->arch = p->arch;
     c->subarch = p->subarch;
@@ -102,10 +94,16 @@ static void config_set_internal(core_t *c, sl_core_params_t *p) {
     c->arch_options = p->arch_options;
 }
 
+int core_config_set(core_t *c, sl_core_params_t *p) {
+    if (c->arch != p->arch) return SL_ERR_ARG;
+    config_set_internal(c, p);
+    return 0;
+}
+
 int core_init(core_t *c, sl_core_params_t *p, sl_bus_t *b) {
     config_set_internal(c, p);
     c->bus = b;
-    c->port = bus_get_port(b);
+    c->mapper = bus_get_mapper(b);
     c->irq_ep.assert = core_irq_transition_async;
     ev_queue_init(&c->event_q);
     sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
@@ -175,7 +173,7 @@ int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, vo
     op.align = 1;
     op.buf = buf;
     op.agent = c;
-    return c->port->io(c->port, &op, NULL);
+    return sl_mapper_io(c->mapper, &op);
 }
 
 int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
@@ -187,7 +185,7 @@ int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, v
     op.align = 1;
     op.buf = buf;
     op.agent = c;
-    return c->port->io(c->port, &op, NULL);
+    return sl_mapper_io(c->mapper, &op);
 }
 
 void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value) {
@@ -198,7 +196,12 @@ uint64_t sl_core_get_reg(core_t *c, uint32_t reg) {
     return c->ops.get_reg(c, reg);
 }
 
-sl_event_queue_t * sl_core_get_event_queue(core_t *c) { return &c->event_q; }
+void sl_core_set_mapper(core_t *c, sl_dev_t *d) {
+    sl_mapper_t *m = sl_device_get_mapper(d);
+    m->next = c->mapper;
+    c->mapper = m;
+    sl_device_set_event_queue(d, &c->event_q);
+}
 
 static int core_handle_runmode_event(core_t *c, sl_event_t *ev) {
     int err = 0;
@@ -230,13 +233,18 @@ static int core_handle_events(core_t *c, bool wait) {
         // do something with it.
         // printf("got event %u\n", ev->type);
 
-        switch (ev->type) {
-        case CORE_EV_IRQ:       err = core_handle_irq_event(c, ev);     break;
-        case CORE_EV_RUNMODE:   err = core_handle_runmode_event(c, ev); break;
-        default:
-            printf("unknown event type %u\n", ev->type);
-            err = SL_ERR_STATE;
-            break;
+        // this needs a rework
+        if (ev->flags & SL_EV_FLAG_CALLBACK) {
+            err = ev->callback(ev);
+        } else {
+            switch (ev->type) {
+            case CORE_EV_IRQ:       err = core_handle_irq_event(c, ev);     break;
+            case CORE_EV_RUNMODE:   err = core_handle_runmode_event(c, ev); break;
+            default:
+                printf("unknown event type %u\n", ev->type);
+                err = SL_ERR_STATE;
+                break;
+            }
         }
         if (ev->flags & SL_EV_FLAG_FREE) free(ev);
     }

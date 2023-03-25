@@ -23,29 +23,30 @@ changes from the map driver to the mapper, the mapping client's async command qu
 must be used. The map driver must not block the mapping client from completing its work.
 */
 
-struct sl_map_entry {
+#define SL_MAP_EV_TYPE_UPDATE       0x1000
+
+#define SL_MAP_OP_MODE_BLOCK        (0u)
+#define SL_MAP_OP_MODE_PASSTHROUGH  (1u)
+#define SL_MAP_OP_MODE_TRANSLATE    (2u)
+#define SL_MAP_OP_MODE_MASK         (3u)
+
+#define SL_MAP_OP_REPLACE           (1u << 2)
+
+struct sl_mapper_entry {
     uint64_t input_base;
     uint64_t length;
     uint64_t output_base;
     uint32_t domain;
     uint16_t permissions;
-    sl_io_port_t *port;
-    void *cookie;
+    io_func_t *io;
+    void *context;
 };
 
 // setup
 
-int sl_mapper_create(sl_map_t **map_out);
-void sl_mapper_destroy(sl_map_t *m);
+int sl_mapper_create(sl_mapper_t **map_out);
+void sl_mapper_destroy(sl_mapper_t *m);
 
-// synchronous calls - should only be made in the mapping client context
-
-int sl_mappper_add_mapping(sl_map_t *m, sl_map_entry_t *ent);
-int sl_mapper_io(sl_map_t *m, sl_io_op_t *op);
-
-void sl_mapper_set_event_queue(sl_map_t *m, sl_event_queue_t *eq);
-
-// async calls - must not block the event queue associated with this map
-
-int sl_mapper_event_send_async(sl_map_t *m, sl_event_t *ev);
-
+int sl_mappper_add_mapping(sl_mapper_t *m, sl_mapper_entry_t *ent);
+int sl_mapper_io(void *ctx, sl_io_op_t *op);
+sl_mapper_t * sl_mapper_get_next(sl_mapper_t *m);

@@ -21,13 +21,12 @@ typedef struct sl_elf_obj sl_elf_obj_t;
 typedef struct sl_event sl_event_t;
 typedef struct sl_event_queue sl_event_queue_t;
 typedef struct sl_io_op sl_io_op_t;
-typedef struct sl_io_port sl_io_port_t;
 typedef struct sl_irq_ep sl_irq_ep_t;
 typedef struct sl_list_node sl_list_node_t;
 typedef struct sl_list sl_list_t;
 typedef struct sl_machine sl_machine_t;
-typedef struct sl_map sl_map_t;
-typedef struct sl_map_entry sl_map_entry_t;
+typedef struct sl_mapper sl_mapper_t;
+typedef struct sl_mapper_entry sl_mapper_entry_t;
 typedef struct sym_list sym_list_t;
 typedef struct sym_entry sym_entry_t;
 
@@ -40,6 +39,8 @@ typedef struct {
     uint64_t value;
     int err;
 } result64_t;
+
+typedef int (io_func_t)(void *ctx, sl_io_op_t *op);
 
 #ifdef __cplusplus
 }

@@ -12,7 +12,7 @@
 #include <core/mem.h>
 #include <sled/error.h>
 #include <sled/io.h>
-#include <sled/map.h>
+#include <sled/mapper.h>
 
 // #define BUS_TRACE 1
 
@@ -22,37 +22,22 @@
 #define TRACE(format, ...) do {} while(0)
 #endif
 
-static int mem_port_io(sl_io_port_t *p, sl_io_op_t *op, void *cookie);
-
-sl_io_port_t mem_port = {
-    .io = mem_port_io,
-};
-
 struct sl_bus {
-    sl_dev_t *dev;
-    sl_map_t *map;
-    sl_io_port_t port;      // incoming io port
-
+    sl_dev_t dev;
     sl_list_t mem_list;
     sl_list_t dev_list;
 };
 
-sl_io_port_t * bus_get_port(sl_bus_t *b) { return &b->port; }
-
-// emulate an io port for memory
-static int mem_port_io(sl_io_port_t *p, sl_io_op_t *op, void *cookie) {
-    mem_region_t *m = cookie;
+// Implement io for mem regions, which don't have an associated device.
+// This function is indirectly called by the mapper after resolving a mem address
+static int bus_mem_io(void *ctx, sl_io_op_t *op) {
+    mem_region_t *m = ctx;
     void *data = m->data + op->addr;
     if (op->direction == IO_DIR_IN)
         memcpy(op->buf, data, op->count * op->size);
     else
         memcpy(data, op->buf, op->count * op->size);
     return 0;
-}
-
-static int bus_port_io(sl_io_port_t *p, sl_io_op_t *op, void *cookie) {
-    sl_bus_t *b = containerof(p, sl_bus_t, port);
-    return sl_mapper_io(b->map, op);
 }
 
 static int bus_op_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
@@ -66,7 +51,7 @@ static int bus_op_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, 
     op.align = 0;
     op.buf = buf;
     op.agent = b;
-    return bus_port_io(&b->port, &op, NULL);
+    return sl_mapper_io(&b->dev.mapper, &op);
 }
 
 static int bus_op_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
@@ -82,17 +67,17 @@ static int bus_op_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count,
     op.align = 0;
     op.buf = buf;
     op.agent = b;
-    return bus_port_io(&b->port, &op, NULL);
+    return sl_mapper_io(&b->dev.mapper, &op);
 }
 
 int bus_add_mem_region(sl_bus_t *b, mem_region_t *r) {
-    sl_map_entry_t ent = {};
+    sl_mapper_entry_t ent = {};
     ent.input_base = r->base;
     ent.length = r->length;
     ent.output_base = 0;
-    ent.port = &mem_port;
-    ent.cookie = r;
-    int err = sl_mappper_add_mapping(b->map, &ent);
+    ent.io = bus_mem_io;
+    ent.context = r;
+    int err = sl_mappper_add_mapping(sl_device_get_mapper(&b->dev), &ent);
     if (err) return err;
     sl_list_add_tail(&b->mem_list, &r->node);
     return 0;
@@ -100,16 +85,19 @@ int bus_add_mem_region(sl_bus_t *b, mem_region_t *r) {
 
 int bus_add_device(sl_bus_t *b, sl_dev_t *dev, uint64_t base) {
     dev->base = base;
-    sl_map_entry_t ent = {};
+    sl_mapper_entry_t ent = {};
     ent.input_base = dev->base;
     ent.length = dev->ops.aperture;
     ent.output_base = 0;
-    ent.port = &dev->port;
-    int err = sl_mappper_add_mapping(b->map, &ent);
+    ent.io = device_mapper_io;
+    ent.context = dev;
+    int err = sl_mappper_add_mapping(sl_device_get_mapper(&b->dev), &ent);
     if (err) return err;
     sl_list_add_tail(&b->dev_list, &dev->node);
     return 0;
 }
+
+sl_mapper_t * bus_get_mapper(sl_bus_t *b) { return &b->dev.mapper; }
 
 sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
     sl_list_node_t *n = sl_list_peek_head(&b->dev_list);
@@ -127,12 +115,12 @@ static void bus_op_destroy(void *ctx) {
         sl_device_destroy((sl_dev_t *)c);
     while ((c = sl_list_remove_head(&bus->mem_list)) != NULL)
         mem_region_destroy((mem_region_t *)c);
-    sl_mapper_destroy(bus->map);
+    device_shutdown(&bus->dev);
     free(bus);
 }
 
 void bus_destroy(sl_bus_t *bus) {
-    sl_device_destroy(bus->dev);
+    sl_device_destroy(&bus->dev);
 }
 
 static const sl_dev_ops_t bus_ops = {
@@ -142,26 +130,14 @@ static const sl_dev_ops_t bus_ops = {
 };
 
 int bus_create(const char *name, sl_bus_t **bus_out) {
-    int err = 0;
-
     sl_bus_t *b = calloc(1, sizeof(*b));
     if (b == NULL) return SL_ERR_MEM;
 
-    sl_map_t *m = NULL;
-    if ((err = sl_mapper_create(&m))) goto out_err;
-    b->map = m;
-
-    if ((err = sl_device_create(SL_DEV_BUS, name, &bus_ops, &b->dev))) goto out_err;
-
-    sl_device_set_context(b->dev, b);
+    device_init(&b->dev, SL_DEV_BUS, name, &bus_ops);
+    sl_device_set_context(&b->dev, b);
+    sl_device_set_mapper_mode(&b->dev, SL_MAP_OP_MODE_TRANSLATE);
     sl_list_init(&b->mem_list);
     sl_list_init(&b->dev_list);
-    b->port.io = bus_port_io;
     *bus_out = b;
     return 0;
-
-out_err:
-    sl_mapper_destroy(m);
-    free(b);
-    return err;
 }

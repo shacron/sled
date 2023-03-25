@@ -33,7 +33,7 @@ BLD_HOST_ARFLAGS ?= -c -q
 endif
 
 LDFLAGS :=
-CFLAGS  := -Wall -g -MMD
+CFLAGS  := -Wall -MMD
 DEFINES :=
 
 ##############################################################################
@@ -48,9 +48,9 @@ DEFINES += -DRV_TRACE=1 -DWITH_SYMBOLS=1
 endif
 
 ifeq ($(BUILD),release)
-CFLAGS += -O2
+CFLAGS += -g -O3
 else
-CFLAGS += -O0
+CFLAGS += -g3 -O0
 DEFINES += -DBUILD_DEBUG=1
 endif
 

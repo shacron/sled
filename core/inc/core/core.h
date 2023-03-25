@@ -47,7 +47,7 @@ struct core {
     uint32_t state;         // current running state
     uint64_t ticks;
 
-    sl_io_port_t *port;
+    sl_mapper_t *mapper;
     sl_bus_t *bus;
     itrace_t *trace;
     core_ops_t ops;

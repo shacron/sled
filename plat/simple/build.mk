@@ -6,4 +6,5 @@ $(PLAT)_DEVICES := \
 	sled_uart \
 	sled_rtc \
 	sled_intc \
+	sled_mpu \
 

@@ -23,7 +23,7 @@
 
 #include "cons.h"
 
-#define ISSUE_INTERRUPT 1
+// #define ISSUE_INTERRUPT 1
 #define DEFAULT_STEP_COUNT 0
 #define DEFAULT_CONSOLE    0
 
@@ -341,8 +341,14 @@ int simple_machine(sm_t *sm) {
         goto out_err_machine;
     }
 
+    if ((err = sl_machine_add_device(m, SL_DEV_MPU, PLAT_MPU_BASE, "mpu0"))) {
+        fprintf(stderr, "add mpu failed: %s\n", st_err(err));
+        goto out_err_machine;
+    }
+
     sl_dev_t *d = sl_machine_get_device_for_name(m, "uart0");
     sled_uart_set_channel(d, sm->uart_io, sm->uart_fd_in, sm->uart_fd_out);
+
 
     // create core
 
@@ -360,6 +366,10 @@ int simple_machine(sm_t *sm) {
         printf("sl_machine_add_core failed: %s\n", st_err(err));
         goto out_err_machine;
     }
+
+    core_t *c = sl_machine_get_core(m, sm->core_id);
+    d = sl_machine_get_device_for_name(m, "mpu0");
+    sl_core_set_mapper(c, d);
 
     bool configured = false;
     for (bin_file_t *b = sm->bin_list; b != NULL; b = b->next) {
@@ -382,8 +392,6 @@ int simple_machine(sm_t *sm) {
             if ((err = load_binary(m, params.id, b))) goto out_err_machine;
         }
     }
-
-    core_t *c = sl_machine_get_core(m, sm->core_id);
 
     if (sm->entry != 0) sl_core_set_reg(c, SL_CORE_REG_PC, sm->entry);
 

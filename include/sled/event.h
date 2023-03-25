@@ -21,7 +21,7 @@ struct sl_event {
     uint32_t option;            // user-defined
     uint64_t arg[4];            // user-defined
     uintptr_t signal;           // internal, should be zero
-    int (*callback)(sl_event_t *ev, void *run_context); // NULL unless SL_EV_FLAG_CALLBACK is set
+    int (*callback)(sl_event_t *ev); // NULL unless SL_EV_FLAG_CALLBACK is set
     void *cookie;               // user-defined, may be NULL
 };
 

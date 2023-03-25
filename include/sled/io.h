@@ -5,11 +5,11 @@
 
 #include <sled/types.h>
 
-// IO port interface - implemented by devices that
-// implement chained memory-addressed IO
-
 #define IO_DIR_IN   0
 #define IO_DIR_OUT  1
+
+typedef struct sl_io_op sl_io_op_t;
+typedef struct sl_io_port sl_io_port_t;
 
 struct sl_io_op {
     uint64_t addr;
@@ -20,8 +20,3 @@ struct sl_io_op {
     void *buf;
     void *agent;
 };
-
-struct sl_io_port {
-    int (*io)(sl_io_port_t *p, sl_io_op_t *op, void *cookie);
-};
-

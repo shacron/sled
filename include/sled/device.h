@@ -9,22 +9,26 @@
 extern "C" {
 #endif
 
+// sled core devices
 #define SL_DEV_BUS          0
 #define SL_DEV_CORE         1
 #define SL_DEV_MEM          2
 #define SL_DEV_ROM          3
 #define SL_DEV_INTC         4
 
+// sled devices
 #define SL_DEV_UART         128
 #define SL_DEV_RTC          129
 #define SL_DEV_IRQGEN       130
+#define SL_DEV_MPU          131
 
-
+// user-defined devices
 #define SL_DEV_RESERVED     1024
 
 struct sl_dev_ops {
     int (*read)(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf);
     int (*write)(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+    int (*io)(void *ctx, sl_io_op_t *op);
     void (*destroy)(void *ctx);
     uint32_t aperture;
 };
@@ -37,9 +41,18 @@ void * sl_device_get_context(sl_dev_t *d);
 void sl_device_lock(sl_dev_t *d);
 void sl_device_unlock(sl_dev_t *d);
 
+void sl_device_set_event_queue(sl_dev_t *d, sl_event_queue_t *eq);
+void sl_device_set_mapper_mode(sl_dev_t *d, int mode);
+
 sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d);
+sl_mapper_t * sl_device_get_mapper(sl_dev_t *d);
 
 void sl_device_destroy(sl_dev_t *dev);
+
+// async device ops
+
+int sl_device_send_event_async(sl_dev_t *d, sl_event_t *ev);
+int sl_device_update_mapper_async(sl_dev_t *d, uint32_t ops, uint32_t count, sl_mapper_entry_t *ent_list);
 
 // common device calls
 

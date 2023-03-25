@@ -19,11 +19,33 @@
 
 #define MACHINE_MAX_CORES   4
 
+int intc_create(const char *name, sl_dev_t **dev_out);
+int rtc_create(const char *name, sl_dev_t **dev_out);
+int uart_create(const char *name, sl_dev_t **dev_out);
+int sled_mpu_create(const char *name, sl_dev_t **dev_out);
+
 struct sl_machine {
     sl_bus_t *bus;
     sl_dev_t *intc;
     core_t *core_list[MACHINE_MAX_CORES];
 };
+
+static int machine_create_device(uint32_t type, const char *name, sl_dev_t **dev_out) {
+    int err;
+    sl_dev_t *d;
+
+    switch (type) {
+    case SL_DEV_UART: err = uart_create(name, &d); break;
+    case SL_DEV_INTC: err = intc_create(name, &d); break;
+    case SL_DEV_RTC:  err = rtc_create(name, &d);  break;
+    case SL_DEV_MPU:  err = sled_mpu_create(name, &d);  break;
+    default:
+        return SL_ERR_ARG;
+    }
+    if (err) return err;
+    *dev_out = d;
+    return 0;
+}
 
 int sl_machine_create(sl_machine_t **m_out) {
     sl_machine_t *m = calloc(1, sizeof(sl_machine_t));
@@ -60,7 +82,7 @@ int sl_machine_add_device(sl_machine_t *m, uint32_t type, uint64_t base, const c
     sl_dev_t *d;
     int err;
 
-    if ((err = device_create(type, name, &d))) {
+    if ((err = machine_create_device(type, name, &d))) {
         fprintf(stderr, "device_create failed: %s\n", st_err(err));
         goto out_err;
     }
