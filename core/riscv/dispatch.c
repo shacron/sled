@@ -224,6 +224,7 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction) {
     tr.sp = c->r[RV_SP];
     tr.opcode = instruction;
     tr.options = 0;
+    tr.pl = c->pl;
     tr.rd = RV_ZERO;
     tr.cur = 0;
     tr.opstr[0] = 0;
@@ -237,8 +238,9 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction) {
     {
         #define BUFLEN 256
         char buf[BUFLEN];
+        static const char pl_char[4] = { 'u', 's', 'h', 'm' };
 
-        int len = snprintf(buf, BUFLEN, "%10" PRIx64 "  ", tr.pc);
+        int len = snprintf(buf, BUFLEN, "[%c] %10" PRIx64 "  ", pl_char[tr.pl], tr.pc);
         if (tr.options & ITRACE_OPT_INST16)
             len += snprintf(buf + len, BUFLEN - len, "%04x      ", tr.opcode);
         else

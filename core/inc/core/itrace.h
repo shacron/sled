@@ -17,6 +17,7 @@ typedef struct {
     uint32_t opcode;
     uint16_t rd;
     uint16_t options;
+    uint8_t pl;
     uint64_t rd_value;
     uint64_t addr;
     uint64_t aux_value;
