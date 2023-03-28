@@ -44,7 +44,7 @@ typedef union {
         uint32_t spie:1;    // s-mode interrupt state prior to exception
         uint32_t ube:1;     // big endian
         uint32_t m_mpie:1;  // m-mode interrupt state prior to exception
-        uint32_t ssp:1;     // s-mode prior privilege
+        uint32_t spp:1;     // s-mode prior privilege
         uint32_t vs:2;      // vector state
         uint32_t m_mpp:2;   // m-mode prior privilege
         uint32_t fs:2;      // floating point state
@@ -78,7 +78,7 @@ typedef union {
         uint64_t spie:1;    // s-mode interrupt state prior to exception
         uint64_t ube:1;     // big endian
         uint64_t m_mpie:1;  // m-mode interrupt state prior to exception
-        uint64_t ssp:1;     // s-mode prior privilege
+        uint64_t spp:1;     // s-mode prior privilege
         uint64_t vs:2;      // vector state
         uint64_t m_mpp:2;   // m-mode prior privilege
         uint64_t fs:2;      // floating point state

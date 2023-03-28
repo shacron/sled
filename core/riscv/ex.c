@@ -66,8 +66,13 @@ int rv_exception_return(rv_core_t *c, uint8_t op) {
         s.m_mpie = 1;
         s.m_mpp = 0;
         int_enabled = s.m_mie;
+    } else if (op == RV_OP_SRET) {
+        if (s.m_tsr) return SL_ERR_UNDEF;   // trap sret
+        dest_pl = s.spp;
+        s.sie = s.spie;
+        s.spp = 0;
+        int_enabled = s.sie;
     } else {
-        // todo: sret
         return SL_ERR_UNIMPLEMENTED;
     }
     c->status = s.raw;

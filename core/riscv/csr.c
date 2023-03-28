@@ -331,7 +331,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
 
     // supervisor level
     if (addr.f.level == RV_PL_SUPERVISOR) {
-        rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_HYPERVISOR);
+        rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_SUPERVISOR);
 
         switch (addr.raw) {
         // Supervisor Trap Setup (SRW)
