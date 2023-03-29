@@ -7,8 +7,8 @@
 #include <sled/error.h>
 #include <sled/ringbuffer.h>
 
-#define IS_WRITER(c) (c->flags & Q_FLAG_WRITER)
-#define IS_READER(c) ((c->flags & Q_FLAG_WRITER) == 0)
+#define IS_WRITER(c) (c->flags & SL_RB_FLAG_WRITER)
+#define IS_READER(c) ((c->flags & SL_RB_FLAG_WRITER) == 0)
 
 typedef struct {
     uint32_t read_index;
@@ -39,7 +39,7 @@ int sl_ringbuf_init(void *base, size_t len) {
     return 0;
 }
 
-int sl_ringbuf_client_create(void *base, sl_ringbuf_client_t *c, uint32_t flags) {
+int sl_ringbuf_client_init(void *base, sl_ringbuf_client_t *c, uint32_t flags) {
     rb_header_t *q = base;
     c->flags = flags;
     c->base = base;
