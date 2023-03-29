@@ -78,19 +78,19 @@ ssize_t sl_ringbuf_read(sl_ringbuf_client_t *c, void *buf, size_t len) {
         // read from [read_index to end)
         uint32_t bytes = c->length - c->read_index;
         if (bytes > len) bytes = len;
-        memcpy(buf, q->data + c->read_index, bytes);
+        if (buf != NULL) memcpy(buf, q->data + c->read_index, bytes);
         num_read += bytes;
         c->read_index += bytes;
         if (c->read_index == c->length) c->read_index = 0;
         len -= bytes;
-        buf += bytes;
+        if (buf != NULL) buf += bytes;
     }
 
     if ((c->read_index < c->write_index) && (len > 0)) {
         // read from [read_index to write_index)
         uint32_t bytes = c->write_index - c->read_index;
         if (bytes > len) bytes = len;
-        memcpy(buf, q->data + c->read_index, bytes);
+        if (buf != NULL) memcpy(buf, q->data + c->read_index, bytes);
         num_read += bytes;
         c->read_index += bytes;
     }

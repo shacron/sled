@@ -39,6 +39,7 @@ int sl_ringbuf_client_init(void *base, sl_ringbuf_client_t *c, uint32_t flags);
 // The call will return fewer bytes than requested if more bytes are not available,
 // and zero if there are no bytes available to read or space to write.
 // On some platforms a negative value may be returned in case of an IO error.
+// If a NULL 'buf' pointer is passed to read(), 'len' bytes will be consumed.
 ssize_t sl_ringbuf_read(sl_ringbuf_client_t *c, void *buf, size_t len);
 ssize_t sl_ringbuf_write(sl_ringbuf_client_t *c, const void *buf, size_t len);
 
