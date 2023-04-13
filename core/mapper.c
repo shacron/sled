@@ -85,7 +85,7 @@ static map_ent_t * ent_for_address(sl_mapper_t *m, uint64_t addr) {
     return NULL;
 }
 
-void mapper_set_mode(sl_mapper_t *m, int mode) { m->mode = mode; }
+void sl_mapper_set_mode(sl_mapper_t *m, int mode) { m->mode = mode; }
 sl_mapper_t * sl_mapper_get_next(sl_mapper_t *m) { return m->next; }
 sl_map_ep_t * sl_mapper_get_ep(sl_mapper_t *m) { return &m->ep; }
 

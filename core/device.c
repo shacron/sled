@@ -42,11 +42,10 @@ void * sl_device_get_context(sl_dev_t *d) { return d->context; }
 void sl_device_lock(sl_dev_t *d) { lock_lock(&d->lock); }
 void sl_device_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d) { return &d->irq_ep; }
-sl_mapper_t * sl_device_get_mapper(sl_dev_t *d) { return &d->mapper; }
-
+sl_mapper_t * sl_device_get_mapper(sl_dev_t *d) { return d->mapper; }
+void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m) { d->mapper = m; }
 
 void sl_device_set_event_queue(sl_dev_t *d, sl_event_queue_t *eq) { d->q = eq; }
-void sl_device_set_mapper_mode(sl_dev_t *d, int mode) { mapper_set_mode(&d->mapper, mode); }
 
 int sl_device_send_event_async(sl_dev_t *d, sl_event_t *ev) {
     if (d->q == NULL) return SL_ERR_UNSUPPORTED;
@@ -56,11 +55,12 @@ int sl_device_send_event_async(sl_dev_t *d, sl_event_t *ev) {
 static int device_handle_event(sl_event_t *ev) {
     if (ev->type != SL_MAP_EV_TYPE_UPDATE) return SL_ERR_ARG;
     sl_dev_t *d = ev->cookie;
-    return mapper_update(&d->mapper, ev);
+    return mapper_update(d->mapper, ev);
 }
 
 int sl_device_update_mapper_async(sl_dev_t *d, uint32_t ops, uint32_t count, sl_mapping_t *ent_list) {
     if (d->q == NULL) return SL_ERR_UNSUPPORTED;
+    if (d->mapper == NULL) return SL_ERR_UNSUPPORTED;
 
     sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
@@ -85,7 +85,6 @@ static void device_obj_shutdown(void *o) {
     sl_dev_t *d = o;
     d->ops.release(d->context);
     d->context = NULL;
-    mapper_shutdown(&d->mapper);
     lock_destroy(&d->lock);
 }
 
@@ -102,7 +101,6 @@ static void device_init_common(sl_dev_t *d, uint32_t type, const sl_dev_ops_t *o
     d->irq_ep.assert = device_accept_irq;
     lock_init(&d->lock);
     d->map_ep.io = device_mapper_ep_io;
-    mapper_init(&d->mapper);
     memcpy(&d->ops, ops, sizeof(*ops));
     if (d->ops.read == NULL) d->ops.read = dev_dummy_read;
     if (d->ops.write == NULL) d->ops.write = dev_dummy_write;

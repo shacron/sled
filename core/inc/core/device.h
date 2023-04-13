@@ -24,7 +24,7 @@ struct sl_dev {
     lock_t lock;
     sl_irq_ep_t irq_ep;
     sl_map_ep_t map_ep;
-    sl_mapper_t mapper;
+    sl_mapper_t *mapper;
     void *context;          // context of owner object
     sl_dev_ops_t ops;
     sl_event_queue_t *q;

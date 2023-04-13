@@ -50,6 +50,7 @@ struct sl_map_ep {
 int sl_mapper_create(sl_mapper_t **map_out);
 void sl_mapper_destroy(sl_mapper_t *m);
 
+void sl_mapper_set_mode(sl_mapper_t *m, int mode);
 int sl_mappper_add_mapping(sl_mapper_t *m, sl_mapping_t *ent);
 int sl_mapper_io(void *ctx, sl_io_op_t *op);
 sl_mapper_t * sl_mapper_get_next(sl_mapper_t *m);

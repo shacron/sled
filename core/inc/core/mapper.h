@@ -19,5 +19,4 @@ struct sl_mapper {
 void mapper_init(sl_mapper_t *m);
 void mapper_shutdown(sl_mapper_t *m);
 
-void mapper_set_mode(sl_mapper_t *m, int mode);
 int mapper_update(sl_mapper_t *m, sl_event_t *ev);

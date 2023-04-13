@@ -24,6 +24,7 @@
 
 struct sl_bus {
     sl_dev_t dev;
+    sl_mapper_t mapper;
     sl_list_t mem_list;
     sl_list_t dev_list;
 };
@@ -39,7 +40,7 @@ static int bus_op_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, 
     op.align = 0;
     op.buf = buf;
     op.agent = b;
-    return sl_mapper_io(&b->dev.mapper, &op);
+    return sl_mapper_io(&b->mapper, &op);
 }
 
 static int bus_op_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
@@ -55,7 +56,7 @@ static int bus_op_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count,
     op.align = 0;
     op.buf = buf;
     op.agent = b;
-    return sl_mapper_io(&b->dev.mapper, &op);
+    return sl_mapper_io(&b->mapper, &op);
 }
 
 int bus_add_mem_region(sl_bus_t *b, mem_region_t *r) {
@@ -64,7 +65,7 @@ int bus_add_mem_region(sl_bus_t *b, mem_region_t *r) {
     m.length = r->length;
     m.output_base = 0;
     m.ep = &r->ep;
-    int err = sl_mappper_add_mapping(sl_device_get_mapper(&b->dev), &m);
+    int err = sl_mappper_add_mapping(&b->mapper, &m);
     if (err) return err;
     sl_list_add_tail(&b->mem_list, &r->node);
     return 0;
@@ -77,14 +78,14 @@ int bus_add_device(sl_bus_t *b, sl_dev_t *dev, uint64_t base) {
     m.length = dev->ops.aperture;
     m.output_base = 0;
     m.ep = &dev->map_ep;
-    int err = sl_mappper_add_mapping(sl_device_get_mapper(&b->dev), &m);
+    int err = sl_mappper_add_mapping(&b->mapper, &m);
     if (err) return err;
     sl_device_retain(dev);
     sl_list_add_tail(&b->dev_list, &dev->node);
     return 0;
 }
 
-sl_mapper_t * bus_get_mapper(sl_bus_t *b) { return &b->dev.mapper; }
+sl_mapper_t * bus_get_mapper(sl_bus_t *b) { return &b->mapper; }
 
 sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
     sl_list_node_t *n = sl_list_peek_head(&b->dev_list);
@@ -96,6 +97,7 @@ sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
 }
 
 void bus_destroy(sl_bus_t *bus) {
+    mapper_shutdown(&bus->mapper);
     sl_list_node_t *c;
     while ((c = sl_list_remove_head(&bus->dev_list)) != NULL)
         sl_device_release(containerof(c, sl_dev_t, node));
@@ -115,8 +117,10 @@ int bus_create(const char *name, sl_bus_t **bus_out) {
     if (b == NULL) return SL_ERR_MEM;
 
     device_embedded_init(&b->dev, SL_DEV_BUS, name, &bus_ops);
+    mapper_init(&b->mapper);
+    sl_mapper_set_mode(&b->mapper, SL_MAP_OP_MODE_TRANSLATE);
     sl_device_set_context(&b->dev, b);
-    sl_device_set_mapper_mode(&b->dev, SL_MAP_OP_MODE_TRANSLATE);
+    sl_device_set_mapper(&b->dev, &b->mapper);
     sl_list_init(&b->mem_list);
     sl_list_init(&b->dev_list);
     *bus_out = b;

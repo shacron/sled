@@ -19,7 +19,7 @@
 
 typedef struct {
     sl_dev_t *dev;
-    sl_map_ep_t map_ep;
+    sl_mapper_t *mapper;
 
     bool enabled;
     uint8_t config;
@@ -185,13 +185,17 @@ int sled_mpu_create(const char *name, sl_dev_t **dev_out) {
     sled_mpu_t *m = calloc(1, sizeof(sled_mpu_t));
     if (m == NULL) return SL_ERR_MEM;
 
-    if ((err = sl_device_allocate(SL_DEV_MPU, name, &mpu_ops, &m->dev))) {
-        free(m);
-        return err;
-    }
+    if ((err = sl_device_allocate(SL_DEV_MPU, name, &mpu_ops, &m->dev))) goto out_err;
+    if ((err = sl_mapper_create(&m->mapper))) goto out_err;
 
     *dev_out = m->dev;
     sl_device_set_context(m->dev, m);
-    sl_device_set_mapper_mode(m->dev, SL_MAP_OP_MODE_PASSTHROUGH);
+    sl_mapper_set_mode(m->mapper, SL_MAP_OP_MODE_PASSTHROUGH);
+    sl_device_set_mapper(m->dev, m->mapper);
     return 0;
+
+out_err:
+    if (m->dev) sl_device_release(m->dev);
+    free(m);
+    return err;
 }
