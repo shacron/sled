@@ -174,6 +174,7 @@ int mapper_update(sl_mapper_t *m, sl_event_t *ev) {
 
 void mapper_init(sl_mapper_t *m) {
     memset(m, 0, sizeof(*m));
+    m->ep.io = mapper_ep_io;
 }
 
 int sl_mapper_create(sl_mapper_t **map_out) {
