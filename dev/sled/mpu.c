@@ -89,8 +89,7 @@ static int update_config(sled_mpu_t *m, uint32_t val) {
     if (val & MPU_CONFIG_APPLY) {
         ent_list = calloc(MPU_MAX_MAPPINGS, sizeof(sl_mapping_t));
         if (ent_list == NULL) return SL_ERR_MEM;
-        sl_mapper_t *map = sl_device_get_mapper(m->dev);
-        sl_mapper_t *next = sl_mapper_get_next(map);
+        sl_mapper_t *next = sl_mapper_get_next(m->mapper);
         for (int i = 0; i < MPU_MAX_MAPPINGS; i++) {
             if (m->map_len[i] == 0) continue;
             sl_mapping_t *ent = &ent_list[ent_count];
@@ -169,6 +168,7 @@ out:
 static void mpu_release(void *ctx) {
     if (ctx == NULL) return;
     sled_mpu_t *m = ctx;
+    sl_mapper_destroy(m->mapper);
     free(m);
 }
 

@@ -43,7 +43,6 @@ void sl_device_lock(sl_dev_t *d);
 void sl_device_unlock(sl_dev_t *d);
 
 void sl_device_set_event_queue(sl_dev_t *d, sl_event_queue_t *eq);
-void sl_device_set_mapper_mode(sl_dev_t *d, int mode);
 
 sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d);
 sl_mapper_t * sl_device_get_mapper(sl_dev_t *d);
