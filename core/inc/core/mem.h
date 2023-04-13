@@ -5,12 +5,14 @@
 
 #include <stdint.h>
 
+#include <sled/mapper.h>
 #include <sled/list.h>
 
 typedef struct {
     sl_list_node_t node;
     uint64_t base;
     uint64_t length;
+    sl_map_ep_t ep;
     uint8_t data[];
 } mem_region_t;
 

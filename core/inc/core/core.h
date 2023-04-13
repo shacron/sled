@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <core/obj.h>
 #include <core/irq.h>
 #include <core/itrace.h>
 #include <core/event.h>
@@ -34,10 +35,11 @@ typedef struct core_ops {
     void (*set_reg)(core_t *c, uint32_t reg, uint64_t value);
     uint64_t (*get_reg)(core_t *c, uint32_t reg);
     int (*set_state)(core_t *c, uint32_t state, bool enabled);
-    int (*destroy)(core_t *c);
 } core_ops_t;
 
 struct core {
+    sl_obj_t obj_;
+
     uint8_t arch;
     uint8_t subarch;
     uint8_t id;             // numerical id of this core instance

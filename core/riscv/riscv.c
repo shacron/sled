@@ -140,17 +140,20 @@ static int riscv_core_step(core_t *c) {
     return err;
 }
 
-static int riscv_core_destroy(core_t *c) {
-    core_shutdown(c);
-    rv_core_t *rc = (rv_core_t *)c;
+static void rv_core_shutdown(void *o) {
+    rv_core_t *rc = o;
+    core_shutdown(&rc->core);
     if (rc->ext.destroy != NULL) rc->ext.destroy(rc->ext_private);
-    free(c);
-    return 0;
 }
+
+static const sl_obj_vtable_t rvcore_vtab = {
+    .type = SL_OBJ_TYPE_CORE,
+    .shutdown = rv_core_shutdown,
+};
 
 int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, core_t **core_out) {
     int err;
-    rv_core_t *rc = calloc(1, sizeof(*rc));
+    rv_core_t *rc = sl_obj_allocate(sizeof(*rc), p->name, &rvcore_vtab);
     if (rc == NULL) return SL_ERR_MEM;
 
     if ((err = core_init(&rc->core, p, bus))) {
@@ -168,7 +171,6 @@ int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, core_t **core_out) {
     rc->core.ops.set_reg = riscv_set_reg;
     rc->core.ops.get_reg = riscv_get_reg;
     rc->core.ops.set_state = riscv_core_set_state;
-    rc->core.ops.destroy = riscv_core_destroy;
 
     rc->mimpid = 'sled';
     rc->mhartid = p->id;

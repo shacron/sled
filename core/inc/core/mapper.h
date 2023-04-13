@@ -13,6 +13,7 @@ struct sl_mapper {
     uint32_t num_ents;
     map_ent_t **list;
     sl_mapper_t *next;
+    sl_map_ep_t ep;
 };
 
 void mapper_init(sl_mapper_t *m);

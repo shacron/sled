@@ -113,7 +113,7 @@ int sled_uart_set_channel(sl_dev_t *dev, int io, int fd_in, int fd_out) {
     return 0;
 }
 
-static void uart_destroy(void *ctx) {
+static void uart_release(void *ctx) {
     uart_t *u = ctx;
     if (ctx == NULL) return;
     if (u->buf_pos > 0) uart_flush(u);
@@ -123,7 +123,7 @@ static void uart_destroy(void *ctx) {
 static const sl_dev_ops_t uart_ops = {
     .read = uart_read,
     .write = uart_write,
-    .destroy = uart_destroy,
+    .release = uart_release,
     .aperture = UART_APERTURE_LENGTH,
 };
 
@@ -131,7 +131,7 @@ int uart_create(const char *name, sl_dev_t **dev_out) {
     uart_t *u = calloc(1, sizeof(uart_t));
     if (u == NULL) return SL_ERR_MEM;
 
-    int err = sl_device_create(SL_DEV_UART, name, &uart_ops, dev_out);
+    int err = sl_device_allocate(SL_DEV_UART, name, &uart_ops, dev_out);
     if (err) {
         free(u);
         return err;

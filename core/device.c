@@ -11,8 +11,6 @@
 #include <core/event.h>
 #include <sled/error.h>
 
-static atomic_uint_least32_t device_id = 0;
-
 // default irq handler wrapper
 static int device_accept_irq(sl_irq_ep_t *ep, uint32_t num, bool high) {
     if (num > 31) return SL_ERR_ARG;
@@ -31,15 +29,12 @@ static int dev_dummy_write(void *d, uint64_t addr, uint32_t size, uint32_t count
     return SL_ERR_IO_NOWR;
 }
 
-int device_mapper_io(void *ctx, sl_io_op_t *op) {
-    sl_dev_t *d = ctx;
+static void dev_dummy_release(void *d) {}
+
+int device_mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
+    sl_dev_t *d = containerof(ep, sl_dev_t, map_ep);
     if (op->direction == IO_DIR_IN) return d->ops.read(d->context, op->addr, op->size, op->count, op->buf);
     return d->ops.write(d->context, op->addr, op->size, op->count, op->buf);
-}
-
-int sl_device_io(void *ctx, sl_io_op_t *op) {
-    sl_dev_t *d = ctx;
-    return d->ops.io(ctx, op);
 }
 
 void sl_device_set_context(sl_dev_t *d, void *ctx) { d->context = ctx; }
@@ -64,7 +59,7 @@ static int device_handle_event(sl_event_t *ev) {
     return mapper_update(&d->mapper, ev);
 }
 
-int sl_device_update_mapper_async(sl_dev_t *d, uint32_t ops, uint32_t count, sl_mapper_entry_t *ent_list) {
+int sl_device_update_mapper_async(sl_dev_t *d, uint32_t ops, uint32_t count, sl_mapping_t *ent_list) {
     if (d->q == NULL) return SL_ERR_UNSUPPORTED;
 
     sl_event_t *ev = calloc(1, sizeof(*ev));
@@ -82,39 +77,47 @@ int sl_device_update_mapper_async(sl_dev_t *d, uint32_t ops, uint32_t count, sl_
     return err;
 }
 
-void device_shutdown(sl_dev_t *d) {
+void device_embedded_shutdown(sl_dev_t *d) {
+    sl_obj_embedded_shutdown(&d->obj_);
+}
+
+static void device_obj_shutdown(void *o) {
+    sl_dev_t *d = o;
+    d->ops.release(d->context);
+    d->context = NULL;
     mapper_shutdown(&d->mapper);
     lock_destroy(&d->lock);
 }
 
-void sl_device_destroy(sl_dev_t *d) {
-    if (d == NULL) return;
-    uint16_t flags = d->flags;
-    if (d->ops.destroy != NULL)
-        d->ops.destroy(d->context);
-    if (flags & DEV_FLAG_EMBEDDED) return;
-    device_shutdown(d);
-    free(d);
-}
+void sl_device_retain(sl_dev_t *d) { sl_obj_retain(&d->obj_); }
+void sl_device_release(sl_dev_t *d) { sl_obj_release(&d->obj_); };
 
-void device_init(sl_dev_t *d, uint32_t type, const char *name, const sl_dev_ops_t *ops) {
+static const sl_obj_vtable_t device_vtab = {
+    .type = SL_OBJ_TYPE_DEVICE,
+    .shutdown = device_obj_shutdown,
+};
+
+static void device_init_common(sl_dev_t *d, uint32_t type, const sl_dev_ops_t *ops) {
     d->type = type;
-    d->flags = DEV_FLAG_EMBEDDED;
-    d->name = name;
-    d->id = atomic_fetch_add_explicit(&device_id, 1, memory_order_relaxed);
     d->irq_ep.assert = device_accept_irq;
     lock_init(&d->lock);
+    d->map_ep.io = device_mapper_ep_io;
     mapper_init(&d->mapper);
     memcpy(&d->ops, ops, sizeof(*ops));
     if (d->ops.read == NULL) d->ops.read = dev_dummy_read;
     if (d->ops.write == NULL) d->ops.write = dev_dummy_write;
+    if (d->ops.release == NULL) d->ops.release = dev_dummy_release;
 }
 
-int sl_device_create(uint32_t type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
-    sl_dev_t *d = calloc(1, sizeof(*d));
+void device_embedded_init(sl_dev_t *d, uint32_t type, const char *name, const sl_dev_ops_t *ops) {
+    sl_obj_embedded_init(&d->obj_, name, &device_vtab);
+    device_init_common(d, type, ops);
+}
+
+int sl_device_allocate(uint32_t type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
+    sl_dev_t *d = sl_obj_allocate(sizeof(*d), name, &device_vtab);
     if (d == NULL) return SL_ERR_MEM;
     *dev_out = d;
-    device_init(d, type, name, ops);
-    d->flags &= ~DEV_FLAG_EMBEDDED;
+    device_init_common(d, type, ops);
     return 0;
 }

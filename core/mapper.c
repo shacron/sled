@@ -18,8 +18,7 @@ struct map_ent {
     uint64_t pa_base;
     uint32_t domain;
     uint16_t permissions;
-    io_func_t *io;
-    void *context;
+    sl_map_ep_t *ep;
 };
 
 static int ent_compare(const void *v0, const void *v1) {
@@ -30,16 +29,15 @@ static int ent_compare(const void *v0, const void *v1) {
     return 0;
 }
 
-static map_ent_t * create_map_ent(sl_mapper_entry_t *ent) {
+static map_ent_t * create_map_ent(sl_mapping_t *m) {
     map_ent_t *n = malloc(sizeof(*n));
     if (n == NULL) return NULL;
-    n->va_base = ent->input_base;
-    n->va_end = ent->input_base + ent->length;
-    n->pa_base = ent->output_base;
-    n->domain = ent->domain;
-    n->permissions = ent->permissions;
-    n->io = ent->io;
-    n->context = ent->context;
+    n->va_base = m->input_base;
+    n->va_end = m->input_base + m->length;
+    n->pa_base = m->output_base;
+    n->domain = m->domain;
+    n->permissions = m->permissions;
+    n->ep = m->ep;
     return n;
 }
 
@@ -47,7 +45,7 @@ static void finalize_mappings(sl_mapper_t *m) {
     qsort(m->list, m->num_ents, sizeof(map_ent_t *), ent_compare);
 }
 
-int sl_mappper_add_mapping(sl_mapper_t *m, sl_mapper_entry_t *ent) {
+int sl_mappper_add_mapping(sl_mapper_t *m, sl_mapping_t *ent) {
     map_ent_t *n = create_map_ent(ent);
     if (n == NULL) return SL_ERR_MEM;
 
@@ -89,9 +87,10 @@ static map_ent_t * ent_for_address(sl_mapper_t *m, uint64_t addr) {
 
 void mapper_set_mode(sl_mapper_t *m, int mode) { m->mode = mode; }
 sl_mapper_t * sl_mapper_get_next(sl_mapper_t *m) { return m->next; }
+sl_map_ep_t * sl_mapper_get_ep(sl_mapper_t *m) { return &m->ep; }
 
-int sl_mapper_io(void *ctx, sl_io_op_t *op) {
-    sl_mapper_t *m = ctx;
+static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
+    sl_mapper_t *m = containerof(ep, sl_mapper_t, ep);
     if (m->mode == SL_MAP_OP_MODE_BLOCK) return SL_ERR_IO_NOMAP;
     if (m->mode == SL_MAP_OP_MODE_PASSTHROUGH) return sl_mapper_io(m->next, op);
 
@@ -118,12 +117,17 @@ int sl_mapper_io(void *ctx, sl_io_op_t *op) {
         subop.addr = e->pa_base + offset;
         subop.count = avail / size;
 
-        if ((err = e->io(e->context, &subop))) return err;
+        if ((err = e->ep->io(e->ep, &subop))) return err;
         len -= avail;
         addr += avail;
         subop.buf += avail;
     }
     return 0;
+}
+
+int sl_mapper_io(void *ctx, sl_io_op_t *op) {
+    sl_mapper_t *m = ctx;
+    return mapper_ep_io(&m->ep, op);
 }
 
 int mapper_update(sl_mapper_t *m, sl_event_t *ev) {
@@ -133,7 +137,7 @@ int mapper_update(sl_mapper_t *m, sl_event_t *ev) {
     uint32_t op = ev->arg[0];
     if (op & SL_MAP_OP_REPLACE) {
         uint32_t count = ev->arg[1];
-        sl_mapper_entry_t *ent_list = (sl_mapper_entry_t *)(ev->arg[2]);
+        sl_mapping_t *ent_list = (sl_mapping_t *)(ev->arg[2]);
 
         uint32_t size = ((count + MAP_ALLOC_INCREMENT - 1) / MAP_ALLOC_INCREMENT) * MAP_ALLOC_INCREMENT;
         map_ent_t **list = calloc(size, sizeof(map_ent_t *));
@@ -175,6 +179,7 @@ void mapper_init(sl_mapper_t *m) {
 int sl_mapper_create(sl_mapper_t **map_out) {
     sl_mapper_t *m = calloc(1, sizeof(*m));
     if (m == NULL) return SL_ERR_MEM;
+    m->ep.io = mapper_ep_io;
     *map_out = m;
     return 0;
 }

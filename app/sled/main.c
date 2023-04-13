@@ -361,6 +361,7 @@ int simple_machine(sm_t *sm) {
     else
         params.options = SL_CORE_OPT_TRAP_SYSCALL;
     params.arch_options = PLAT_ARCH_OPTIONS;
+    params.name = "cpu0";
 
     if ((err = sl_machine_add_core(m, &params))) {
         printf("sl_machine_add_core failed: %s\n", st_err(err));

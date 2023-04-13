@@ -36,6 +36,9 @@ static int core_irq_transition_async(sl_irq_ep_t *ep, uint32_t num, bool high) {
     return 0;
 }
 
+void sl_core_retain(core_t *c) { sl_obj_retain(&c->obj_); }
+void sl_core_release(core_t *c) { sl_obj_release(&c->obj_); }
+
 void core_set_wfi(core_t *c, bool enable) {
     if (enable) c->state |= (1u << SL_CORE_STATE_WFI);
     else c->state &= ~(1u << SL_CORE_STATE_WFI);

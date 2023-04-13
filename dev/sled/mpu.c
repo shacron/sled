@@ -19,6 +19,8 @@
 
 typedef struct {
     sl_dev_t *dev;
+    sl_map_ep_t map_ep;
+
     bool enabled;
     uint8_t config;
     uint32_t map_len[MPU_MAX_MAPPINGS];
@@ -77,7 +79,7 @@ static int update_config(sled_mpu_t *m, uint32_t val) {
     uint32_t config = m->config;
     uint32_t ops = 0;
     uint32_t ent_count = 0;
-    sl_mapper_entry_t *ent_list = NULL;
+    sl_mapping_t *ent_list = NULL;
 
     if (val & MPU_CONFIG_ENABLE)
         config |= MPU_CONFIG_ENABLE;
@@ -85,18 +87,17 @@ static int update_config(sled_mpu_t *m, uint32_t val) {
         config &= ~MPU_CONFIG_ENABLE;
 
     if (val & MPU_CONFIG_APPLY) {
-        ent_list = calloc(MPU_MAX_MAPPINGS, sizeof(sl_mapper_entry_t));
+        ent_list = calloc(MPU_MAX_MAPPINGS, sizeof(sl_mapping_t));
         if (ent_list == NULL) return SL_ERR_MEM;
         sl_mapper_t *map = sl_device_get_mapper(m->dev);
         sl_mapper_t *next = sl_mapper_get_next(map);
         for (int i = 0; i < MPU_MAX_MAPPINGS; i++) {
             if (m->map_len[i] == 0) continue;
-            sl_mapper_entry_t *ent = &ent_list[ent_count];
+            sl_mapping_t *ent = &ent_list[ent_count];
             ent->input_base = m->va_base[i];
             ent->length = m->map_len[i];
             ent->output_base = m->pa_base[i];
-            ent->io = sl_mapper_io;
-            ent->context = next;
+            ent->ep = sl_mapper_get_ep(next);
             ent_count++;
         }
         if (ent_count > 0) ops |= SL_MAP_OP_REPLACE;
@@ -165,7 +166,7 @@ out:
     return err;
 }
 
-static void mpu_destroy(void *ctx) {
+static void mpu_release(void *ctx) {
     if (ctx == NULL) return;
     sled_mpu_t *m = ctx;
     free(m);
@@ -174,7 +175,7 @@ static void mpu_destroy(void *ctx) {
 static const sl_dev_ops_t mpu_ops = {
     .read = mpu_read,
     .write = mpu_write,
-    .destroy = mpu_destroy,
+    .release = mpu_release,
     .aperture = MPU_APERTURE_LENGTH,
 };
 
@@ -184,7 +185,7 @@ int sled_mpu_create(const char *name, sl_dev_t **dev_out) {
     sled_mpu_t *m = calloc(1, sizeof(sled_mpu_t));
     if (m == NULL) return SL_ERR_MEM;
 
-    if ((err = sl_device_create(SL_DEV_MPU, name, &mpu_ops, &m->dev))) {
+    if ((err = sl_device_allocate(SL_DEV_MPU, name, &mpu_ops, &m->dev))) {
         free(m);
         return err;
     }

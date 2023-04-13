@@ -89,11 +89,12 @@ int sl_machine_add_device(sl_machine_t *m, uint32_t type, uint64_t base, const c
 
     if ((err = bus_add_device(m->bus, d, base))) {
         fprintf(stderr, "bus_add_device failed: %s\n", st_err(err));
-        sl_device_destroy(d);
+        goto out_err;
     }
     if (type == SL_DEV_INTC) m->intc = d;
 
 out_err:
+    sl_device_release(d);
     return err;
 }
 
@@ -101,11 +102,9 @@ int sl_machine_add_device_prefab(sl_machine_t *m, uint64_t base, sl_dev_t *d) {
     int err;
     if ((err = bus_add_device(m->bus, d, base))) {
         fprintf(stderr, "bus_add_device failed: %s\n", st_err(err));
-        sl_device_destroy(d);
     }
     return err;
 }
-
 
 int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     core_t *c;
@@ -135,7 +134,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
             return 0;
         }
     }
-    c->ops.destroy(c);
+    sl_core_release(c);
     return SL_ERR_FULL;
 }
 
@@ -156,7 +155,7 @@ int sl_machine_set_interrupt(sl_machine_t *m, uint32_t irq, bool high) {
 void sl_machine_destroy(sl_machine_t *m) {
     for (int i = 0; i < MACHINE_MAX_CORES; i++) {
         core_t *c = m->core_list[i];
-        if (c != NULL) c->ops.destroy(c);
+        if (c != NULL) sl_core_release(c);
     }
     bus_destroy(m->bus);
     free(m);

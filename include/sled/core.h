@@ -25,6 +25,7 @@ struct sl_core_params {
     uint8_t id;
     uint32_t options;
     uint32_t arch_options;
+    const char *name;
 };
 
 // Special register defines to pass to set/get_reg()
@@ -74,6 +75,9 @@ int sl_core_dispatch_loop(core_t *c, bool run);
 // ----------------------------------------------------------------------------
 // Synchronous accessor functions
 // ----------------------------------------------------------------------------
+
+void sl_core_retain(core_t *c);
+void sl_core_release(core_t *c);
 
 void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value);
 uint64_t sl_core_get_reg(core_t *c, uint32_t reg);

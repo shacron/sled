@@ -61,5 +61,5 @@ static const sl_dev_ops_t rtc_ops = {
 };
 
 int rtc_create(const char *name, sl_dev_t **dev_out) {
-    return sl_device_create(SL_DEV_RTC, name, &rtc_ops, dev_out);
+    return sl_device_allocate(SL_DEV_RTC, name, &rtc_ops, dev_out);
 }

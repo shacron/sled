@@ -32,14 +32,17 @@ must be used. The map driver must not block the mapping client from completing i
 
 #define SL_MAP_OP_REPLACE           (1u << 2)
 
-struct sl_mapper_entry {
+struct sl_mapping {
     uint64_t input_base;
     uint64_t length;
     uint64_t output_base;
     uint32_t domain;
     uint16_t permissions;
-    io_func_t *io;
-    void *context;
+    sl_map_ep_t *ep;
+};
+
+struct sl_map_ep {
+    int (*io)(sl_map_ep_t *ep, sl_io_op_t *op);
 };
 
 // setup
@@ -47,6 +50,7 @@ struct sl_mapper_entry {
 int sl_mapper_create(sl_mapper_t **map_out);
 void sl_mapper_destroy(sl_mapper_t *m);
 
-int sl_mappper_add_mapping(sl_mapper_t *m, sl_mapper_entry_t *ent);
+int sl_mappper_add_mapping(sl_mapper_t *m, sl_mapping_t *ent);
 int sl_mapper_io(void *ctx, sl_io_op_t *op);
 sl_mapper_t * sl_mapper_get_next(sl_mapper_t *m);
+sl_map_ep_t * sl_mapper_get_ep(sl_mapper_t *m);
