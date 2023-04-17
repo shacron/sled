@@ -27,14 +27,13 @@ Supported:
 * rv32i
 * rv64i
 * M, C extensions
-* machine mode
+* machine, system, and user modes
 * interrupts
-* (some) exceptions
+* most exceptions
 
 In progress:
 
 * more exceptions
-* system and user modes
 * A extension
 * most of the CSRs
 * timers
@@ -51,19 +50,20 @@ Not started. Waiting for the core API to settle before starting this.
 
 ### Devices
 
-There are few generic devices implemented.
+There are a few generic devices implemented.
 
 Supported:
 
-* UART (serial)
-* Interrupt Controller
-* Real-time clock
+* UART (serial) (`sled_uart`)
+* Interrupt Controller (`sled_intc`)
+* Real-time clock (`sled_rtc`)
+* MPU Memory Protection Unit (`sled_mpu`)
+* Mapper backend for implementing bus mappings, MMUs and MPUs.
 
 In progress:
 
-* Bus identification of master
 * DMA backend and generic interface
-* MMU backend
+* Cache management backend
 
 Long term goals:
 
