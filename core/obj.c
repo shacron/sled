@@ -47,6 +47,7 @@ void sl_obj_retain(sl_obj_t *o) {
 }
 
 void sl_obj_release(sl_obj_t *o) {
+    if (o == NULL) return;
     assert(o->refcount > 0);
     atomic_fetch_sub_explicit((_Atomic uint16_t *)&o->refcount, 1, memory_order_relaxed);
     if (o->refcount == 0) {

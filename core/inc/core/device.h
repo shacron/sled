@@ -9,8 +9,10 @@
 #include <core/obj.h>
 #include <core/types.h>
 #include <sled/device.h>
+#include <sled/event.h>
 #include <sled/io.h>
 #include <sled/list.h>
+#include <sled/worker.h>
 
 #define DEV_FLAG_EMBEDDED   (1u << 0)
 
@@ -26,8 +28,10 @@ struct sl_dev {
     sl_map_ep_t map_ep;     // incoming io from external mapper
     void *context;          // context of owner object
     sl_dev_ops_t ops;
-    sl_event_queue_t *q;
+    sl_event_ep_t event_ep; // async event endpoint
     sl_mapper_t *mapper;    // held for owner object, todo: remove
+    sl_worker_t *worker;    // worker thread and event loop
+    uint32_t worker_epid;   // id to use for event loop direct events
 };
 
 // device API

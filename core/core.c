@@ -18,6 +18,7 @@
 #include <sled/error.h>
 #include <sled/event.h>
 #include <sled/io.h>
+#include <sled/worker.h>
 
 // Called in device context
 // Send a message to dispatch loop to handle interrupt change
@@ -32,7 +33,7 @@ static int core_irq_transition_async(sl_irq_ep_t *ep, uint32_t num, bool high) {
     ev->arg[1] = high;
 
     core_t *c = containerof(ep, core_t, irq_ep);
-    ev_queue_add(&c->event_q, ev);
+    sl_worker_event_enqueue_async(c->worker, ev);
     return 0;
 }
 
@@ -42,6 +43,7 @@ void sl_core_release(core_t *c) { sl_obj_release(&c->obj_); }
 void core_set_wfi(core_t *c, bool enable) {
     if (enable) c->state |= (1u << SL_CORE_STATE_WFI);
     else c->state &= ~(1u << SL_CORE_STATE_WFI);
+    sl_worker_set_engine_runnable(c->worker, !enable);
 }
 
 static int core_handle_irq_event(core_t *c, sl_event_t *ev) {
@@ -52,22 +54,16 @@ static int core_handle_irq_event(core_t *c, sl_event_t *ev) {
     return err;
 }
 
-int core_event_send_async(core_t *c, sl_event_t *ev) {
-    return sl_event_send_async(&c->event_q, ev);
-}
-
 int sl_core_async_command(core_t *c, uint32_t cmd, bool wait) {
-    int err = 0;
     sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
-
+    ev->epid = c->epid;
     ev->type = CORE_EV_RUNMODE;
     ev->option = cmd;
     ev->flags = SL_EV_FLAG_FREE;
-    if (wait) ev->flags |= SL_EV_FLAG_WAIT;
-    err = sl_event_send_async(&c->event_q, ev);
-    if (err) free(ev);
-    return err;
+    if (wait) ev->flags |= SL_EV_FLAG_SIGNAL;
+    sl_worker_event_enqueue_async(c->worker, ev);
+    return 0;
 }
 
 uint8_t sl_core_get_arch(core_t *c) {
@@ -103,16 +99,6 @@ int core_config_set(core_t *c, sl_core_params_t *p) {
     return 0;
 }
 
-int core_init(core_t *c, sl_core_params_t *p, sl_bus_t *b) {
-    config_set_internal(c, p);
-    c->bus = b;
-    c->mapper = bus_get_mapper(b);
-    c->irq_ep.assert = core_irq_transition_async;
-    ev_queue_init(&c->event_q);
-    sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
-    return 0;
-}
-
 int core_shutdown(core_t *c) {
 #if WITH_SYMBOLS
     sym_list_t *n = NULL;
@@ -123,7 +109,7 @@ int core_shutdown(core_t *c) {
 #endif
     // delete all pending events...
 
-    ev_queue_shutdown(&c->event_q);
+    sl_worker_release(c->worker);
     return 0;
 }
 
@@ -199,11 +185,16 @@ uint64_t sl_core_get_reg(core_t *c, uint32_t reg) {
     return c->ops.get_reg(c, reg);
 }
 
-void sl_core_set_mapper(core_t *c, sl_dev_t *d) {
+int sl_core_set_mapper(core_t *c, sl_dev_t *d) {
     sl_mapper_t *m = sl_device_get_mapper(d);
     m->next = c->mapper;
     c->mapper = m;
-    sl_device_set_event_queue(d, &c->event_q);
+
+    uint32_t id;
+    int err = sl_worker_add_event_endpoint(c->worker, &d->event_ep, &id);
+    if (err) return err;
+    sl_device_set_worker(d, c->worker, id);
+    return id;
 }
 
 static int core_handle_runmode_event(core_t *c, sl_event_t *ev) {
@@ -217,95 +208,41 @@ static int core_handle_runmode_event(core_t *c, sl_event_t *ev) {
         err = SL_ERR_ARG;
         break;
     }
-    if (ev->flags & SL_EV_FLAG_WAIT) {
+    if (ev->flags & SL_EV_FLAG_SIGNAL) {
         sl_sem_t *sem = (sl_sem_t *)ev->signal;
         sl_sem_post(sem);
     }
     return err;
 }
 
-static int core_handle_events(core_t *c, bool wait) {
+static int core_event_handle(sl_event_ep_t *ep, sl_event_t *ev) {
+    core_t *c = containerof(ep, core_t, event_ep);
     int err = 0;
-    sl_list_node_t *ev_list = ev_queue_remove_all(&c->event_q, wait);
 
-    while (err == 0) {
-        sl_event_t *ev = (sl_event_t *)ev_list;
-        if (ev == NULL) break;
-        ev_list = ev->node.next;
-
-        // do something with it.
-        // printf("got event %u\n", ev->type);
-
-        // this needs a rework
-        if (ev->flags & SL_EV_FLAG_CALLBACK) {
-            err = ev->callback(ev);
-        } else {
-            switch (ev->type) {
-            case CORE_EV_IRQ:       err = core_handle_irq_event(c, ev);     break;
-            case CORE_EV_RUNMODE:   err = core_handle_runmode_event(c, ev); break;
-            default:
-                printf("unknown event type %u\n", ev->type);
-                err = SL_ERR_STATE;
-                break;
-            }
-        }
-        if (ev->flags & SL_EV_FLAG_FREE) free(ev);
+    switch (ev->type) {
+    case CORE_EV_IRQ:       err = core_handle_irq_event(c, ev);     break;
+    case CORE_EV_RUNMODE:   err = core_handle_runmode_event(c, ev); break;
+    default:
+        ev->err = SL_ERR_ARG;
+        printf("unknown event type %u\n", ev->type);
+        break;
     }
     return err;
 }
 
-static int core_handle_interrupts(core_t *c) {
+int core_handle_interrupts(core_t *c) {
     sl_irq_ep_t *ep = &c->irq_ep;
     if (ep->asserted == 0) return 0;
     core_set_wfi(c, false);
     return c->ops.interrupt(c);
 }
 
-static int core_service_event_queue(core_t *c) {
-    int err = 0;
-
-    if (likely(!CORE_IS_WFI(c->state))) {
-        if (ev_queue_maybe_has_entries(&c->event_q))
-            if ((err = core_handle_events(c, false))) goto out_err;
-        if (CORE_INT_ENABLED(c->state))
-            if ((err = core_handle_interrupts(c))) goto out_err;
-        return 0;
-    }
-
-    // if (unlikely(!CORE_INT_ENABLED(c->state))) {
-    //     // interrupts are disabled but WFI was called. This is technically legal, but results
-    //     // in a core deadlock. Users probably want to be informed about that.
-    //     printf("Guest state error: core is in WFI but interrupts are disabled.\n");
-    //     return SL_ERR_STATE;
-    // }
-
-    do {
-        if ((err = core_handle_events(c, true))) goto out_err;
-        if ((err = core_handle_interrupts(c))) goto out_err;
-    } while (CORE_IS_WFI(c->state));
-    return 0;
-
-out_err:
-    return err;
+int sl_core_step(core_t *c, uint64_t num) {
+    return sl_worker_step(c->worker, num);
 }
 
-int sl_core_step(core_t *c, uint32_t num) {
-    int err = 0;
-    for (uint32_t i = 0; i < num; i++) {
-        if ((err = core_service_event_queue(c))) break;
-        if ((err = c->ops.step(c))) break;
-    }
-    return err;
-}
-
-int sl_core_dispatch_loop(core_t *c, bool run) {
-    core_set_wfi(c, !run);
-
-    int err = 0;
-    for ( ; ; ) {
-        if ((err = sl_core_step(c, 0x80000000))) break;
-    }
-    return err;
+int sl_core_run(core_t *c) {
+    return sl_worker_run(c->worker);
 }
 
 int sl_core_set_state(core_t *c, uint32_t state, bool enabled) {
@@ -338,3 +275,16 @@ sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr) {
     return nearest;
 }
 #endif
+
+int core_init(core_t *c, sl_core_params_t *p, sl_bus_t *b) {
+    int err = sl_worker_create("core worker", &c->worker);
+    if (err) return err;
+    sl_worker_add_engine(c->worker, c, &c->epid);
+    config_set_internal(c, p);
+    c->bus = b;
+    c->mapper = bus_get_mapper(b);
+    c->irq_ep.assert = core_irq_transition_async;
+    c->event_ep.handle = core_event_handle;
+    sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
+    return 0;
+}

@@ -67,10 +67,10 @@ functions may be called unless specified while the dispatch loop is running.
 */
 
 // Execute a number of instructions on current thread
-int sl_core_step(core_t *c, uint32_t num);
+int sl_core_step(core_t *c, uint64_t num);
 
 // Run dispatch loop on current thread - enter async execution mode
-int sl_core_dispatch_loop(core_t *c, bool run);
+int sl_core_run(core_t *c);
 
 // ----------------------------------------------------------------------------
 // Synchronous accessor functions
@@ -85,7 +85,7 @@ int sl_core_set_state(core_t *c, uint32_t state, bool enabled);
 int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
 uint64_t sl_core_get_cycles(core_t *c);
-void sl_core_set_mapper(core_t *c, sl_dev_t *d);
+int sl_core_set_mapper(core_t *c, sl_dev_t *d);
 
 // ----------------------------------------------------------------------------
 // Async control functions

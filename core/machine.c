@@ -134,8 +134,9 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
             return 0;
         }
     }
+    err = SL_ERR_FULL;
     sl_core_release(c);
-    return SL_ERR_FULL;
+    return err;
 }
 
 core_t * sl_machine_get_core(sl_machine_t *m, uint32_t id) {

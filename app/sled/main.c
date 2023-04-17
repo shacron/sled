@@ -20,6 +20,7 @@
 #include <sled/elf.h>
 #include <sled/error.h>
 #include <sled/machine.h>
+#include <sled/worker.h>
 
 #include "cons.h"
 
@@ -229,15 +230,9 @@ void *core_runner(void *arg) {
     }
 
     if (sm->steps == 0) {
-        err = sl_core_dispatch_loop(c, false);
+        err = sl_core_run(c);
     } else {
-        for (uint64_t s = sm->steps; s > 0; ) {
-            uint64_t step;
-            if (s > 0xffffffff) step = 0xffffffff;
-            else step = s;
-            if ((err = sl_core_step(c, step))) break;
-            s -= step;
-        }
+        err = sl_core_step(c, sm->steps);
     }
     if (err && sm->cons_on_err)
         console_enter(sm->m);

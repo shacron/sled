@@ -128,8 +128,11 @@ static int riscv_interrupt(core_t *c) {
 }
 
 static int riscv_core_step(core_t *c) {
-    rv_core_t *rc = (rv_core_t *)c;
     int err = 0;
+    if (CORE_INT_ENABLED(c->state))
+        if ((err = core_handle_interrupts(c))) return err;
+
+    rv_core_t *rc = (rv_core_t *)c;
     uint32_t inst;
     if ((err = rv_load_pc(rc, &inst)))
         return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);

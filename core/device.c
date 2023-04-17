@@ -45,34 +45,39 @@ sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d) { return &d->irq_ep; }
 sl_mapper_t * sl_device_get_mapper(sl_dev_t *d) { return d->mapper; }
 void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m) { d->mapper = m; }
 
-void sl_device_set_event_queue(sl_dev_t *d, sl_event_queue_t *eq) { d->q = eq; }
-
-int sl_device_send_event_async(sl_dev_t *d, sl_event_t *ev) {
-    if (d->q == NULL) return SL_ERR_UNSUPPORTED;
-    return sl_event_send_async(d->q, ev);
+void sl_device_set_worker(sl_dev_t *d, sl_worker_t *w, uint32_t epid) {
+    d->worker = w;
+    d->worker_epid = epid;
 }
 
-static int device_handle_event(sl_event_t *ev) {
-    if (ev->type != SL_MAP_EV_TYPE_UPDATE) return SL_ERR_ARG;
-    sl_dev_t *d = ev->cookie;
+int sl_device_send_event_async(sl_dev_t *d, sl_event_t *ev) {
+    if (d->worker == NULL) return SL_ERR_UNSUPPORTED;
+    return sl_worker_event_enqueue_async(d->worker, ev);
+}
+
+static int device_ep_handle_event(sl_event_ep_t *ep, sl_event_t *ev) {
+    if (ev->type != SL_MAP_EV_TYPE_UPDATE) {
+        ev->err = SL_ERR_ARG;
+        return 0;
+    }
+    sl_dev_t *d = containerof(ep, sl_dev_t, event_ep);
     return mapper_update(d->mapper, ev);
 }
 
 int sl_device_update_mapper_async(sl_dev_t *d, uint32_t ops, uint32_t count, sl_mapping_t *ent_list) {
-    if (d->q == NULL) return SL_ERR_UNSUPPORTED;
+    if (d->worker == NULL) return SL_ERR_UNSUPPORTED;
     if (d->mapper == NULL) return SL_ERR_UNSUPPORTED;
 
     sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
 
-    ev->flags = SL_EV_FLAG_FREE | SL_EV_FLAG_CALLBACK;
+    ev->epid = d->worker_epid;
+    ev->flags = SL_EV_FLAG_FREE;
     ev->type = SL_MAP_EV_TYPE_UPDATE;
     ev->arg[0] = ops;
     ev->arg[1] = count;
     ev->arg[2] = (uintptr_t)ent_list;
-    ev->callback = device_handle_event;
-    ev->cookie = d;
-    int err = sl_event_send_async(d->q, ev);
+    int err = sl_worker_event_enqueue_async(d->worker, ev);
     if (err) free(ev);
     return err;
 }
@@ -101,6 +106,7 @@ static void device_init_common(sl_dev_t *d, uint32_t type, const sl_dev_ops_t *o
     d->irq_ep.assert = device_accept_irq;
     lock_init(&d->lock);
     d->map_ep.io = device_mapper_ep_io;
+    d->event_ep.handle = device_ep_handle_event;
     memcpy(&d->ops, ops, sizeof(*ops));
     if (d->ops.read == NULL) d->ops.read = dev_dummy_read;
     if (d->ops.write == NULL) d->ops.write = dev_dummy_write;

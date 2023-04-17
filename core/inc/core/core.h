@@ -9,6 +9,7 @@
 #include <core/event.h>
 #include <core/types.h>
 #include <sled/core.h>
+#include <sled/worker.h>
 
 #define MAX_PHYS_MEM_REGIONS    4
 #define MAX_DEVICES             8 
@@ -55,7 +56,9 @@ struct core {
     core_ops_t ops;
 
     sl_irq_ep_t irq_ep;
-    sl_event_queue_t event_q;
+    sl_worker_t *worker;
+    uint32_t epid;
+    sl_event_ep_t event_ep;
 
 #if WITH_SYMBOLS
     sym_list_t *symbols;
@@ -99,6 +102,7 @@ int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
 int core_wait_for_interrupt(core_t *c);
+int core_handle_interrupts(core_t *c);
 
 // ----------------------------------------------------------------------------
 // Misc

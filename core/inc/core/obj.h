@@ -9,6 +9,7 @@
 #define SL_OBJ_TYPE_OBJ         0
 #define SL_OBJ_TYPE_CORE        1
 #define SL_OBJ_TYPE_DEVICE      2
+#define SL_OBJ_TYPE_WORKER      3
 #define SL_OBJ_TYPE_INVALID     0xff
 
 #define SL_OBJ_FLAG_EMBEDDED   (1u << 0)

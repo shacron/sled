@@ -7,7 +7,6 @@ LIB_CSOURCES += \
 	$(SRCDIR)/device.c \
 	$(SRCDIR)/elf.c \
 	$(SRCDIR)/error.c \
-	$(SRCDIR)/event.c \
 	$(SRCDIR)/irq.c \
 	$(SRCDIR)/list.c \
 	$(SRCDIR)/lock.c \
@@ -25,4 +24,5 @@ LIB_CSOURCES += \
 	$(SRCDIR)/riscv/riscv.c \
 	$(SRCDIR)/sem.c \
 	$(SRCDIR)/sym.c \
+	$(SRCDIR)/worker.c \
 
