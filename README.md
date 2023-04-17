@@ -153,8 +153,6 @@ Good contributions opportunities:
 * Virtio devices and drivers.
 * Emulate some common devices (ex: DesignWare or PrimeCell IP)
 * Other devices: SATA host controller, RNG, cryptographic accelerator, DAC, etc.
-* Optimize memory address lookup in the __bus__ device.
-* Memory transaction tracing and identification. Carry information about the issuer to the device.
 * GDB stub - implement the GDB and LLDB protocol for symbolic debugging of code running on cores.
 * JTAG interface - implement a port to allow JTAG debugging of the machine.
 * A more complete application that takes machine descriptions from command line, device tree, or markup file.
@@ -166,7 +164,7 @@ Original code contributions must include a copyright assignment to The Sled Proj
 
 ## License
 
-Sled is Copyright (c) 2022, Shac Ron and The Sled Project.
+Sled is Copyright (c) 2022-2023, Shac Ron and The Sled Project.
 
 Unless otherwise stated, all code is licensed under the MIT License. The short version is that you can use this code for any purpose, but should retain the copyright notice in the source.
 
