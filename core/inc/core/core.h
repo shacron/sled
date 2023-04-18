@@ -3,13 +3,11 @@
 
 #pragma once
 
-#include <core/obj.h>
 #include <core/irq.h>
 #include <core/itrace.h>
-#include <core/event.h>
+#include <core/engine.h>
 #include <core/types.h>
 #include <sled/core.h>
-#include <sled/worker.h>
 
 #define MAX_PHYS_MEM_REGIONS    4
 #define MAX_DEVICES             8 
@@ -19,11 +17,6 @@
 #define BARRIER_SYSTEM  (1u << 2)
 #define BARRIER_SYNC    (1u << 3)
 
-#define SL_CORE_STATE_WFI   31
-
-#define CORE_PENDING_IRQ    (1u << 0)
-#define CORE_PENDING_EVENT  (1u << 1)
-
 #define CORE_INT_ENABLED(s) (s & (1u << SL_CORE_STATE_INTERRUPTS_EN))
 #define CORE_IS_WFI(s) (s & (1u << SL_CORE_STATE_WFI))
 
@@ -31,35 +24,25 @@
 #define CORE_EV_RUNMODE 2
 
 typedef struct core_ops {
-    int (*step)(core_t *c);
-    int (*interrupt)(core_t *c);
     void (*set_reg)(core_t *c, uint32_t reg, uint64_t value);
     uint64_t (*get_reg)(core_t *c, uint32_t reg);
     int (*set_state)(core_t *c, uint32_t state, bool enabled);
 } core_ops_t;
 
 struct core {
-    sl_obj_t obj_;
+    sl_engine_t engine;
+
+    uint64_t ticks;
+
+    sl_mapper_t *mapper;
+    itrace_t *trace;
+    core_ops_t ops;
 
     uint8_t arch;
     uint8_t subarch;
     uint8_t id;             // numerical id of this core instance
     uint32_t options;
     uint32_t arch_options;
-
-    uint32_t state;         // current running state
-    uint64_t ticks;
-
-    sl_mapper_t *mapper;
-    sl_bus_t *bus;
-    itrace_t *trace;
-    core_ops_t ops;
-
-    sl_irq_ep_t irq_ep;
-    sl_worker_t *worker;
-    uint32_t epid;
-    sl_event_ep_t event_ep;
-
 #if WITH_SYMBOLS
     sym_list_t *symbols;
 #endif
@@ -101,8 +84,6 @@ void core_interrupt_set(core_t *c, bool enable);
 int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
 void core_memory_barrier(core_t *c, uint32_t type);
-int core_wait_for_interrupt(core_t *c);
-int core_handle_interrupts(core_t *c);
 
 // ----------------------------------------------------------------------------
 // Misc

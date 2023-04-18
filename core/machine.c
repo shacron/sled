@@ -130,7 +130,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
             m->core_list[i] = c;
             opts->id = i;
             if (m->intc != NULL)
-                sl_irq_endpoint_set_client(&m->intc->irq_ep, &c->irq_ep, 11); // todo: get proper irq number
+                sl_irq_endpoint_set_client(&m->intc->irq_ep, &c->engine.irq_ep, 11); // todo: get proper irq number
             return 0;
         }
     }

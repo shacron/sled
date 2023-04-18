@@ -6,6 +6,7 @@ LIB_CSOURCES += \
 	$(SRCDIR)/core.c \
 	$(SRCDIR)/device.c \
 	$(SRCDIR)/elf.c \
+	$(SRCDIR)/engine.c \
 	$(SRCDIR)/error.c \
 	$(SRCDIR)/irq.c \
 	$(SRCDIR)/list.c \

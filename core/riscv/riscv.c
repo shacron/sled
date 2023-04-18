@@ -77,26 +77,26 @@ static int riscv_core_set_state(core_t *c, uint32_t state, bool enabled) {
     case SL_CORE_STATE_64BIT:
         if (enabled) {
             rc->mode = RV_MODE_RV64;
-            c->state |= bit;
+            c->engine.state |= bit;
         } else {
             rc->mode = RV_MODE_RV32;
-            c->state &= ~bit;
+            c->engine.state &= ~bit;
         }
-        return 0;
+        break;
 
     case SL_CORE_STATE_INTERRUPTS_EN:
-        core_interrupt_set(c, enabled);
-        return 0;
+        sl_engine_interrupt_set(&c->engine, enabled);
+        break;
 
     case SL_CORE_STATE_ENDIAN_BIG:
+        if (enabled) c->engine.state |= bit;
+        else c->engine.state &= ~bit;
         break;
 
     default:
-        return -1;
+        return SL_ERR_ARG;
     }
 
-    if (enabled) c->state |= bit;
-    else c->state &= ~bit;
     return 0;
 }
 
@@ -110,9 +110,9 @@ static void riscv_core_next_pc(rv_core_t *c) {
 }
 
 // Synchronous irq handler - invokes an exception before the next instruction is dispatched.
-static int riscv_interrupt(core_t *c) {
-    sl_irq_ep_t *ep = &c->irq_ep;
-    rv_core_t *rc = (rv_core_t *)c;
+static int riscv_interrupt(sl_engine_t *e) {
+    sl_irq_ep_t *ep = &e->irq_ep;
+    rv_core_t *rc = (rv_core_t *)e;
 
     static const uint8_t irq_pri[] = {
         RV_INT_EXTERNAL_M, RV_INT_TIMER_M, RV_INT_SW_M, RV_INT_EXTERNAL_S, RV_INT_TIMER_S, RV_INT_SW_S
@@ -127,12 +127,9 @@ static int riscv_interrupt(core_t *c) {
     return SL_ERR_STATE;
 }
 
-static int riscv_core_step(core_t *c) {
+static int riscv_core_step(sl_engine_t *e) {
     int err = 0;
-    if (CORE_INT_ENABLED(c->state))
-        if ((err = core_handle_interrupts(c))) return err;
-
-    rv_core_t *rc = (rv_core_t *)c;
+    rv_core_t *rc = (rv_core_t *)e;
     uint32_t inst;
     if ((err = rv_load_pc(rc, &inst)))
         return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);
@@ -169,8 +166,8 @@ int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, core_t **core_out) {
 
     rc->core.options |= (SL_CORE_OPT_ENDIAN_BIG | SL_CORE_OPT_ENDIAN_LITTLE);
 
-    rc->core.ops.step = riscv_core_step;
-    rc->core.ops.interrupt = riscv_interrupt;
+    rc->core.engine.ops.step = riscv_core_step;
+    rc->core.engine.ops.interrupt = riscv_interrupt;
     rc->core.ops.set_reg = riscv_set_reg;
     rc->core.ops.get_reg = riscv_get_reg;
     rc->core.ops.set_state = riscv_core_set_state;

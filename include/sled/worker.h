@@ -14,7 +14,7 @@ int sl_worker_create(const char *name, sl_worker_t **w_out);
 void sl_worker_retain(sl_worker_t *w);
 void sl_worker_release(sl_worker_t *w);
 
-int sl_worker_add_engine(sl_worker_t *w, core_t *c, uint32_t *id_out);
+int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, uint32_t *id_out);
 int sl_worker_add_event_endpoint(sl_worker_t *w, sl_event_ep_t *ep, uint32_t *id_out);
 
 void sl_worker_set_engine_runnable(sl_worker_t *w, bool runnable);

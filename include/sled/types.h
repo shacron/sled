@@ -18,6 +18,8 @@ typedef struct sl_core_params sl_core_params_t;
 typedef struct sl_dev sl_dev_t;
 typedef struct sl_dev_ops sl_dev_ops_t;
 typedef struct sl_elf_obj sl_elf_obj_t;
+typedef struct sl_engine sl_engine_t;
+typedef struct sl_engine_ops sl_engine_ops_t;
 typedef struct sl_event sl_event_t;
 typedef struct sl_event_ep sl_event_ep_t;
 typedef struct sl_io_op sl_io_op_t;

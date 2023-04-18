@@ -1,80 +1,27 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
-#include <assert.h>
-#include <inttypes.h>
 #include <stdatomic.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <core/bus.h>
-#include <core/common.h>
+#include <core/device.h>
 #include <core/core.h>
-#include <core/sem.h>
+#include <core/mapper.h>
 #include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/error.h>
-#include <sled/event.h>
 #include <sled/io.h>
-#include <sled/worker.h>
 
-// Called in device context
-// Send a message to dispatch loop to handle interrupt change
-static int core_irq_transition_async(sl_irq_ep_t *ep, uint32_t num, bool high) {
-    sl_event_t *ev = calloc(1, sizeof(*ev));
-    if (ev == NULL) return SL_ERR_MEM;
 
-    ev->flags |= SL_EV_FLAG_FREE;
-    ev->type = CORE_EV_IRQ;
-    ev->option = 0;
-    ev->arg[0] = num;
-    ev->arg[1] = high;
-
-    core_t *c = containerof(ep, core_t, irq_ep);
-    sl_worker_event_enqueue_async(c->worker, ev);
-    return 0;
-}
-
-void sl_core_retain(core_t *c) { sl_obj_retain(&c->obj_); }
-void sl_core_release(core_t *c) { sl_obj_release(&c->obj_); }
-
-void core_set_wfi(core_t *c, bool enable) {
-    if (enable) c->state |= (1u << SL_CORE_STATE_WFI);
-    else c->state &= ~(1u << SL_CORE_STATE_WFI);
-    sl_worker_set_engine_runnable(c->worker, !enable);
-}
-
-static int core_handle_irq_event(core_t *c, sl_event_t *ev) {
-    sl_irq_ep_t *ep = &c->irq_ep;
-    uint32_t num = ev->arg[0];
-    bool high = ev->arg[1];
-    int err = sl_irq_endpoint_assert(ep, num, high);
-    return err;
-}
+void sl_core_retain(core_t *c) { sl_obj_retain(&c->engine.obj_); }
+void sl_core_release(core_t *c) { sl_obj_release(&c->engine.obj_); }
 
 int sl_core_async_command(core_t *c, uint32_t cmd, bool wait) {
-    sl_event_t *ev = calloc(1, sizeof(*ev));
-    if (ev == NULL) return SL_ERR_MEM;
-    ev->epid = c->epid;
-    ev->type = CORE_EV_RUNMODE;
-    ev->option = cmd;
-    ev->flags = SL_EV_FLAG_FREE;
-    if (wait) ev->flags |= SL_EV_FLAG_SIGNAL;
-    sl_worker_event_enqueue_async(c->worker, ev);
-    return 0;
+    return sl_engine_async_command(&c->engine, cmd, wait);
 }
 
 uint8_t sl_core_get_arch(core_t *c) {
     return c->arch;
-}
-
-int core_wait_for_interrupt(core_t *c) {
-    sl_irq_ep_t *ep = &c->irq_ep;
-    if (ep->asserted) return 0;
-    core_set_wfi(c, true);
-    return 0;
 }
 
 void core_config_get(core_t *c, sl_core_params_t *p) {
@@ -107,9 +54,7 @@ int core_shutdown(core_t *c) {
         sym_free(s);
     }
 #endif
-    // delete all pending events...
-
-    sl_worker_release(c->worker);
+    sl_engine_shutdown(&c->engine);
     return 0;
 }
 
@@ -122,14 +67,11 @@ uint64_t sl_core_get_cycles(core_t *c) {
 }
 
 void core_interrupt_set(core_t *c, bool enable) {
-    uint32_t bit = (1u << SL_CORE_STATE_INTERRUPTS_EN);
-    if (enable) c->state |= bit;
-    else c->state &= ~bit;
+    sl_engine_interrupt_set(&c->engine, enable);
 }
 
 int core_endian_set(core_t *c, bool big) {
-    c->ops.set_state(c, SL_CORE_OPT_ENDIAN_BIG, big);
-    return 0;
+    return c->ops.set_state(c, SL_CORE_STATE_ENDIAN_BIG, big);
 }
 
 void core_instruction_barrier(core_t *c) {
@@ -191,58 +133,18 @@ int sl_core_set_mapper(core_t *c, sl_dev_t *d) {
     c->mapper = m;
 
     uint32_t id;
-    int err = sl_worker_add_event_endpoint(c->worker, &d->event_ep, &id);
+    int err = sl_worker_add_event_endpoint(c->engine.worker, &d->event_ep, &id);
     if (err) return err;
-    sl_device_set_worker(d, c->worker, id);
+    sl_device_set_worker(d, c->engine.worker, id);
     return id;
 }
 
-static int core_handle_runmode_event(core_t *c, sl_event_t *ev) {
-    int err = 0;
-    switch(ev->option) {
-    case SL_CORE_CMD_RUN:   core_set_wfi(c, false); break;
-    case SL_CORE_CMD_HALT:  core_set_wfi(c, true);  break;
-    case SL_CORE_CMD_EXIT:  err = SL_ERR_EXITED;    break;
-    default:
-        printf("unknown core cmd option %u\n", ev->option);
-        err = SL_ERR_ARG;
-        break;
-    }
-    if (ev->flags & SL_EV_FLAG_SIGNAL) {
-        sl_sem_t *sem = (sl_sem_t *)ev->signal;
-        sl_sem_post(sem);
-    }
-    return err;
-}
-
-static int core_event_handle(sl_event_ep_t *ep, sl_event_t *ev) {
-    core_t *c = containerof(ep, core_t, event_ep);
-    int err = 0;
-
-    switch (ev->type) {
-    case CORE_EV_IRQ:       err = core_handle_irq_event(c, ev);     break;
-    case CORE_EV_RUNMODE:   err = core_handle_runmode_event(c, ev); break;
-    default:
-        ev->err = SL_ERR_ARG;
-        printf("unknown event type %u\n", ev->type);
-        break;
-    }
-    return err;
-}
-
-int core_handle_interrupts(core_t *c) {
-    sl_irq_ep_t *ep = &c->irq_ep;
-    if (ep->asserted == 0) return 0;
-    core_set_wfi(c, false);
-    return c->ops.interrupt(c);
-}
-
 int sl_core_step(core_t *c, uint64_t num) {
-    return sl_worker_step(c->worker, num);
+    return sl_engine_step(&c->engine, num);
 }
 
 int sl_core_run(core_t *c) {
-    return sl_worker_run(c->worker);
+    return sl_engine_run(&c->engine);
 }
 
 int sl_core_set_state(core_t *c, uint32_t state, bool enabled) {
@@ -277,14 +179,10 @@ sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr) {
 #endif
 
 int core_init(core_t *c, sl_core_params_t *p, sl_bus_t *b) {
-    int err = sl_worker_create("core worker", &c->worker);
+    int err = sl_engine_init(&c->engine, b);
     if (err) return err;
-    sl_worker_add_engine(c->worker, c, &c->epid);
     config_set_internal(c, p);
-    c->bus = b;
     c->mapper = bus_get_mapper(b);
-    c->irq_ep.assert = core_irq_transition_async;
-    c->event_ep.handle = core_event_handle;
-    sl_irq_endpoint_set_enabled(&c->irq_ep, SL_IRQ_VEC_ALL);
+    sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;
 }

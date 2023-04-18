@@ -49,9 +49,10 @@ struct sl_core_params {
 #define SL_CORE_REG_TYPE_MATRIX 3
 
 // Core state args
-#define SL_CORE_STATE_INTERRUPTS_EN    0
-#define SL_CORE_STATE_64BIT            1
-#define SL_CORE_STATE_ENDIAN_BIG       2
+#define SL_CORE_STATE_INTERRUPTS_EN     1
+#define SL_CORE_STATE_WFI               2
+#define SL_CORE_STATE_64BIT             3
+#define SL_CORE_STATE_ENDIAN_BIG        4
 
 /*
 There are two ways to run a core

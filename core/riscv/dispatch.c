@@ -108,7 +108,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
             if (inst.r.rs2 == 0b00101) { // WFI
                 if (c->pl == RV_PL_USER) goto undef;
                 RV_TRACE_PRINT(c, "wfi");
-                return core_wait_for_interrupt(&c->core);
+                return sl_engine_wait_for_interrupt(&c->core.engine);
             }
             goto undef;
 
