@@ -56,6 +56,26 @@ static int engine_handle_irq_event(sl_engine_t *e, sl_event_t *ev) {
     return err;
 }
 
+static void * engine_workloop_thread(void *arg) {
+    sl_engine_t *e = arg;
+    e->thread_status = sl_engine_run(e);
+    return NULL;
+}
+
+static void engine_shutdown(void *o) {
+    sl_engine_t *e = o;
+    sl_worker_release(e->worker);
+}
+
+int sl_engine_thread_run(sl_engine_t *e) {
+    int err = pthread_create(&e->thread, NULL, engine_workloop_thread, e);
+    if (err) return SL_ERR_STATE;
+    return 0;
+}
+
+void sl_engine_set_context(sl_engine_t *e, void *ctx) { e->context = ctx; }
+void * sl_engine_get_context(sl_engine_t *e) { return e->context; }
+
 int sl_engine_async_command(sl_engine_t *e, uint32_t cmd, bool wait) {
     sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
@@ -148,5 +168,24 @@ int sl_engine_init(sl_engine_t *e, sl_bus_t *b) {
     e->bus = b;
     e->irq_ep.assert = engine_irq_transition_async;
     e->event_ep.handle = engine_event_handle;
+    return 0;
+}
+
+static const sl_obj_vtable_t engine_vtab = {
+    .type = SL_OBJ_TYPE_ENGINE,
+    .shutdown = engine_shutdown,
+};
+
+int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t **e_out) {
+    sl_engine_t *e = sl_obj_allocate(sizeof(*e), name, &engine_vtab);
+    if (e == NULL) return SL_ERR_MEM;
+
+    int err = sl_engine_init(e, NULL);
+    if (err) {
+        free(e);
+        return err;
+    }
+
+    *e_out = e;
     return 0;
 }

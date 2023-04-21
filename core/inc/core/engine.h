@@ -8,10 +8,6 @@
 #include <core/types.h>
 #include <sled/engine.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct sl_engine {
     sl_obj_t obj_;
 
@@ -22,13 +18,12 @@ struct sl_engine {
     uint32_t epid;
     sl_event_ep_t event_ep;
     sl_engine_ops_t ops;
+    void *context;
+    pthread_t thread;
+    int thread_status;
 };
 
 int sl_engine_init(sl_engine_t *e, sl_bus_t *b);
 void sl_engine_shutdown(sl_engine_t *e);
 int sl_engine_handle_interrupts(sl_engine_t *e);
 int sl_engine_wait_for_interrupt(sl_engine_t *e);
-
-#ifdef __cplusplus
-}
-#endif

@@ -22,7 +22,7 @@ struct sl_worker {
     sl_list_t ev_list;
 
     uint32_t state;
-    sl_engine_t *engine;   // todo: replace with exec engine interface
+    sl_engine_t *engine;
 
     sl_event_ep_t *endpoint[SL_WORKER_MAX_EPS];
 };
