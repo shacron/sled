@@ -3,25 +3,21 @@
 
 #pragma once
 
+#if __APPLE__
+#include <dispatch/dispatch.h>
+#else
+#include <semaphore.h>
+#endif
+
 #include <core/types.h>
 
+struct sl_sem {
 #if __APPLE__
-
-#include <dispatch/dispatch.h>
-
-struct sl_sem {
     dispatch_semaphore_t dsem;
-};
-
 #else
-
-#include <semaphore.h>
-
-struct sl_sem {
     sem_t psem;
-};
-
 #endif
+};
 
 int sl_sem_init(sl_sem_t *sem, unsigned int value);
 int sl_sem_post(sl_sem_t *sem);
