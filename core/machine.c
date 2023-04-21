@@ -19,9 +19,9 @@
 
 #define MACHINE_MAX_CORES   4
 
-int intc_create(const char *name, sl_dev_t **dev_out);
-int rtc_create(const char *name, sl_dev_t **dev_out);
-int uart_create(const char *name, sl_dev_t **dev_out);
+int sled_intc_create(const char *name, sl_dev_t **dev_out);
+int sled_rtc_create(const char *name, sl_dev_t **dev_out);
+int sled_uart_create(const char *name, sl_dev_t **dev_out);
 int sled_mpu_create(const char *name, sl_dev_t **dev_out);
 
 struct sl_machine {
@@ -35,9 +35,9 @@ static int machine_create_device(uint32_t type, const char *name, sl_dev_t **dev
     sl_dev_t *d;
 
     switch (type) {
-    case SL_DEV_UART: err = uart_create(name, &d); break;
-    case SL_DEV_INTC: err = intc_create(name, &d); break;
-    case SL_DEV_RTC:  err = rtc_create(name, &d);  break;
+    case SL_DEV_UART: err = sled_uart_create(name, &d); break;
+    case SL_DEV_INTC: err = sled_intc_create(name, &d); break;
+    case SL_DEV_RTC:  err = sled_rtc_create(name, &d);  break;
     case SL_DEV_MPU:  err = sled_mpu_create(name, &d);  break;
     default:
         return SL_ERR_ARG;

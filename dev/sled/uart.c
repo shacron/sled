@@ -26,9 +26,9 @@ typedef struct {
     uint32_t buf_pos;
 
     uint8_t buf[BUFLEN + 1];
-} uart_t;
+} sled_uart_t;
 
-static void uart_flush(uart_t *u) {
+static void uart_flush(sled_uart_t *u) {
     u->buf[u->buf_pos] = '\0';
     if (u->fd_out >= 0) dprintf(u->fd_out, "%s", u->buf);
     u->buf_pos = 0;
@@ -38,7 +38,7 @@ static int uart_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, vo
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
-    uart_t *u = ctx;
+    sled_uart_t *u = ctx;
     uint32_t *val = buf;
     int err = 0;
 
@@ -60,7 +60,7 @@ static int uart_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, v
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
-    uart_t *u = ctx;
+    sled_uart_t *u = ctx;
     uint32_t val = *(uint32_t *)buf;
     uint8_t c;
     int err = 0;
@@ -89,7 +89,7 @@ static int uart_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, v
 }
 
 int sled_uart_set_channel(sl_dev_t *dev, int io, int fd_in, int fd_out) {
-    uart_t *u = sl_device_get_context(dev);
+    sled_uart_t *u = sl_device_get_context(dev);
     switch (io) {
     case UART_IO_NULL:
         u->fd_in = u->fd_out = -1;
@@ -114,7 +114,7 @@ int sled_uart_set_channel(sl_dev_t *dev, int io, int fd_in, int fd_out) {
 }
 
 static void uart_release(void *ctx) {
-    uart_t *u = ctx;
+    sled_uart_t *u = ctx;
     if (ctx == NULL) return;
     if (u->buf_pos > 0) uart_flush(u);
     free(u);
@@ -127,8 +127,8 @@ static const sl_dev_ops_t uart_ops = {
     .aperture = UART_APERTURE_LENGTH,
 };
 
-int uart_create(const char *name, sl_dev_t **dev_out) {
-    uart_t *u = calloc(1, sizeof(uart_t));
+int sled_uart_create(const char *name, sl_dev_t **dev_out) {
+    sled_uart_t *u = calloc(1, sizeof(sled_uart_t));
     if (u == NULL) return SL_ERR_MEM;
 
     int err = sl_device_allocate(SL_DEV_UART, name, &uart_ops, dev_out);

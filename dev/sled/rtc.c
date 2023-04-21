@@ -60,6 +60,6 @@ static const sl_dev_ops_t rtc_ops = {
     .aperture = RTC_APERTURE_LENGTH,
 };
 
-int rtc_create(const char *name, sl_dev_t **dev_out) {
+int sled_rtc_create(const char *name, sl_dev_t **dev_out) {
     return sl_device_allocate(SL_DEV_RTC, name, &rtc_ops, dev_out);
 }
