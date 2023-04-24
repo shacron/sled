@@ -26,7 +26,6 @@ int sl_engine_run(sl_engine_t *e);
 int sl_engine_step(sl_engine_t *e, uint64_t num);
 void sl_engine_interrupt_set(sl_engine_t *e, bool enable);
 
-int sl_engine_thread_run(sl_engine_t *e);
 int sl_engine_async_command(sl_engine_t *e, uint32_t cmd, bool wait);
 
 #ifdef __cplusplus

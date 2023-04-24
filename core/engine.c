@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
-#include <assert.h>
 #include <inttypes.h>
 #include <stdatomic.h>
 #include <stddef.h>
@@ -56,21 +55,9 @@ static int engine_handle_irq_event(sl_engine_t *e, sl_event_t *ev) {
     return err;
 }
 
-static void * engine_workloop_thread(void *arg) {
-    sl_engine_t *e = arg;
-    e->thread_status = sl_engine_run(e);
-    return NULL;
-}
-
 static void engine_shutdown(void *o) {
     sl_engine_t *e = o;
     sl_worker_release(e->worker);
-}
-
-int sl_engine_thread_run(sl_engine_t *e) {
-    int err = pthread_create(&e->thread, NULL, engine_workloop_thread, e);
-    if (err) return SL_ERR_STATE;
-    return 0;
 }
 
 void sl_engine_set_context(sl_engine_t *e, void *ctx) { e->context = ctx; }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2023 Shac Ron and The Sled Project
 
+#include <errno.h>
 #include <stdatomic.h>
 
 #include <core/core.h>
@@ -25,6 +26,9 @@ struct sl_worker {
     sl_engine_t *engine;
 
     sl_event_ep_t *endpoint[SL_WORKER_MAX_EPS];
+
+    pthread_t thread;
+    int thread_status;
 };
 
 void sl_worker_retain(sl_worker_t *w) { sl_obj_retain(&w->obj_); }
@@ -143,6 +147,32 @@ int sl_worker_run(sl_worker_t *w) {
     for ( ; ; ) {
         int err = single_step(w);
         if (err) return err;
+    }
+}
+
+static void * workloop_thread(void *arg) {
+    sl_worker_t *w = arg;
+    w->thread_status = sl_worker_run(w);
+    return NULL;
+}
+
+int sl_worker_thread_run(sl_worker_t *w) {
+    int err = pthread_create(&w->thread, NULL, workloop_thread, w);
+    if (err) return SL_ERR_STATE;
+    return 0;
+}
+
+int sl_worker_thread_join(sl_worker_t *w) {
+    int err = pthread_join(w->thread, NULL);
+    switch (err) {
+    case 0:     return 0;
+
+    case EINVAL:
+    case ESRCH:
+    case EDEADLK:
+        return SL_ERR_STATE;
+
+    default:    return SL_ERR;
     }
 }
 

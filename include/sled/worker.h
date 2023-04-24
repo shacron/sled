@@ -23,14 +23,18 @@ void sl_worker_set_engine_runnable(sl_worker_t *w, bool runnable);
 int sl_worker_step(sl_worker_t *w, uint64_t num);
 
 // Run work loop on current thread
+// This will not return until the worker has exited.
 int sl_worker_run(sl_worker_t *w);
 
-
-// int sl_worker_thread_run(sl_worker_t *w);
+// Run work loop on a new thread. This call returns immediately.
+int sl_worker_thread_run(sl_worker_t *w);
 
 // async functions
 
-// int sl_worker_thread_join(sl_worker_t *w);
+// Join the thread created by sl_worker_thread_run().
+// This call does not command the work loop to exit. The worker must be notified that it needs
+// to exit via an async event if it does not exit on its own.
+int sl_worker_thread_join(sl_worker_t *w);
 
 int sl_worker_event_enqueue_async(sl_worker_t *w, sl_event_t *ev);
 
