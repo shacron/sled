@@ -21,6 +21,7 @@ extern "C" {
 #define SL_ERR_TIMEOUT       -9 // timeout
 #define SL_ERR_BUSY          -10 // busy
 #define SL_ERR_EXITED        -11 // exited cleanly
+#define SL_ERR_NEXT          -12 // go to next handler
 
 // instruction execution errors
 #define SL_ERR_UNDEF        -16 // undefined (illegal) instruction
