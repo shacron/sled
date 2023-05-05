@@ -10,7 +10,7 @@ typedef struct map_ent map_ent_t;
 
 struct sl_mapper {
     int mode;
-    uint32_t num_ents;
+    u32 num_ents;
     map_ent_t **list;
     sl_mapper_t *next;
     sl_map_ep_t ep;

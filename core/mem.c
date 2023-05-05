@@ -19,7 +19,7 @@ static int mem_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     return 0;
 }
 
-int mem_region_create(uint64_t base, uint64_t length, mem_region_t **m_out) {
+int mem_region_create(u64 base, u64 length, mem_region_t **m_out) {
     const size_t size = length + sizeof(mem_region_t);
     mem_region_t *m = calloc(1, size);
     if (m == NULL) return SL_ERR_MEM;

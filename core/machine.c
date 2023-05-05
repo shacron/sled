@@ -30,7 +30,7 @@ struct sl_machine {
     core_t *core_list[MACHINE_MAX_CORES];
 };
 
-static int machine_create_device(uint32_t type, const char *name, sl_dev_t **dev_out) {
+static int machine_create_device(u32 type, const char *name, sl_dev_t **dev_out) {
     int err;
     sl_dev_t *d;
 
@@ -63,7 +63,7 @@ int sl_machine_create(sl_machine_t **m_out) {
     return 0;
 }
 
-int sl_machine_add_mem(sl_machine_t *m, uint64_t base, uint64_t size) {
+int sl_machine_add_mem(sl_machine_t *m, u64 base, u64 size) {
     mem_region_t *mem;
     int err;
 
@@ -78,7 +78,7 @@ int sl_machine_add_mem(sl_machine_t *m, uint64_t base, uint64_t size) {
     return err;
 }
 
-int sl_machine_add_device(sl_machine_t *m, uint32_t type, uint64_t base, const char *name) {
+int sl_machine_add_device(sl_machine_t *m, u32 type, u64 base, const char *name) {
     sl_dev_t *d;
     int err;
 
@@ -98,7 +98,7 @@ out_err:
     return err;
 }
 
-int sl_machine_add_device_prefab(sl_machine_t *m, uint64_t base, sl_dev_t *d) {
+int sl_machine_add_device_prefab(sl_machine_t *m, u64 base, sl_dev_t *d) {
     int err;
     if ((err = bus_add_device(m->bus, d, base))) {
         fprintf(stderr, "bus_add_device failed: %s\n", st_err(err));
@@ -139,7 +139,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     return err;
 }
 
-core_t * sl_machine_get_core(sl_machine_t *m, uint32_t id) {
+core_t * sl_machine_get_core(sl_machine_t *m, u32 id) {
     if (id >= MACHINE_MAX_CORES) return NULL;
     return m->core_list[id];
 }
@@ -148,7 +148,7 @@ sl_dev_t * sl_machine_get_device_for_name(sl_machine_t *m, const char *name) {
     return bus_get_device_for_name(m->bus, name);
 }
 
-int sl_machine_set_interrupt(sl_machine_t *m, uint32_t irq, bool high) {
+int sl_machine_set_interrupt(sl_machine_t *m, u32 irq, bool high) {
     if (m->intc == NULL) return SL_ERR_IO_NODEV;
     return sl_irq_endpoint_assert(&m->intc->irq_ep, irq, high);
 }
@@ -162,7 +162,7 @@ void sl_machine_destroy(sl_machine_t *m) {
     free(m);
 }
 
-int sl_machine_load_core(sl_machine_t *m, uint32_t id, sl_elf_obj_t *o, bool configure) {
+int sl_machine_load_core(sl_machine_t *m, u32 id, sl_elf_obj_t *o, bool configure) {
     core_t *c = sl_machine_get_core(m, id);
     if (c == NULL) {
         fprintf(stderr, "invalid core id: %u\n", id);
@@ -175,7 +175,7 @@ int sl_machine_load_core(sl_machine_t *m, uint32_t id, sl_elf_obj_t *o, bool con
     sym_list_t *sl = NULL;
 #endif
 
-    for (uint32_t i = 0; ; i++) {
+    for (u32 i = 0; ; i++) {
         void *vph = sl_elf_get_program_header(o, i);
         if (vph == NULL) break;
 
@@ -243,7 +243,7 @@ int sl_machine_load_core(sl_machine_t *m, uint32_t id, sl_elf_obj_t *o, bool con
         goto out_err;
     }
 
-    uint64_t entry = sl_elf_get_entry(o);
+    u64 entry = sl_elf_get_entry(o);
     if (entry == 0) {
         fprintf(stderr, "no entry address for binary\n");
         err = SL_ERR_ARG;
@@ -264,7 +264,7 @@ out_err:
     return err;
 }
 
-int sl_machine_load_core_raw(sl_machine_t *m, uint32_t id, uint64_t addr, void *buf, uint64_t size) {
+int sl_machine_load_core_raw(sl_machine_t *m, u32 id, u64 addr, void *buf, u64 size) {
     core_t *c = sl_machine_get_core(m, id);
     if (c == NULL) {
         fprintf(stderr, "invalid core id: %u\n", id);

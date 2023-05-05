@@ -11,10 +11,10 @@
 #define RTC_TYPE 'time'
 #define RTC_VERSION 0
 
-static int rtc_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int rtc_read(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     if (count != 1) return SL_ERR_IO_COUNT;
 
-    uint32_t *val = buf;
+    u32 *val = buf;
     switch (addr) {
     case RTC_REG_DEV_TYPE:
         if (size != 4) return SL_ERR_IO_SIZE;
@@ -32,22 +32,22 @@ static int rtc_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, voi
 
     struct timeval tp;
     gettimeofday(&tp, NULL);
-    uint64_t us = tp.tv_usec + (tp.tv_sec * 1000000);
+    u64 us = tp.tv_usec + (tp.tv_sec * 1000000);
 
     switch (addr) {
     case RTC_REG_MONOTONIC64:
         if (size != 8) return SL_ERR_IO_SIZE;
-        *(uint64_t *)buf = us;
+        *(u64 *)buf = us;
         return 0;
 
     case RTC_REG_MONOTONIC_LO:
         if (size != 4) return SL_ERR_IO_SIZE;
-        *val = (uint32_t)us;
+        *val = (u32)us;
         return 0;
 
     case RTC_REG_MONOTONIC_HI:
         if (size != 4) return SL_ERR_IO_SIZE;
-        *val = (uint32_t)(us >> 32);
+        *val = (u32)(us >> 32);
         return 0;
 
     default:

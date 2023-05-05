@@ -12,18 +12,18 @@
 
 static void rv_dump_core_state(rv_core_t *c) {
     printf("pc=%"PRIx64", sp=%"PRIx64", ra=%"PRIx64", ticks=%"PRIu64"\n", c->pc, c->r[RV_SP], c->r[RV_RA], c->core.ticks);
-    for (uint32_t i = 0; i < 32; i += 4) {
+    for (u32 i = 0; i < 32; i += 4) {
         if (i < 10) printf(" ");
         printf("x%u: %16"PRIx64"  %16"PRIx64"  %16"PRIx64"  %16"PRIx64"\n", i, c->r[i], c->r[i+1], c->r[i+2], c->r[i+3]);
     }
 }
 
-rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, uint8_t pl) {
+rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u8 pl) {
     assert(c->pl != 0);
     return &c->sr_pl[pl - 1];
 }
 
-int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
+int rv_exception_enter(rv_core_t *c, u64 cause, u64 addr) {
     // todo: check medeleg / mideleg for priv level dispatching
 
     rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_MACHINE);
@@ -41,9 +41,9 @@ int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
 
     c->pl = RV_PL_MACHINE;          // todo: fix me
 
-    uint64_t tvec = r->tvec;
+    u64 tvec = r->tvec;
     if (cause & RV_CAUSE64_INT) {
-        const uint64_t ci = cause & ~RV_CAUSE64_INT;
+        const u64 ci = cause & ~RV_CAUSE64_INT;
         // m->ip = 1ull << ci;
         if (tvec & 1) tvec += (ci << 2);
     }
@@ -53,9 +53,9 @@ int rv_exception_enter(rv_core_t *c, uint64_t cause, uint64_t addr) {
     return 0;
 }
 
-int rv_exception_return(rv_core_t *c, uint8_t op) {
+int rv_exception_return(rv_core_t *c, u8 op) {
     bool int_enabled = true;
-    uint8_t dest_pl;
+    u8 dest_pl;
     csr_status_t s;
     s.raw = c->status;
 
@@ -86,7 +86,7 @@ int rv_exception_return(rv_core_t *c, uint8_t op) {
     return 0;
 }
 
-int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_t status) {
+int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u64 value, u32 status) {
     rv_inst_t inst;
 
     // todo: check if nested exception
@@ -98,7 +98,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
 
     case EX_UNDEFINDED:
         if (c->core.options & SL_CORE_OPT_TRAP_UNDEF) {
-            inst.raw = (uint32_t)value;
+            inst.raw = (u32)value;
             printf("UNDEFINED instruction %08x (op=%x) at pc=%" PRIx64 "\n", inst.raw, inst.b.opcode, c->pc);
             rv_dump_core_state(c);
             return SL_ERR_UNDEF;
@@ -112,7 +112,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
             rv_dump_core_state(c);
             return status;
         } else {
-            uint32_t fault = RV_EX_LOAD_FAULT;
+            u32 fault = RV_EX_LOAD_FAULT;
             if (status == SL_ERR_IO_ALIGN) fault = RV_EX_LOAD_ALIGN;
             return rv_exception_enter(c, fault, value);
         }
@@ -123,7 +123,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
             rv_dump_core_state(c);
             return status;
         } else {
-            uint32_t fault = RV_EX_STORE_FAULT;
+            u32 fault = RV_EX_STORE_FAULT;
             if (status == SL_ERR_IO_ALIGN) fault = RV_EX_STORE_ALIGN;
             return rv_exception_enter(c, fault, value);
         }
@@ -134,7 +134,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, uint64_t value, uint32_
             rv_dump_core_state(c);
             return status;
         } else {
-            uint32_t fault = RV_EX_INST_FAULT;
+            u32 fault = RV_EX_INST_FAULT;
             if (status == SL_ERR_IO_ALIGN) fault = RV_EX_INST_ALIGN;
             return rv_exception_enter(c, fault, value);
         }

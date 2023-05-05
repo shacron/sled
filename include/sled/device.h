@@ -26,13 +26,13 @@ extern "C" {
 #define SL_DEV_RESERVED     1024
 
 struct sl_dev_ops {
-    int (*read)(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-    int (*write)(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf);
+    int (*read)(void *ctx, u64 addr, u32 size, u32 count, void *buf);
+    int (*write)(void *ctx, u64 addr, u32 size, u32 count, void *buf);
     void (*release)(void *ctx);
-    uint32_t aperture;
+    u32 aperture;
 };
 
-int sl_device_allocate(uint32_t type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
+int sl_device_allocate(u32 type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
 void sl_device_retain(sl_dev_t *d);
 void sl_device_release(sl_dev_t *d);
 
@@ -42,7 +42,7 @@ void * sl_device_get_context(sl_dev_t *d);
 void sl_device_lock(sl_dev_t *d);
 void sl_device_unlock(sl_dev_t *d);
 
-void sl_device_set_worker(sl_dev_t *d, sl_worker_t *w, uint32_t epid);
+void sl_device_set_worker(sl_dev_t *d, sl_worker_t *w, u32 epid);
 
 sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d);
 sl_mapper_t * sl_device_get_mapper(sl_dev_t *d);
@@ -51,7 +51,7 @@ void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m);
 // async device ops
 
 int sl_device_send_event_async(sl_dev_t *d, sl_event_t *ev);
-int sl_device_update_mapper_async(sl_dev_t *d, uint32_t ops, uint32_t count, sl_mapping_t *ent_list);
+int sl_device_update_mapper_async(sl_dev_t *d, u32 ops, u32 count, sl_mapping_t *ent_list);
 
 // common device calls
 

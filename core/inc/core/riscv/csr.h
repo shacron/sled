@@ -34,91 +34,91 @@
 // fields starting with m_ are only available in M mode, otherwise wpri
 
 typedef union {
-    uint32_t raw;
+    u32 raw;
     struct {
-        uint32_t _wpri0:1;  // write preserve, read ignore
-        uint32_t sie:1;     // s-mode interrupts enabled
-        uint32_t _wpri1:1;  // -------------
-        uint32_t m_mie:1;   // m-mode interrupts enabled
-        uint32_t _wpri2:1;  // -------------
-        uint32_t spie:1;    // s-mode interrupt state prior to exception
-        uint32_t ube:1;     // big endian
-        uint32_t m_mpie:1;  // m-mode interrupt state prior to exception
-        uint32_t spp:1;     // s-mode prior privilege
-        uint32_t vs:2;      // vector state
-        uint32_t m_mpp:2;   // m-mode prior privilege
-        uint32_t fs:2;      // floating point state
-        uint32_t xs:2;      // user mode extension state
-        uint32_t m_mprv:1;  // effective memory privilege mode
-        uint32_t sum:1;     // supervisor user memory access
-        uint32_t mxr:1;     // make executable readable
-        uint32_t m_tvm:1;   // trap virtual memory
-        uint32_t m_tw:1;    // timeout wait
-        uint32_t m_tsr:1;   // trap SRET
-        uint32_t _wpri3:8;  // -------------
-        uint32_t sd:1;      // (32-bit only) something dirty (fs/vs/xs)
+        u32 _wpri0:1;  // write preserve, read ignore
+        u32 sie:1;     // s-mode interrupts enabled
+        u32 _wpri1:1;  // -------------
+        u32 m_mie:1;   // m-mode interrupts enabled
+        u32 _wpri2:1;  // -------------
+        u32 spie:1;    // s-mode interrupt state prior to exception
+        u32 ube:1;     // big endian
+        u32 m_mpie:1;  // m-mode interrupt state prior to exception
+        u32 spp:1;     // s-mode prior privilege
+        u32 vs:2;      // vector state
+        u32 m_mpp:2;   // m-mode prior privilege
+        u32 fs:2;      // floating point state
+        u32 xs:2;      // user mode extension state
+        u32 m_mprv:1;  // effective memory privilege mode
+        u32 sum:1;     // supervisor user memory access
+        u32 mxr:1;     // make executable readable
+        u32 m_tvm:1;   // trap virtual memory
+        u32 m_tw:1;    // timeout wait
+        u32 m_tsr:1;   // trap SRET
+        u32 _wpri3:8;  // -------------
+        u32 sd:1;      // (32-bit only) something dirty (fs/vs/xs)
     };
 } csr_status_t;
 
 typedef struct {
-    uint32_t _wpri0:4;  // write preserve, read ignore
-    uint32_t sbe:1;     // s-mode big endian
-    uint32_t m_mbe:1;   // m-mode big endian
-    uint32_t _wpri1:26; // -------------
+    u32 _wpri0:4;  // write preserve, read ignore
+    u32 sbe:1;     // s-mode big endian
+    u32 m_mbe:1;   // m-mode big endian
+    u32 _wpri1:26; // -------------
 } csr_statush_t;
 
 typedef union {
-    uint64_t raw;
+    u64 raw;
     struct {
-        uint64_t _wpri0:1;  // write preserve, read ignore
-        uint64_t sie:1;     // s-mode interrupts enabled
-        uint64_t _wpri1:1;  // -------------
-        uint64_t m_mie:1;   // m-mode interrupts enabled
-        uint64_t _wpri2:1;  // -------------
-        uint64_t spie:1;    // s-mode interrupt state prior to exception
-        uint64_t ube:1;     // big endian
-        uint64_t m_mpie:1;  // m-mode interrupt state prior to exception
-        uint64_t spp:1;     // s-mode prior privilege
-        uint64_t vs:2;      // vector state
-        uint64_t m_mpp:2;   // m-mode prior privilege
-        uint64_t fs:2;      // floating point state
-        uint64_t xs:2;      // user mode extension state
-        uint64_t m_mprv:1;  // effective memory privilege mode
-        uint64_t sum:1;     // supervisor user memory access
-        uint64_t mxr:1;     // make executable readable
-        uint64_t m_tvm:1;   // trap virtual memory
-        uint64_t m_tw:1;    // timeout wait
-        uint64_t m_tsr:1;   // trap SRET
-        uint64_t _wpri3:9;  // -------------
-        uint64_t uxl:2;     // 64-bit only: u-mode xlen
-        uint64_t sxl:2;     // 64-bit only: s-mode xlen
-        uint64_t sbe:1;     // s-mode big endian
-        uint64_t m_mbe:1;   // m-mode big endian
-        uint64_t _wpri4:25; // -------------
-        uint64_t sd:1;      // something dirty (fs/vs/xs)
+        u64 _wpri0:1;  // write preserve, read ignore
+        u64 sie:1;     // s-mode interrupts enabled
+        u64 _wpri1:1;  // -------------
+        u64 m_mie:1;   // m-mode interrupts enabled
+        u64 _wpri2:1;  // -------------
+        u64 spie:1;    // s-mode interrupt state prior to exception
+        u64 ube:1;     // big endian
+        u64 m_mpie:1;  // m-mode interrupt state prior to exception
+        u64 spp:1;     // s-mode prior privilege
+        u64 vs:2;      // vector state
+        u64 m_mpp:2;   // m-mode prior privilege
+        u64 fs:2;      // floating point state
+        u64 xs:2;      // user mode extension state
+        u64 m_mprv:1;  // effective memory privilege mode
+        u64 sum:1;     // supervisor user memory access
+        u64 mxr:1;     // make executable readable
+        u64 m_tvm:1;   // trap virtual memory
+        u64 m_tw:1;    // timeout wait
+        u64 m_tsr:1;   // trap SRET
+        u64 _wpri3:9;  // -------------
+        u64 uxl:2;     // 64-bit only: u-mode xlen
+        u64 sxl:2;     // 64-bit only: s-mode xlen
+        u64 sbe:1;     // s-mode big endian
+        u64 m_mbe:1;   // m-mode big endian
+        u64 _wpri4:25; // -------------
+        u64 sd:1;      // something dirty (fs/vs/xs)
     };
 } csr_status64_t;
 
 typedef struct {
-    uint32_t cy:1;
-    uint32_t tm:1;
-    uint32_t ir:1;
-    uint32_t hpm:29; // hpm3 ... hpm31
+    u32 cy:1;
+    u32 tm:1;
+    u32 ir:1;
+    u32 hpm:29; // hpm3 ... hpm31
 } csr_counteren_t;
 
 
 typedef union {
-    uint32_t raw;
+    u32 raw;
     struct {
-        uint32_t num:4;
-        uint32_t func:4;
-        uint32_t level:2;
-        uint32_t type:2;
-        uint32_t _unused:20;
+        u32 num:4;
+        u32 func:4;
+        u32 level:2;
+        u32 type:2;
+        u32 _unused:20;
     } f;
 } csr_addr_t;
 
-result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value);
-result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t update_value);
+result64_t rv_csr_op(rv_core_t *c, int op, u32 csr, u64 value);
+result64_t rv_csr_update(rv_core_t *c, int op, u64 *reg, u64 update_value);
 
-const char *rv_name_for_sysreg(rv_core_t *c, uint16_t num);
+const char *rv_name_for_sysreg(rv_core_t *c, u16 num);

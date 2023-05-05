@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <sled/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,9 +43,9 @@ extern "C" {
 #define SL_RISCV_EXT_V         (1u << 11)  // vector
 #define SL_RISCV_EXT_N         (1u << 12)  // user-level interrupts
 
-const char *sl_arch_name(uint8_t arch);
-uint32_t sl_arch_reg_for_name(uint8_t arch, const char *name);
-uint32_t sl_arch_get_reg_count(uint8_t arch, uint8_t subarch, int type);
+const char *sl_arch_name(u8 arch);
+u32 sl_arch_reg_for_name(u8 arch, const char *name);
+u32 sl_arch_get_reg_count(u8 arch, u8 subarch, int type);
 
 #ifdef __cplusplus
 }

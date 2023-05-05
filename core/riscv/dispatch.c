@@ -21,7 +21,7 @@
 #define FENCE_I (1u << 3)
 
 #if RV_TRACE
-static void rv_fence_op_name(uint8_t op, char *s) {
+static void rv_fence_op_name(u8 op, char *s) {
     if (op & FENCE_I) *s++ = 'i';
     if (op & FENCE_O) *s++ = 'o';
     if (op & FENCE_R) *s++ = 'r';
@@ -35,9 +35,9 @@ int rv_exec_mem(rv_core_t *c, rv_inst_t inst) {
     switch (inst.i.funct3) {
     case 0b000:
     { // FENCE
-        const uint32_t succ = inst.i.imm & 0xf;
-        const uint32_t pred = (inst.i.imm >> 4) & 0xf;
-        uint32_t bar = 0;
+        const u32 succ = inst.i.imm & 0xf;
+        const u32 pred = (inst.i.imm >> 4) & 0xf;
+        u32 bar = 0;
         if (pred & (FENCE_W | FENCE_O)) bar |= BARRIER_STORE;
         if (succ & (FENCE_R | FENCE_I)) bar |= BARRIER_LOAD;
         if ((pred & (FENCE_I | FENCE_O)) || (succ & (FENCE_I | FENCE_O))) bar |= BARRIER_SYSTEM;
@@ -142,7 +142,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
 
     // CSR instruction
 
-    const uint32_t csr_op = inst.i.funct3;
+    const u32 csr_op = inst.i.funct3;
     RV_TRACE_DECL_OPSTR;
 
     switch (csr_op) {
@@ -155,7 +155,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     default: goto undef;
     }
 
-    uint64_t value;
+    u64 value;
     int op = (csr_op & 3);
     const bool csr_imm = csr_op & 0b100;
     if (csr_imm) value = inst.i.rs1; // treat rs1 as immediate value
@@ -167,7 +167,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         if (value == 0) op = RV_CSR_OP_READ;
     }
 
-    const uint32_t csr_addr = inst.i.imm;
+    const u32 csr_addr = inst.i.imm;
 #ifdef RV_TRACE
     const char *name = c->ext.name_for_sysreg(c, csr_addr);
     char namebuf[16];
@@ -193,7 +193,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     }
 
     if (inst.i.rd != RV_ZERO) {
-        if (c->mode == RV_MODE_RV32) result.value = (uint32_t)result.value;
+        if (c->mode == RV_MODE_RV32) result.value = (u32)result.value;
         c->r[inst.i.rd] = result.value;
     }
 
@@ -213,7 +213,7 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_dispatch(rv_core_t *c, uint32_t instruction) {
+int rv_dispatch(rv_core_t *c, u32 instruction) {
     rv_inst_t inst;
     inst.raw = instruction;
     int err;
@@ -254,7 +254,7 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction) {
                 len += snprintf(buf + len, BUFLEN - len, "; %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
             const char *n = c->ext.name_for_sysreg(c, tr.addr);
             if (n == NULL)
-                len += snprintf(buf + len, BUFLEN - len, " csr(%#x) = %#" PRIx64, (uint32_t)tr.addr, tr.aux_value);
+                len += snprintf(buf + len, BUFLEN - len, " csr(%#x) = %#" PRIx64, (u32)tr.addr, tr.aux_value);
             else
                 len += snprintf(buf + len, BUFLEN - len, " %s = %#" PRIx64, n, tr.aux_value);
         } else if (tr.options & ITRACE_OPT_INST_STORE) {
@@ -268,7 +268,7 @@ int rv_dispatch(rv_core_t *c, uint32_t instruction) {
         if (c->jump_taken) {
             sym_entry_t *e = core_get_sym_for_addr(&c->core, c->pc);
             if (e != NULL) {
-                uint64_t dist = c->pc - e->addr;
+                u64 dist = c->pc - e->addr;
                 printf("<%s+%#"PRIx64">:\n", e->name, dist);
             }
         }

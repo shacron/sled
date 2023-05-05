@@ -20,11 +20,11 @@ extern "C" {
 #define SL_CORE_OPT_ENDIAN_BIG             (1u << 31)
 
 struct sl_core_params {
-    uint8_t arch;
-    uint8_t subarch;
-    uint8_t id;
-    uint32_t options;
-    uint32_t arch_options;
+    u8 arch;
+    u8 subarch;
+    u8 id;
+    u32 options;
+    u32 arch_options;
     const char *name;
 };
 
@@ -68,7 +68,7 @@ functions may be called unless specified while the dispatch loop is running.
 */
 
 // Execute a number of instructions on current thread
-int sl_core_step(core_t *c, uint64_t num);
+int sl_core_step(core_t *c, u64 num);
 
 // Run dispatch loop on current thread - enter async execution mode
 int sl_core_run(core_t *c);
@@ -80,12 +80,12 @@ int sl_core_run(core_t *c);
 void sl_core_retain(core_t *c);
 void sl_core_release(core_t *c);
 
-void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value);
-uint64_t sl_core_get_reg(core_t *c, uint32_t reg);
-int sl_core_set_state(core_t *c, uint32_t state, bool enabled);
-int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf);
-uint64_t sl_core_get_cycles(core_t *c);
+void sl_core_set_reg(core_t *c, u32 reg, u64 value);
+u64 sl_core_get_reg(core_t *c, u32 reg);
+int sl_core_set_state(core_t *c, u32 state, bool enabled);
+int sl_core_mem_read(core_t *c, u64 addr, u32 size, u32 count, void *buf);
+int sl_core_mem_write(core_t *c, u64 addr, u32 size, u32 count, void *buf);
+u64 sl_core_get_cycles(core_t *c);
 int sl_core_set_mapper(core_t *c, sl_dev_t *d);
 
 // ----------------------------------------------------------------------------
@@ -95,13 +95,13 @@ int sl_core_set_mapper(core_t *c, sl_dev_t *d);
 #define SL_CORE_CMD_HALT    1
 #define SL_CORE_CMD_EXIT    2
 
-int sl_core_async_command(core_t *c, uint32_t cmd, bool wait);
+int sl_core_async_command(core_t *c, u32 cmd, bool wait);
 
 // ----------------------------------------------------------------------------
 // Always safe to call on a valid core
 // ----------------------------------------------------------------------------
-uint8_t sl_core_get_arch(core_t *c);
-uint32_t sl_core_get_reg_count(core_t *c, int type);
+u8 sl_core_get_arch(core_t *c);
+u32 sl_core_get_reg_count(core_t *c, int type);
 
 
 #ifdef __cplusplus

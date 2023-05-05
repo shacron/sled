@@ -17,11 +17,11 @@
 #include <sled/error.h>
 #include <sled/riscv/csr.h>
 
-static int rv_load_pc(rv_core_t *c, uint32_t *inst) {
+static int rv_load_pc(rv_core_t *c, u32 *inst) {
     return sl_core_mem_read(&c->core, c->pc, 4, 1, inst);
 }
 
-static void riscv_set_reg(core_t *c, uint32_t reg, uint64_t value) {
+static void riscv_set_reg(core_t *c, u32 reg, u64 value) {
     rv_core_t *rc = (rv_core_t *)c;
 
     if (reg == 0) return;  // always zero
@@ -49,7 +49,7 @@ static void riscv_set_reg(core_t *c, uint32_t reg, uint64_t value) {
     }
 }
 
-static uint64_t riscv_get_reg(core_t *c, uint32_t reg) {
+static u64 riscv_get_reg(core_t *c, u32 reg) {
     rv_core_t *rc = (rv_core_t *)c;
 
     if (reg == 0) return 0;  // always zero
@@ -68,10 +68,10 @@ static uint64_t riscv_get_reg(core_t *c, uint32_t reg) {
     }
 }
 
-static int riscv_core_set_state(core_t *c, uint32_t state, bool enabled) {
+static int riscv_core_set_state(core_t *c, u32 state, bool enabled) {
     rv_core_t *rc = (rv_core_t *)c;
 
-    const uint32_t bit = (1u << state);
+    const u32 bit = (1u << state);
     switch (state) {
 
     case SL_CORE_STATE_64BIT:
@@ -114,13 +114,13 @@ static int riscv_interrupt(sl_engine_t *e) {
     sl_irq_ep_t *ep = &e->irq_ep;
     rv_core_t *rc = (rv_core_t *)e;
 
-    static const uint8_t irq_pri[] = {
+    static const u8 irq_pri[] = {
         RV_INT_EXTERNAL_M, RV_INT_TIMER_M, RV_INT_SW_M, RV_INT_EXTERNAL_S, RV_INT_TIMER_S, RV_INT_SW_S
     };
 
     for (int i = 0; i < 6; i++) {
-        const uint8_t bit = irq_pri[i];
-        const uint32_t num = (1u << bit);
+        const u8 bit = irq_pri[i];
+        const u32 num = (1u << bit);
         if (ep->asserted & num)
             return rv_exception_enter(rc, bit | RV_CAUSE64_INT, 0);
     }
@@ -130,7 +130,7 @@ static int riscv_interrupt(sl_engine_t *e) {
 static int riscv_core_step(sl_engine_t *e) {
     int err = 0;
     rv_core_t *rc = (rv_core_t *)e;
-    uint32_t inst;
+    u32 inst;
     if ((err = rv_load_pc(rc, &inst)))
         return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);
     rc->jump_taken = 0;

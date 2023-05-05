@@ -29,7 +29,7 @@ struct sl_bus {
     sl_list_t dev_list;
 };
 
-static int bus_op_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int bus_op_read(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     sl_bus_t *b = ctx;
 
     sl_io_op_t op = {};
@@ -43,7 +43,7 @@ static int bus_op_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, 
     return sl_mapper_io(&b->mapper, &op);
 }
 
-static int bus_op_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int bus_op_write(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     sl_bus_t *b = ctx;
 
     TRACE("[[ bus: %#" PRIx64 "(%u@%u) ]]\n", addr, count, size);
@@ -71,7 +71,7 @@ int bus_add_mem_region(sl_bus_t *b, mem_region_t *r) {
     return 0;
 }
 
-int bus_add_device(sl_bus_t *b, sl_dev_t *dev, uint64_t base) {
+int bus_add_device(sl_bus_t *b, sl_dev_t *dev, u64 base) {
     dev->base = base;
     sl_mapping_t m = {};
     m.input_base = dev->base;

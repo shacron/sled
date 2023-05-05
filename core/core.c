@@ -16,11 +16,11 @@
 void sl_core_retain(core_t *c) { sl_obj_retain(&c->engine.obj_); }
 void sl_core_release(core_t *c) { sl_obj_release(&c->engine.obj_); }
 
-int sl_core_async_command(core_t *c, uint32_t cmd, bool wait) {
+int sl_core_async_command(core_t *c, u32 cmd, bool wait) {
     return sl_engine_async_command(&c->engine, cmd, wait);
 }
 
-uint8_t sl_core_get_arch(core_t *c) {
+u8 sl_core_get_arch(core_t *c) {
     return c->arch;
 }
 
@@ -62,7 +62,7 @@ const core_ops_t * core_get_ops(core_t *c) {
     return &c->ops;
 }
 
-uint64_t sl_core_get_cycles(core_t *c) {
+u64 sl_core_get_cycles(core_t *c) {
     return c->ticks;
 }
 
@@ -78,7 +78,7 @@ void core_instruction_barrier(core_t *c) {
     atomic_thread_fence(memory_order_acquire);
 }
 
-void core_memory_barrier(core_t *c, uint32_t type) {
+void core_memory_barrier(core_t *c, u32 type) {
     // currently ignoring system and sync
     type &= (BARRIER_LOAD | BARRIER_STORE);
     switch (type) {
@@ -95,7 +95,7 @@ void core_memory_barrier(core_t *c, uint32_t type) {
     }
 }
 
-int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+int sl_core_mem_read(core_t *c, u64 addr, u32 size, u32 count, void *buf) {
     sl_io_op_t op;
     op.addr = addr;
     op.count = count;
@@ -107,7 +107,7 @@ int sl_core_mem_read(core_t *c, uint64_t addr, uint32_t size, uint32_t count, vo
     return sl_mapper_io(c->mapper, &op);
 }
 
-int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+int sl_core_mem_write(core_t *c, u64 addr, u32 size, u32 count, void *buf) {
     sl_io_op_t op;
     op.addr = addr;
     op.count = count;
@@ -119,11 +119,11 @@ int sl_core_mem_write(core_t *c, uint64_t addr, uint32_t size, uint32_t count, v
     return sl_mapper_io(c->mapper, &op);
 }
 
-void sl_core_set_reg(core_t *c, uint32_t reg, uint64_t value) {
+void sl_core_set_reg(core_t *c, u32 reg, u64 value) {
     c->ops.set_reg(c, reg, value);
 }
 
-uint64_t sl_core_get_reg(core_t *c, uint32_t reg) {
+u64 sl_core_get_reg(core_t *c, u32 reg) {
     return c->ops.get_reg(c, reg);
 }
 
@@ -132,14 +132,14 @@ int sl_core_set_mapper(core_t *c, sl_dev_t *d) {
     m->next = c->mapper;
     c->mapper = m;
 
-    uint32_t id;
+    u32 id;
     int err = sl_worker_add_event_endpoint(c->engine.worker, &d->event_ep, &id);
     if (err) return err;
     sl_device_set_worker(d, c->engine.worker, id);
     return id;
 }
 
-int sl_core_step(core_t *c, uint64_t num) {
+int sl_core_step(core_t *c, u64 num) {
     return sl_engine_step(&c->engine, num);
 }
 
@@ -147,11 +147,11 @@ int sl_core_run(core_t *c) {
     return sl_engine_run(&c->engine);
 }
 
-int sl_core_set_state(core_t *c, uint32_t state, bool enabled) {
+int sl_core_set_state(core_t *c, u32 state, bool enabled) {
     return c->ops.set_state(c, state, enabled);
 }
 
-uint32_t sl_core_get_reg_count(core_t *c, int type) {
+u32 sl_core_get_reg_count(core_t *c, int type) {
     return sl_arch_get_reg_count(c->arch, c->subarch, type);
 }
 
@@ -161,14 +161,14 @@ void core_add_symbols(core_t *c, sym_list_t *list) {
     c->symbols = list;
 }
 
-sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr) {
+sym_entry_t *core_get_sym_for_addr(core_t *c, u64 addr) {
     sym_entry_t *nearest = NULL;
-    uint64_t distance = ~0;
+    u64 distance = ~0;
     for (sym_list_t *list = c->symbols; list != NULL; list = list->next) {
-        for (uint64_t i = 0; i < list->num; i++) {
+        for (u64 i = 0; i < list->num; i++) {
             if (list->ent[i].addr > addr) continue;
             if (list->ent[i].addr == addr) return &list->ent[i];
-            uint64_t d = addr - list->ent[i].addr;
+            u64 d = addr - list->ent[i].addr;
             if (d > distance) continue;
             distance = d;
             nearest = &list->ent[i];

@@ -21,11 +21,11 @@ typedef struct {
     int fd_out;
 
     // registers
-    uint32_t config;
-    uint32_t status;
-    uint32_t buf_pos;
+    u32 config;
+    u32 status;
+    u32 buf_pos;
 
-    uint8_t buf[BUFLEN + 1];
+    u8 buf[BUFLEN + 1];
 } sled_uart_t;
 
 static void uart_flush(sled_uart_t *u) {
@@ -34,12 +34,12 @@ static void uart_flush(sled_uart_t *u) {
     u->buf_pos = 0;
 }
 
-static int uart_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int uart_read(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
     sled_uart_t *u = ctx;
-    uint32_t *val = buf;
+    u32 *val = buf;
     int err = 0;
 
     sl_device_lock(u->dev);
@@ -56,13 +56,13 @@ static int uart_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, vo
     return err;
 }
 
-static int uart_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int uart_write(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
     sled_uart_t *u = ctx;
-    uint32_t val = *(uint32_t *)buf;
-    uint8_t c;
+    u32 val = *(u32 *)buf;
+    u8 c;
     int err = 0;
 
     sl_device_lock(u->dev);
@@ -70,7 +70,7 @@ static int uart_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, v
     case UART_REG_CONFIG:   u->config = val;        break;
 
     case UART_REG_FIFO_WRITE:
-        c = (uint8_t)val;
+        c = (u8)val;
         u->buf[u->buf_pos++] = c;
         if ((c == '\n') || (u->buf_pos == BUFLEN)) uart_flush(u);
         break;

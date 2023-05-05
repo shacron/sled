@@ -15,13 +15,13 @@
 
 #define INTC_NUM_SUPPORTED  32
 
-static int intc_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int intc_read(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     sl_dev_t *d = ctx;
 
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
-    uint32_t *val = buf;
+    u32 *val = buf;
     int err = 0;
 
     sl_irq_ep_t *ep = sl_device_get_irq_ep(d);
@@ -38,13 +38,13 @@ static int intc_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, vo
     return err;
 }
 
-static int intc_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int intc_write(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     sl_dev_t *d = ctx;
 
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
 
-    uint32_t val = *(uint32_t *)buf;
+    u32 val = *(u32 *)buf;
     int err = 0;
 
     sl_irq_ep_t *ep = sl_device_get_irq_ep(d);

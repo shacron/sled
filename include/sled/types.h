@@ -5,12 +5,26 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // public types
+
+typedef int8_t  i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef size_t  usize;
+// typedef ssize_t ssize;
 
 typedef struct sl_bus sl_bus_t;
 typedef struct core core_t;
@@ -35,12 +49,12 @@ typedef struct sym_list sym_list_t;
 typedef struct sym_entry sym_entry_t;
 
 typedef struct {
-    uint32_t value;
+    u32 value;
     int err;
 } result32_t;
 
 typedef struct {
-    uint64_t value;
+    u64 value;
     int err;
 } result64_t;
 

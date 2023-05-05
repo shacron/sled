@@ -24,25 +24,25 @@
 #define CORE_EV_RUNMODE 2
 
 typedef struct core_ops {
-    void (*set_reg)(core_t *c, uint32_t reg, uint64_t value);
-    uint64_t (*get_reg)(core_t *c, uint32_t reg);
-    int (*set_state)(core_t *c, uint32_t state, bool enabled);
+    void (*set_reg)(core_t *c, u32 reg, u64 value);
+    u64 (*get_reg)(core_t *c, u32 reg);
+    int (*set_state)(core_t *c, u32 state, bool enabled);
 } core_ops_t;
 
 struct core {
     sl_engine_t engine;
 
-    uint64_t ticks;
+    u64 ticks;
 
     sl_mapper_t *mapper;
     itrace_t *trace;
     core_ops_t ops;
 
-    uint8_t arch;
-    uint8_t subarch;
-    uint8_t id;             // numerical id of this core instance
-    uint32_t options;
-    uint32_t arch_options;
+    u8 arch;
+    u8 subarch;
+    u8 id;             // numerical id of this core instance
+    u32 options;
+    u32 arch_options;
 #if WITH_SYMBOLS
     sym_list_t *symbols;
 #endif
@@ -83,11 +83,11 @@ int core_event_send_async(core_t *c, sl_event_t *ev);
 void core_interrupt_set(core_t *c, bool enable);
 int core_endian_set(core_t *c, bool big);
 void core_instruction_barrier(core_t *c);
-void core_memory_barrier(core_t *c, uint32_t type);
+void core_memory_barrier(core_t *c, u32 type);
 
 // ----------------------------------------------------------------------------
 // Misc
 // ----------------------------------------------------------------------------
 
 // safe to call in any context as long as the core is not shut down.
-sym_entry_t *core_get_sym_for_addr(core_t *c, uint64_t addr);
+sym_entry_t *core_get_sym_for_addr(core_t *c, u64 addr);

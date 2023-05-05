@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <core/types.h>
 
 #define SL_OBJ_TYPE_OBJ         0
 #define SL_OBJ_TYPE_CORE        1
@@ -19,15 +18,15 @@ typedef struct sl_obj sl_obj_t;
 typedef struct sl_obj_vtable sl_obj_vtable_t;
 
 struct sl_obj_vtable {
-    uint8_t type;
+    u8 type;
     void (*shutdown)(void *o);
 };
 
 struct sl_obj {
-    uint16_t refcount;
-    uint8_t type;
-    uint8_t flags;
-    uint32_t id;
+    u16 refcount;
+    u8 type;
+    u8 flags;
+    u32 id;
     const char *name;
     const sl_obj_vtable_t *vtab;
 };

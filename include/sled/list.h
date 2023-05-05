@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <stddef.h>
-
 #include <sled/types.h>
 
 #ifdef __cplusplus

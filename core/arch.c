@@ -11,7 +11,7 @@
 #include <sled/core.h>
 
 typedef struct {
-    uint16_t value;
+    u16 value;
     const char *name;
 } reg_name_t;
 
@@ -37,11 +37,11 @@ static const arch_ops_t arch_ops[] = {
 };
 
 typedef struct {
-    uint8_t arch;
-    uint8_t subarch;
+    u8 arch;
+    u8 subarch;
     const char *arch_name;
     const char *subarch_name;
-    uint32_t int_reg_count;
+    u32 int_reg_count;
 } arch_info_t;
 
 static const arch_info_t arch_info[] = {
@@ -59,12 +59,12 @@ static const arch_info_t arch_info[] = {
     },
 };
 
-const char * sl_arch_name(uint8_t arch) {
+const char * sl_arch_name(u8 arch) {
     if (arch > SL_ARCH_NUM) return NULL;
     return arch_name_map[arch];
 }
 
-uint32_t sl_arch_get_reg_count(uint8_t arch, uint8_t subarch, int type) {
+u32 sl_arch_get_reg_count(u8 arch, u8 subarch, int type) {
     if (type != SL_CORE_REG_TYPE_INT) return 0;
 
     for (int i = 0; i < countof(arch_info); i++) {
@@ -76,7 +76,7 @@ uint32_t sl_arch_get_reg_count(uint8_t arch, uint8_t subarch, int type) {
     return 0;
 }
 
-uint32_t sl_arch_reg_for_name(uint8_t arch, const char *name) {
+u32 sl_arch_reg_for_name(u8 arch, const char *name) {
     for (int i = 0; i < countof(reg_common); i++) {
         const reg_name_t *r = &reg_common[i];
         if (!strcmp(name, r->name)) return r->value;

@@ -21,147 +21,147 @@
 #define OP_SYSTEM       0b1110011 // csr ecall ebreak
 
 typedef union {
-    uint32_t raw;
+    u32 raw;
     struct {
-        uint32_t opcode : 7;
-        uint32_t imm3   : 1;
-        uint32_t imm1   : 4;
-        uint32_t funct3 : 3;
-        uint32_t rs1    : 5;
-        uint32_t rs2    : 5;
-        uint32_t imm2   : 6;
-        uint32_t imm4   : 1;
+        u32 opcode : 7;
+        u32 imm3   : 1;
+        u32 imm1   : 4;
+        u32 funct3 : 3;
+        u32 rs1    : 5;
+        u32 rs2    : 5;
+        u32 imm2   : 6;
+        u32 imm4   : 1;
     } b;
     struct {
-        uint32_t opcode : 7;
-        uint32_t rd     : 5;
-        uint32_t funct3 : 3;
-        uint32_t rs1    : 5;
-        uint32_t imm    : 12;
+        u32 opcode : 7;
+        u32 rd     : 5;
+        u32 funct3 : 3;
+        u32 rs1    : 5;
+        u32 imm    : 12;
     } i;
     struct {
-        uint32_t opcode : 7;
-        uint32_t rd     : 5;
-        uint32_t imm3   : 8;
-        uint32_t imm2   : 1;
-        uint32_t imm1   : 10;
-        uint32_t imm4   : 1;
+        u32 opcode : 7;
+        u32 rd     : 5;
+        u32 imm3   : 8;
+        u32 imm2   : 1;
+        u32 imm1   : 10;
+        u32 imm4   : 1;
     } j;
     struct {
-        uint32_t opcode : 7;
-        uint32_t rd     : 5;
-        uint32_t funct3 : 3;
-        uint32_t rs1    : 5;
-        uint32_t rs2    : 5;
-        uint32_t funct7 : 7;
+        u32 opcode : 7;
+        u32 rd     : 5;
+        u32 funct3 : 3;
+        u32 rs1    : 5;
+        u32 rs2    : 5;
+        u32 funct7 : 7;
     } r;
     struct {
-        uint32_t opcode : 7;
-        uint32_t imm1   : 5;
-        uint32_t funct3 : 3;
-        uint32_t rs1    : 5;
-        uint32_t rs2    : 5;
-        uint32_t imm2   : 7;
+        u32 opcode : 7;
+        u32 imm1   : 5;
+        u32 funct3 : 3;
+        u32 rs1    : 5;
+        u32 rs2    : 5;
+        u32 imm2   : 7;
     } s;
     struct {
-        uint32_t opcode : 7;
-        uint32_t rd     : 5;
-        uint32_t imm    : 20;
+        u32 opcode : 7;
+        u32 rd     : 5;
+        u32 imm    : 20;
     } u;
 } rv_inst_t;
 
 typedef union {
-    uint16_t raw;
+    u16 raw;
     struct {
-        uint16_t opcode : 2;
-        uint16_t rs2    : 5;
-        uint16_t rsd    : 5;
-        uint16_t funct4 : 1;    // this is different from the spec definition of funct4
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 rs2    : 5;
+        u16 rsd    : 5;
+        u16 funct4 : 1;    // this is different from the spec definition of funct4
+        u16 funct3 : 3;
     } cr;
     struct {
-        uint16_t opcode : 2;
-        uint16_t imm0   : 5;
-        uint16_t rsd    : 5;
-        uint16_t imm1   : 1;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 imm0   : 5;
+        u16 rsd    : 5;
+        u16 imm1   : 1;
+        u16 funct3 : 3;
     } ci;
     struct {
-        uint16_t opcode : 2;
-        uint16_t off_6  : 2;
-        uint16_t off_2  : 3;
-        uint16_t rd     : 5;
-        uint16_t off_5  : 1;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 off_6  : 2;
+        u16 off_2  : 3;
+        u16 rd     : 5;
+        u16 off_5  : 1;
+        u16 funct3 : 3;
     } cilwsp;
     struct {
-        uint16_t opcode : 2;
-        uint16_t off_6  : 3;
-        uint16_t off_3  : 2;
-        uint16_t rd     : 5;
-        uint16_t off_5  : 1;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 off_6  : 3;
+        u16 off_3  : 2;
+        u16 rd     : 5;
+        u16 off_5  : 1;
+        u16 funct3 : 3;
     } cildsp;
     struct {
-        uint16_t opcode : 2;
-        uint16_t rs2    : 5;
-        uint16_t imm    : 6;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 rs2    : 5;
+        u16 imm    : 6;
+        u16 funct3 : 3;
     } css;
     struct {
-        uint16_t opcode : 2;
-        uint16_t rd     : 3;
-        uint16_t imm0   : 1;
-        uint16_t imm1   : 1;
-        uint16_t imm2   : 4;
-        uint16_t imm3   : 2;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 rd     : 3;
+        u16 imm0   : 1;
+        u16 imm1   : 1;
+        u16 imm2   : 4;
+        u16 imm3   : 2;
+        u16 funct3 : 3;
     } ciw;
     struct {
-        uint16_t opcode : 2;
-        uint16_t rd     : 3;
-        uint16_t imm0   : 2;
-        uint16_t rs     : 3;
-        uint16_t imm1   : 3;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 rd     : 3;
+        u16 imm0   : 2;
+        u16 rs     : 3;
+        u16 imm1   : 3;
+        u16 funct3 : 3;
     } cl;
     struct {
-        uint16_t opcode : 2;
-        uint16_t rs2    : 3;
-        uint16_t imm0   : 2;
-        uint16_t rs1    : 3;
-        uint16_t imm1   : 3;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 rs2    : 3;
+        u16 imm0   : 2;
+        u16 rs1    : 3;
+        u16 imm1   : 3;
+        u16 funct3 : 3;
     } cs;
     struct {
-        uint16_t opcode : 2;
-        uint16_t off_5  : 1;
-        uint16_t off_1  : 2;
-        uint16_t off_6  : 2;
-        uint16_t rs     : 3;
-        uint16_t off_3  : 2;
-        uint16_t off_8  : 1;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 off_5  : 1;
+        u16 off_1  : 2;
+        u16 off_6  : 2;
+        u16 rs     : 3;
+        u16 off_3  : 2;
+        u16 off_8  : 1;
+        u16 funct3 : 3;
     } cb;
     struct {
-        uint16_t opcode : 2;
-        uint16_t imm0   : 5;
-        uint16_t rsd    : 3;
-        uint16_t funct2 : 2;
-        uint16_t imm1   : 1;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 imm0   : 5;
+        u16 rsd    : 3;
+        u16 funct2 : 2;
+        u16 imm1   : 1;
+        u16 funct3 : 3;
     } cba; // CB-ALU format
     struct {
-        uint16_t opcode : 2;
-        uint16_t imm0   : 1;
-        uint16_t imm1   : 3;
-        uint16_t imm2   : 1;
-        uint16_t imm3   : 1;
-        uint16_t imm4   : 1;
-        uint16_t imm5   : 2;
-        uint16_t imm6   : 1;
-        uint16_t imm7   : 1;
-        uint16_t funct3 : 3;
+        u16 opcode : 2;
+        u16 imm0   : 1;
+        u16 imm1   : 3;
+        u16 imm2   : 1;
+        u16 imm3   : 1;
+        u16 imm4   : 1;
+        u16 imm5   : 2;
+        u16 imm6   : 1;
+        u16 imm7   : 1;
+        u16 funct3 : 3;
     } cj;
 } rv_cinst_t;
 

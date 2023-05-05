@@ -3,18 +3,16 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <sled/mapper.h>
 #include <sled/list.h>
 
 typedef struct {
     sl_list_node_t node;
-    uint64_t base;
-    uint64_t length;
+    u64 base;
+    u64 length;
     sl_map_ep_t ep;
-    uint8_t data[];
+    u8 data[];
 } mem_region_t;
 
-int mem_region_create(uint64_t base, uint64_t length, mem_region_t **m_out);
+int mem_region_create(u64 base, u64 length, mem_region_t **m_out);
 void mem_region_destroy(mem_region_t *m);

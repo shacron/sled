@@ -6,6 +6,6 @@
 #include <sled/arch.h>
 
 typedef struct {
-    uint32_t (*reg_for_name)(const char *name);
-    const char *(*name_for_reg)(uint32_t reg);
+    u32 (*reg_for_name)(const char *name);
+    const char *(*name_for_reg)(u32 reg);
 } arch_ops_t;

@@ -1,20 +1,18 @@
 #pragma once
 
-#include <stdint.h>
-
 #include <core/types.h>
 
 struct sym_entry {
-    uint64_t addr;
-    uint64_t size;
-    uint32_t flags;
+    u64 addr;
+    u64 size;
+    u32 flags;
     char *name;
 };
 
 struct sym_list {
     sym_list_t *next;
     char *name;
-    uint64_t num;
+    u64 num;
     sym_entry_t *ent;
 };
 

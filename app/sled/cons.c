@@ -22,7 +22,7 @@ typedef struct {
     sl_machine_t *machine;
     core_t *core;
 
-    uint32_t len;
+    u32 len;
     char *line;
     bool done;
 } console_t;
@@ -43,14 +43,14 @@ static int quit_handler(console_t *c, char *cmd, int argc, char **argv) {
 
 static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
     int arch = sl_core_get_arch(c->core);
-    uint64_t val;
+    u64 val;
 
     if (argc == 0) {
         val = sl_core_get_reg(c->core, SL_CORE_REG_PC);
         printf("pc : %" PRIx64 "\n", val);
-        uint32_t count = sl_core_get_reg_count(c->core, SL_CORE_REG_TYPE_INT);
-        for (uint32_t a = 0; a < count; a += 4) {
-            uint64_t r[4];
+        u32 count = sl_core_get_reg_count(c->core, SL_CORE_REG_TYPE_INT);
+        for (u32 a = 0; a < count; a += 4) {
+            u64 r[4];
             for (int b = 0; b < 4; b++) {
                 if ((a + b) > count) break;
                 r[b] = sl_core_get_reg(c->core, a + b);
@@ -62,7 +62,7 @@ static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
 
     char *rname = argv[0];
 
-    uint32_t r = sl_arch_reg_for_name(arch, rname);
+    u32 r = sl_arch_reg_for_name(arch, rname);
     if (r == SL_CORE_REG_INVALID) {
         printf("invalid register name %s for architecture %s\n", rname, sl_arch_name(arch));
         return 0;
@@ -93,10 +93,10 @@ static int mem_handler(console_t *c, char *cmd, int argc, char **argv) {
         return 0;
     }
 
-    uint32_t size = 0;
-    uint32_t num = 20;
-    // uint64_t value = 0;
-    const uint32_t line_len = 100;
+    u32 size = 0;
+    u32 num = 20;
+    // u64 value = 0;
+    const u32 line_len = 100;
     char line[line_len];
 
     const char *op = argv[0];
@@ -116,7 +116,7 @@ static int mem_handler(console_t *c, char *cmd, int argc, char **argv) {
         return 0;
     }
 
-    uint64_t addr = strtoull(argv[1], NULL, 0);
+    u64 addr = strtoull(argv[1], NULL, 0);
 
     if (argc == 2) goto do_op;
 
@@ -132,12 +132,12 @@ static int mem_handler(console_t *c, char *cmd, int argc, char **argv) {
 
 do_op:
     if (op[0] == 'r') {
-        for (uint32_t i = 0; i < num; ) {
+        for (u32 i = 0; i < num; ) {
             line[0] = '\0';
             int cur = snprintf(line, line_len, "%"PRIx64":", addr);
-            uint32_t j;
+            u32 j;
             for (j = i; j < num; j++) {
-                uint64_t d;
+                u64 d;
                 if ((err = sl_core_mem_read(c->core, addr, size, 1, &d))) {
                     printf("failed to read memory at %#"PRIx64": %s\n", addr, st_err(err));
                     return 0;
@@ -145,15 +145,15 @@ do_op:
                 addr += size;
                 switch (size) {
                 case 1:
-                    cur += snprintf(line + cur, line_len - cur, " %02x", (uint8_t)d);
+                    cur += snprintf(line + cur, line_len - cur, " %02x", (u8)d);
                     break;
 
                 case 2:
-                    cur += snprintf(line + cur, line_len - cur, " %04x", (uint16_t)d);
+                    cur += snprintf(line + cur, line_len - cur, " %04x", (u16)d);
                     break;
 
                 case 4:
-                    cur += snprintf(line + cur, line_len - cur, " %08x", (uint32_t)d);
+                    cur += snprintf(line + cur, line_len - cur, " %08x", (u32)d);
                     break;
 
                 default:
@@ -172,12 +172,12 @@ do_op:
 }
 
 static int step_handler(console_t *c, char *cmd, int argc, char **argv) {
-    uint32_t step = 1;
+    u32 step = 1;
     if (argc > 0) {
         step = strtoul(argv[0], NULL, 0);
     }
     int err = sl_core_step(c->core, step);
-    uint64_t pc = sl_core_get_reg(c->core, SL_CORE_REG_PC);
+    u64 pc = sl_core_get_reg(c->core, SL_CORE_REG_PC);
     if (err) {
         printf("instruction failed at pc=%#" PRIx64 ": %s\n", pc, st_err(err));
     } else {

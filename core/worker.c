@@ -22,7 +22,7 @@ struct sl_worker {
     cond_t has_event;
     sl_list_t ev_list;
 
-    uint32_t state;
+    u32 state;
     sl_engine_t *engine;
 
     sl_event_ep_t *endpoint[SL_WORKER_MAX_EPS];
@@ -57,7 +57,7 @@ static int handle_events(sl_worker_t *w, bool wait) {
         sl_event_t *ev = (sl_event_t *)ev_list;
         if (ev == NULL) break;
         ev_list = ev->node.next;
-        const uint32_t id = ev->epid;
+        const u32 id = ev->epid;
         if (id == SL_EV_EP_CALLBACK) {
             err = ev->callback(ev);
         } else {
@@ -78,7 +78,7 @@ void sl_worker_set_engine_runnable(sl_worker_t *w, bool runnable) {
     else w->state &= ~SL_WORKER_STATE_ENGINE_RUNNABLE;
 }
 
-int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, uint32_t *id_out) {
+int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, u32 *id_out) {
     int err = sl_worker_add_event_endpoint(w, &e->event_ep, id_out);
     if (err) return err;
 
@@ -88,8 +88,8 @@ int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, uint32_t *id_out) {
     return 0;
 }
 
-int sl_worker_add_event_endpoint(sl_worker_t *w, sl_event_ep_t *ep, uint32_t *id_out) {
-    for (uint32_t i = 0; i < SL_WORKER_MAX_EPS; i++) {
+int sl_worker_add_event_endpoint(sl_worker_t *w, sl_event_ep_t *ep, u32 *id_out) {
+    for (u32 i = 0; i < SL_WORKER_MAX_EPS; i++) {
         if (w->endpoint[i] == NULL) {
             w->endpoint[i] = ep;
             *id_out = i;
@@ -103,7 +103,7 @@ int sl_worker_event_enqueue_async(sl_worker_t *w, sl_event_t *ev) {
     int err = 0;
     sl_sem_t sem;
 
-    uint32_t flags = ev->flags;
+    u32 flags = ev->flags;
     if (flags & SL_EV_FLAG_SIGNAL) {
         if ((err = sl_sem_init(&sem, 0))) return err;
         ev->signal = (uintptr_t)&sem;
@@ -135,8 +135,8 @@ static int single_step(sl_worker_t *w) {
     return w->engine->ops.step(w->engine);
 }
 
-int sl_worker_step(sl_worker_t *w, uint64_t num) {
-    for (uint64_t i = 0; i < num; i++) {
+int sl_worker_step(sl_worker_t *w, u64 num) {
+    for (u64 i = 0; i < num; i++) {
         int err = single_step(w);
         if (err) return err;
     }

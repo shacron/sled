@@ -29,7 +29,7 @@ sstatus64 SD ------------------ UXL[1:0] ------------ MXR SUM ---- XS[1:0] FS[1:
      RV_SR_STATUS64_SD)
 
 // plain register modification with no side effects
-result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
+result64_t rv_csr_update(rv_core_t *c, int op, u64 *reg, u64 value) {
     result64_t result = {};
     switch (op) {
     case RV_CSR_OP_WRITE:       *reg = value;                            break;
@@ -42,7 +42,7 @@ result64_t rv_csr_update(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
     return result;
 }
 
-static uint64_t status_for_pl(uint64_t s, uint8_t pl) {
+static u64 status_for_pl(u64 s, u8 pl) {
     switch (pl) {
     case RV_PL_MACHINE:     return s & STATUS_MASK_M;
     // case RV_PL_HYPERVISOR:  return s & STATUS_MASK_H;
@@ -51,9 +51,9 @@ static uint64_t status_for_pl(uint64_t s, uint8_t pl) {
     }
 }
 
-static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
+static result64_t rv_status_csr(rv_core_t *c, int op, u64 value) {
     result64_t result = {};
-    uint64_t s = status_for_pl(c->status, c->pl);
+    u64 s = status_for_pl(c->status, c->pl);
 
     if (op == RV_CSR_OP_READ) {
         result.value = s;
@@ -64,7 +64,7 @@ static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
         value = ((value & RV_SR_STATUS_SD) << 32) | (value & ~(RV_SR_STATUS_SD));
 
     value = status_for_pl(value, c->pl);
-    uint64_t changed_bits;
+    u64 changed_bits;
 
     switch (op) {
     case RV_CSR_OP_READ_SET:
@@ -101,26 +101,26 @@ static result64_t rv_status_csr(rv_core_t *c, int op, uint64_t value) {
 
 fixup:
     if (c->mode == RV_MODE_RV32)
-        result.value = (uint32_t)(((result.value & RV_SR_STATUS64_SD) >> 32) | (result.value & ~(RV_SR_STATUS64_SD)));
+        result.value = (u32)(((result.value & RV_SR_STATUS64_SD) >> 32) | (result.value & ~(RV_SR_STATUS64_SD)));
 out:
     return result;
 }
 
-static result64_t rv_mcause_csr(rv_core_t *c, int op, uint64_t *reg, uint64_t value) {
+static result64_t rv_mcause_csr(rv_core_t *c, int op, u64 *reg, u64 value) {
     result64_t result = {};
     if (c->mode == RV_MODE_RV32) {
         value = ((value & RV_CAUSE32_INT) << 32) | (value & ~RV_CAUSE32_INT);
         result = rv_csr_update(c, op, reg, value);
-        result.value = (uint32_t)(((result.value & RV_CAUSE64_INT) >> 32) | (result.value & 0x7fffffff));
+        result.value = (u32)(((result.value & RV_CAUSE64_INT) >> 32) | (result.value & 0x7fffffff));
     } else {
         result = rv_csr_update(c, op, reg, value);
     }
     return result;
 }
 
-static result64_t rv_tick_csr(rv_core_t *c, int op, int64_t *offset, uint64_t value) {
+static result64_t rv_tick_csr(rv_core_t *c, int op, i64 *offset, u64 value) {
     result64_t result = {};
-    uint64_t ticks = c->core.ticks;
+    u64 ticks = c->core.ticks;
 
     switch (op) {
     case RV_CSR_OP_READ:
@@ -147,31 +147,31 @@ static result64_t rv_tick_csr(rv_core_t *c, int op, int64_t *offset, uint64_t va
     return result;
 }
 
-static result64_t rv_csr_pmpcfg(rv_core_t *c, int op, uint32_t index, uint64_t value) {
+static result64_t rv_csr_pmpcfg(rv_core_t *c, int op, u32 index, u64 value) {
     result64_t result = {};
 
-    uint64_t cfg = c->pmpcfg[index];
+    u64 cfg = c->pmpcfg[index];
     if (c->mode == RV_MODE_RV64) {
         if (index & 1) {
             result.err = SL_ERR_UNDEF;
             return result;
         }
-        cfg |= ((uint64_t)c->pmpcfg[index + 1]) << 32;
+        cfg |= ((u64)c->pmpcfg[index + 1]) << 32;
     }
-    // uint64_t prev_cfg = cfg;
+    // u64 prev_cfg = cfg;
     result = rv_csr_update(c, op, &cfg, value);
     if (result.err) return result;
 
     // todo: update MPU
 
     if (c->mode == RV_MODE_RV64) {
-        c->pmpcfg[index + 1] = (uint32_t)(cfg >> 32);
+        c->pmpcfg[index + 1] = (u32)(cfg >> 32);
     }
-    c->pmpcfg[index] = (uint32_t)cfg;
+    c->pmpcfg[index] = (u32)cfg;
     return result;
 }
 
-result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
+result64_t rv_csr_op(rv_core_t *c, int op, u32 csr, u64 value) {
     result64_t result = {};
     csr_addr_t addr;
     addr.raw = csr;
@@ -236,25 +236,25 @@ result64_t rv_csr_op(rv_core_t *c, int op, uint32_t csr, uint64_t value) {
         }
 
         if ((addr.raw >= RV_CSR_PMPCFG_BASE) && (addr.raw < (RV_CSR_PMPCFG_BASE + RV_CSR_PMPCFG_NUM))) {
-            const uint32_t index = addr.raw - RV_CSR_PMPCFG_BASE;
+            const u32 index = addr.raw - RV_CSR_PMPCFG_BASE;
             result = rv_csr_pmpcfg(c, op, index, value);
             goto out;
         }
 
         if ((addr.raw >= RV_CSR_PMPADDR_BASE) && (addr.raw < (RV_CSR_PMPADDR_BASE + RV_CSR_PMPADDR_NUM))) {
-            const uint32_t i = addr.raw - RV_CSR_PMPADDR_BASE;
+            const u32 i = addr.raw - RV_CSR_PMPADDR_BASE;
             result = rv_csr_update(c, op, &c->pmpaddr[i], value);
             goto out;
         }
 
         if ((addr.raw >= RV_CSR_MHPMCOUNTER3) && (addr.raw < (RV_CSR_MHPMCOUNTER3 + RV_CSR_MHPMCOUNTER_NUM))) {
-            const uint32_t i = addr.raw - RV_CSR_MHPMCOUNTER3;
+            const u32 i = addr.raw - RV_CSR_MHPMCOUNTER3;
             result = rv_csr_update(c, op, &c->mhpmcounter[i], value);
             goto out;
         }
 
         if ((addr.raw >= RV_CSR_MHPMEVENT3) && (addr.raw < (RV_CSR_MHPMEVENT3 + RV_CSR_MHPMEVENT_NUM))) {
-            const uint32_t i = addr.raw - RV_CSR_MHPMEVENT3;
+            const u32 i = addr.raw - RV_CSR_MHPMEVENT3;
             result = rv_csr_update(c, op, &c->mhpevent[i], value);
             goto out;
         }

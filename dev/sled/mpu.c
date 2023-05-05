@@ -22,13 +22,13 @@ typedef struct {
     sl_mapper_t *mapper;
 
     bool enabled;
-    uint8_t config;
-    uint32_t map_len[MPU_MAX_MAPPINGS];
-    uint64_t va_base[MPU_MAX_MAPPINGS];
-    uint64_t pa_base[MPU_MAX_MAPPINGS];
+    u8 config;
+    u32 map_len[MPU_MAX_MAPPINGS];
+    u64 va_base[MPU_MAX_MAPPINGS];
+    u64 pa_base[MPU_MAX_MAPPINGS];
 } sled_mpu_t;
 
-static int mpu_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int mpu_read(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
     if (addr & 3) return SL_ERR_IO_ALIGN;
@@ -37,7 +37,7 @@ static int mpu_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, voi
     sled_mpu_t *m = ctx;
 
     sl_device_lock(m->dev);
-    uint32_t *val = buf;
+    u32 *val = buf;
     switch (addr) {
     case MPU_REG_DEV_TYPE:      *val = MPU_TYPE;            goto out;
     case MPU_REG_DEV_VERSION:   *val = MPU_VERSION;         goto out;
@@ -47,19 +47,19 @@ static int mpu_read(void *ctx, uint64_t addr, uint32_t size, uint32_t count, voi
     default:    break;
     }
     if ((addr >= MPU_REG_MAP_VA_BASE_LO(0)) && (addr < MPU_REG_MAP_VA_BASE_LO(MPU_MAX_MAPPINGS))) {
-        const uint32_t index = (addr - MPU_REG_MAP_VA_BASE_LO(0)) >> 2;
-        uint32_t *p = (uint32_t *)m->va_base;
+        const u32 index = (addr - MPU_REG_MAP_VA_BASE_LO(0)) >> 2;
+        u32 *p = (u32 *)m->va_base;
         *val = p[index];
         goto out;
     }
     if ((addr >= MPU_REG_MAP_PA_BASE_LO(0)) && (addr < MPU_REG_MAP_PA_BASE_LO(MPU_MAX_MAPPINGS))) {
-        const uint32_t index = (addr - MPU_REG_MAP_PA_BASE_LO(0)) >> 2;
-        uint32_t *p = (uint32_t *)m->pa_base;
+        const u32 index = (addr - MPU_REG_MAP_PA_BASE_LO(0)) >> 2;
+        u32 *p = (u32 *)m->pa_base;
         *val = p[index];
         goto out;
     }
     if ((addr >= MPU_REG_MAP_LEN(0)) && (addr < MPU_REG_MAP_LEN(MPU_MAX_MAPPINGS))) {
-        const uint32_t index = (addr - MPU_REG_MAP_LEN(0)) >> 2;
+        const u32 index = (addr - MPU_REG_MAP_LEN(0)) >> 2;
         *val = m->map_len[index];
         goto out;
     }
@@ -70,15 +70,15 @@ out:
 }
 
 static void clear_entries(sled_mpu_t *m) {
-    const size_t size = (sizeof(uint64_t) * 2 * MPU_MAX_MAPPINGS) + (sizeof(uint32_t) * MPU_MAX_MAPPINGS);
+    const size_t size = (sizeof(u64) * 2 * MPU_MAX_MAPPINGS) + (sizeof(u32) * MPU_MAX_MAPPINGS);
     memset(m->map_len, 0, size);
 }
 
-static int update_config(sled_mpu_t *m, uint32_t val) {
+static int update_config(sled_mpu_t *m, u32 val) {
     int err = 0;
-    uint32_t config = m->config;
-    uint32_t ops = 0;
-    uint32_t ent_count = 0;
+    u32 config = m->config;
+    u32 ops = 0;
+    u32 ent_count = 0;
     sl_mapping_t *ent_list = NULL;
 
     if (val & MPU_CONFIG_ENABLE)
@@ -117,14 +117,14 @@ out_err:
     return err;
 }
 
-static int mpu_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, void *buf) {
+static int mpu_write(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
     if (addr & 3) return SL_ERR_IO_ALIGN;
 
     int err = 0;
     sled_mpu_t *m = ctx;
-    uint32_t val = *(uint32_t *)buf;
+    u32 val = *(u32 *)buf;
 
     sl_device_lock(m->dev);
     switch (addr) {
@@ -143,19 +143,19 @@ static int mpu_write(void *ctx, uint64_t addr, uint32_t size, uint32_t count, vo
         break;
     }
     if ((addr >= MPU_REG_MAP_VA_BASE_LO(0)) && (addr < MPU_REG_MAP_VA_BASE_LO(MPU_MAX_MAPPINGS))) {
-        const uint32_t index = (addr - MPU_REG_MAP_VA_BASE_LO(0)) >> 2;
-        uint32_t *p = (uint32_t *)m->va_base;
+        const u32 index = (addr - MPU_REG_MAP_VA_BASE_LO(0)) >> 2;
+        u32 *p = (u32 *)m->va_base;
         p[index] = val;
         goto out;
     }
     if ((addr >= MPU_REG_MAP_PA_BASE_LO(0)) && (addr < MPU_REG_MAP_PA_BASE_LO(MPU_MAX_MAPPINGS))) {
-        const uint32_t index = (addr - MPU_REG_MAP_PA_BASE_LO(0)) >> 2;
-        uint32_t *p = (uint32_t *)m->pa_base;
+        const u32 index = (addr - MPU_REG_MAP_PA_BASE_LO(0)) >> 2;
+        u32 *p = (u32 *)m->pa_base;
         p[index] = val;
         goto out;
     }
     if ((addr >= MPU_REG_MAP_LEN(0)) && (addr < MPU_REG_MAP_LEN(MPU_MAX_MAPPINGS))) {
-        const uint32_t index = (addr - MPU_REG_MAP_LEN(0)) >> 2;
+        const u32 index = (addr - MPU_REG_MAP_LEN(0)) >> 2;
         m->map_len[index] = val;
         goto out;
     }

@@ -23,10 +23,10 @@ void sl_engine_set_context(sl_engine_t *e, void *ctx);
 void * sl_engine_get_context(sl_engine_t *e);
 
 int sl_engine_run(sl_engine_t *e);
-int sl_engine_step(sl_engine_t *e, uint64_t num);
+int sl_engine_step(sl_engine_t *e, u64 num);
 void sl_engine_interrupt_set(sl_engine_t *e, bool enable);
 
-int sl_engine_async_command(sl_engine_t *e, uint32_t cmd, bool wait);
+int sl_engine_async_command(sl_engine_t *e, u32 cmd, bool wait);
 
 #ifdef __cplusplus
 }
