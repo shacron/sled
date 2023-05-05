@@ -23,8 +23,11 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-typedef size_t  usize;
 // typedef ssize_t ssize;
+typedef size_t  usize;
+
+typedef intptr_t iptr;
+typedef uintptr_t uptr;
 
 typedef struct sl_bus sl_bus_t;
 typedef struct core core_t;
