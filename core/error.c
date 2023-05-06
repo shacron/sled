@@ -36,6 +36,7 @@ static const char *err_str[] = {
     ESTR(SL_ERR_IO_NORD),
     ESTR(SL_ERR_IO_INVALID),
     ESTR(SL_ERR_IO_NOMAP),
+    ESTR(SL_ERR_IO_NOATOMIC),
 };
 
 const char *st_err(int err) {

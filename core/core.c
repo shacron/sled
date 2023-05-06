@@ -100,7 +100,7 @@ int sl_core_mem_read(core_t *c, u64 addr, u32 size, u32 count, void *buf) {
     op.addr = addr;
     op.count = count;
     op.size = size;
-    op.direction = IO_DIR_IN;
+    op.op = IO_OP_IN;
     op.align = 1;
     op.buf = buf;
     op.agent = c;
@@ -112,7 +112,7 @@ int sl_core_mem_write(core_t *c, u64 addr, u32 size, u32 count, void *buf) {
     op.addr = addr;
     op.count = count;
     op.size = size;
-    op.direction = IO_DIR_OUT;
+    op.op = IO_OP_OUT;
     op.align = 1;
     op.buf = buf;
     op.agent = c;

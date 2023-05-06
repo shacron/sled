@@ -36,7 +36,7 @@ static int bus_op_read(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     op.addr = addr;
     op.count = count;
     op.size = size;
-    op.direction = IO_DIR_IN;
+    op.op = IO_OP_IN;
     op.align = 0;
     op.buf = buf;
     op.agent = b;
@@ -52,7 +52,7 @@ static int bus_op_write(void *ctx, u64 addr, u32 size, u32 count, void *buf) {
     op.addr = addr;
     op.count = count;
     op.size = size;
-    op.direction = IO_DIR_OUT;
+    op.op = IO_OP_OUT;
     op.align = 0;
     op.buf = buf;
     op.agent = b;

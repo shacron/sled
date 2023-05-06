@@ -33,8 +33,11 @@ static void dev_dummy_release(void *d) {}
 
 int device_mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     sl_dev_t *d = containerof(ep, sl_dev_t, map_ep);
-    if (op->direction == IO_DIR_IN) return d->ops.read(d->context, op->addr, op->size, op->count, op->buf);
-    return d->ops.write(d->context, op->addr, op->size, op->count, op->buf);
+    if (op->op == IO_OP_IN)
+        return d->ops.read(d->context, op->addr, op->size, op->count, op->buf);
+    if (op->op == IO_OP_OUT)
+        return d->ops.write(d->context, op->addr, op->size, op->count, op->buf);
+    return SL_ERR_IO_NOATOMIC;
 }
 
 void sl_device_set_context(sl_dev_t *d, void *ctx) { d->context = ctx; }

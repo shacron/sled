@@ -12,11 +12,16 @@
 static int mem_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     mem_region_t *m = containerof(ep, mem_region_t, ep);
     void *data = m->data + op->addr;
-    if (op->direction == IO_DIR_IN)
+
+    if (op->op == IO_OP_IN) {
         memcpy(op->buf, data, op->count * op->size);
-    else
+        return 0;
+    }
+    if (op->op == IO_OP_OUT) {
         memcpy(data, op->buf, op->count * op->size);
-    return 0;
+        return 0;
+    }
+    return sl_io_for_data(data, op);
 }
 
 int mem_region_create(u64 base, u64 length, mem_region_t **m_out) {
