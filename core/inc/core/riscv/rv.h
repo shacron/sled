@@ -46,8 +46,11 @@ struct rv_core {
     u64 pc;
     u64 r[32];
 
-    // u32 irq_asserted;
     u64 status;
+
+    uint64_t monitor_addr;
+    uint64_t monitor_value;
+    uint8_t  monitor_status;
 
     // system registers
     rv_sr_pl_t sr_pl[3];

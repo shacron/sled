@@ -21,7 +21,7 @@
     utype result; \
     switch (op->op) { \
     case IO_OP_ATOMIC_SWAP: result = atomic_exchange_explicit(d, v, op->order); break; \
-    case IO_OP_ATOMIC_CAS:  result = ATOMIC_CAS(d, e, v, op->order, op->order_fail); break; \
+    case IO_OP_ATOMIC_CAS:  result = (ATOMIC_CAS(d, e, v, op->order, op->order_fail) ? 0 : 1);  break; \
     case IO_OP_ATOMIC_ADD:  result = atomic_fetch_add_explicit(d, v, op->order); break; \
     case IO_OP_ATOMIC_SUB:  result = atomic_fetch_sub_explicit(d, v, op->order); break; \
     case IO_OP_ATOMIC_AND:  result = atomic_fetch_and_explicit(d, v, op->order); break; \

@@ -119,6 +119,23 @@ int sl_core_mem_write(core_t *c, u64 addr, u32 size, u32 count, void *buf) {
     return sl_mapper_io(c->mapper, &op);
 }
 
+int sl_core_mem_atomic(core_t *c, u64 addr, u32 size, u8 aop, u64 arg0, u64 arg1, u64 *result, u8 ord, u8 ord_fail) {
+    sl_io_op_t op;
+    op.addr = addr;
+    op.size = size;
+    op.op = aop;
+    op.align = 1;
+    op.order = ord;
+    op.order_fail = ord_fail;
+    op.arg[0] = arg0;
+    op.arg[1] = arg1;
+    op.agent = c;
+    int err = sl_mapper_io(c->mapper, &op);
+    if (err) return err;
+    *result = op.arg[0];
+    return 0;
+}
+
 void sl_core_set_reg(core_t *c, u32 reg, u64 value) {
     c->ops.set_reg(c, reg, value);
 }

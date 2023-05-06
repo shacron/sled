@@ -1124,6 +1124,10 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
         err = rv_exec_system(c, inst);
         break;
 
+    case OP_AMO:
+        err = rv_exec_atomic(c, inst);
+        break;
+
     default:
         err = rv_undef(c, inst);
         break;

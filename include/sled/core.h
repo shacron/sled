@@ -85,6 +85,7 @@ u64 sl_core_get_reg(core_t *c, u32 reg);
 int sl_core_set_state(core_t *c, u32 state, bool enabled);
 int sl_core_mem_read(core_t *c, u64 addr, u32 size, u32 count, void *buf);
 int sl_core_mem_write(core_t *c, u64 addr, u32 size, u32 count, void *buf);
+int sl_core_mem_atomic(core_t *c, u64 addr, u32 size, u8 aop, u64 arg0, u64 arg1, u64 *result, u8 ord, u8 ord_fail);
 u64 sl_core_get_cycles(core_t *c);
 int sl_core_set_mapper(core_t *c, sl_dev_t *d);
 

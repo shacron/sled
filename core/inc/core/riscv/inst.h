@@ -20,6 +20,8 @@
 #define OP_MISC_MEM     0b0001111 // fence
 #define OP_SYSTEM       0b1110011 // csr ecall ebreak
 
+#define OP_AMO          0b0101111 // RV32A / RV64A extension
+
 typedef union {
     u32 raw;
     struct {
