@@ -94,12 +94,18 @@ static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     if (m->mode == SL_MAP_OP_MODE_BLOCK) return SL_ERR_IO_NOMAP;
     if (m->mode == SL_MAP_OP_MODE_PASSTHROUGH) return sl_mapper_io(m->next, op);
 
+    int err = 0;
+
+    if (unlikely(IO_IS_ATOMIC(op->op))) {
+        map_ent_t *e = ent_for_address(m, op->addr);
+        if (e == NULL) return SL_ERR_IO_NOMAP;
+        return e->ep->io(e->ep, op);
+    }
+
     const u16 size = op->size;
-    u32 count = op->count;
-    u64 len = count * size;
+    u64 len = size * op->count;
     u64 addr = op->addr;
     sl_io_op_t subop = *op;
-    int err = 0;
 
     while (len) {
         // todo: check alignment

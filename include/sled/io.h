@@ -21,6 +21,8 @@
 #define IO_OP_ATOMIC_UMAX               11
 #define IO_OP_ATOMIC_UMIN               12
 
+#define IO_IS_ATOMIC(op) (op >= IO_OP_ATOMIC_SWAP)
+
 typedef struct sl_io_op sl_io_op_t;
 typedef struct sl_io_port sl_io_port_t;
 
