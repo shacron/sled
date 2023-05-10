@@ -95,16 +95,19 @@ static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     if (m->mode == SL_MAP_OP_MODE_PASSTHROUGH) return sl_mapper_io(m->next, op);
 
     int err = 0;
+    u64 addr = op->addr;
 
     if (unlikely(IO_IS_ATOMIC(op->op))) {
         map_ent_t *e = ent_for_address(m, op->addr);
         if (e == NULL) return SL_ERR_IO_NOMAP;
+
+        u64 offset = addr - e->va_base;
+        op->addr = e->pa_base + offset;
         return e->ep->io(e->ep, op);
     }
 
     const u16 size = op->size;
     u64 len = size * op->count;
-    u64 addr = op->addr;
     sl_io_op_t subop = *op;
 
     while (len) {
