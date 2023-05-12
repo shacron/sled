@@ -510,7 +510,7 @@ int rv64_exec_alu_imm32(rv_core_t *c, rv_inst_t inst) {
     return 0;
 }
 
-static int rv64_exec_alu4(rv_core_t *c, rv_inst_t inst) {
+static int rv64_exec_alu32(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     const u4 u1 = c->r[inst.r.rs1];
     const u4 u2 = c->r[inst.r.rs2];
@@ -1111,7 +1111,7 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
         break;
 
     case OP_ALU32:
-        err = rv64_exec_alu4(c, inst);
+        err = rv64_exec_alu32(c, inst);
         break;
 #endif
 
