@@ -23,147 +23,147 @@
 #define OP_AMO          0b0101111 // RV32A / RV64A extension
 
 typedef union {
-    u32 raw;
+    u4 raw;
     struct {
-        u32 opcode : 7;
-        u32 imm3   : 1;
-        u32 imm1   : 4;
-        u32 funct3 : 3;
-        u32 rs1    : 5;
-        u32 rs2    : 5;
-        u32 imm2   : 6;
-        u32 imm4   : 1;
+        u4 opcode : 7;
+        u4 imm3   : 1;
+        u4 imm1   : 4;
+        u4 funct3 : 3;
+        u4 rs1    : 5;
+        u4 rs2    : 5;
+        u4 imm2   : 6;
+        u4 imm4   : 1;
     } b;
     struct {
-        u32 opcode : 7;
-        u32 rd     : 5;
-        u32 funct3 : 3;
-        u32 rs1    : 5;
-        u32 imm    : 12;
+        u4 opcode : 7;
+        u4 rd     : 5;
+        u4 funct3 : 3;
+        u4 rs1    : 5;
+        u4 imm    : 12;
     } i;
     struct {
-        u32 opcode : 7;
-        u32 rd     : 5;
-        u32 imm3   : 8;
-        u32 imm2   : 1;
-        u32 imm1   : 10;
-        u32 imm4   : 1;
+        u4 opcode : 7;
+        u4 rd     : 5;
+        u4 imm3   : 8;
+        u4 imm2   : 1;
+        u4 imm1   : 10;
+        u4 imm4   : 1;
     } j;
     struct {
-        u32 opcode : 7;
-        u32 rd     : 5;
-        u32 funct3 : 3;
-        u32 rs1    : 5;
-        u32 rs2    : 5;
-        u32 funct7 : 7;
+        u4 opcode : 7;
+        u4 rd     : 5;
+        u4 funct3 : 3;
+        u4 rs1    : 5;
+        u4 rs2    : 5;
+        u4 funct7 : 7;
     } r;
     struct {
-        u32 opcode : 7;
-        u32 imm1   : 5;
-        u32 funct3 : 3;
-        u32 rs1    : 5;
-        u32 rs2    : 5;
-        u32 imm2   : 7;
+        u4 opcode : 7;
+        u4 imm1   : 5;
+        u4 funct3 : 3;
+        u4 rs1    : 5;
+        u4 rs2    : 5;
+        u4 imm2   : 7;
     } s;
     struct {
-        u32 opcode : 7;
-        u32 rd     : 5;
-        u32 imm    : 20;
+        u4 opcode : 7;
+        u4 rd     : 5;
+        u4 imm    : 20;
     } u;
 } rv_inst_t;
 
 typedef union {
-    u16 raw;
+    u2 raw;
     struct {
-        u16 opcode : 2;
-        u16 rs2    : 5;
-        u16 rsd    : 5;
-        u16 funct4 : 1;    // this is different from the spec definition of funct4
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 rs2    : 5;
+        u2 rsd    : 5;
+        u2 funct4 : 1;    // this is different from the spec definition of funct4
+        u2 funct3 : 3;
     } cr;
     struct {
-        u16 opcode : 2;
-        u16 imm0   : 5;
-        u16 rsd    : 5;
-        u16 imm1   : 1;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 imm0   : 5;
+        u2 rsd    : 5;
+        u2 imm1   : 1;
+        u2 funct3 : 3;
     } ci;
     struct {
-        u16 opcode : 2;
-        u16 off_6  : 2;
-        u16 off_2  : 3;
-        u16 rd     : 5;
-        u16 off_5  : 1;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 off_6  : 2;
+        u2 off_2  : 3;
+        u2 rd     : 5;
+        u2 off_5  : 1;
+        u2 funct3 : 3;
     } cilwsp;
     struct {
-        u16 opcode : 2;
-        u16 off_6  : 3;
-        u16 off_3  : 2;
-        u16 rd     : 5;
-        u16 off_5  : 1;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 off_6  : 3;
+        u2 off_3  : 2;
+        u2 rd     : 5;
+        u2 off_5  : 1;
+        u2 funct3 : 3;
     } cildsp;
     struct {
-        u16 opcode : 2;
-        u16 rs2    : 5;
-        u16 imm    : 6;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 rs2    : 5;
+        u2 imm    : 6;
+        u2 funct3 : 3;
     } css;
     struct {
-        u16 opcode : 2;
-        u16 rd     : 3;
-        u16 imm0   : 1;
-        u16 imm1   : 1;
-        u16 imm2   : 4;
-        u16 imm3   : 2;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 rd     : 3;
+        u2 imm0   : 1;
+        u2 imm1   : 1;
+        u2 imm2   : 4;
+        u2 imm3   : 2;
+        u2 funct3 : 3;
     } ciw;
     struct {
-        u16 opcode : 2;
-        u16 rd     : 3;
-        u16 imm0   : 2;
-        u16 rs     : 3;
-        u16 imm1   : 3;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 rd     : 3;
+        u2 imm0   : 2;
+        u2 rs     : 3;
+        u2 imm1   : 3;
+        u2 funct3 : 3;
     } cl;
     struct {
-        u16 opcode : 2;
-        u16 rs2    : 3;
-        u16 imm0   : 2;
-        u16 rs1    : 3;
-        u16 imm1   : 3;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 rs2    : 3;
+        u2 imm0   : 2;
+        u2 rs1    : 3;
+        u2 imm1   : 3;
+        u2 funct3 : 3;
     } cs;
     struct {
-        u16 opcode : 2;
-        u16 off_5  : 1;
-        u16 off_1  : 2;
-        u16 off_6  : 2;
-        u16 rs     : 3;
-        u16 off_3  : 2;
-        u16 off_8  : 1;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 off_5  : 1;
+        u2 off_1  : 2;
+        u2 off_6  : 2;
+        u2 rs     : 3;
+        u2 off_3  : 2;
+        u2 off_8  : 1;
+        u2 funct3 : 3;
     } cb;
     struct {
-        u16 opcode : 2;
-        u16 imm0   : 5;
-        u16 rsd    : 3;
-        u16 funct2 : 2;
-        u16 imm1   : 1;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 imm0   : 5;
+        u2 rsd    : 3;
+        u2 funct2 : 2;
+        u2 imm1   : 1;
+        u2 funct3 : 3;
     } cba; // CB-ALU format
     struct {
-        u16 opcode : 2;
-        u16 imm0   : 1;
-        u16 imm1   : 3;
-        u16 imm2   : 1;
-        u16 imm3   : 1;
-        u16 imm4   : 1;
-        u16 imm5   : 2;
-        u16 imm6   : 1;
-        u16 imm7   : 1;
-        u16 funct3 : 3;
+        u2 opcode : 2;
+        u2 imm0   : 1;
+        u2 imm1   : 3;
+        u2 imm2   : 1;
+        u2 imm3   : 1;
+        u2 imm4   : 1;
+        u2 imm5   : 2;
+        u2 imm6   : 1;
+        u2 imm7   : 1;
+        u2 funct3 : 3;
     } cj;
 } rv_cinst_t;
 

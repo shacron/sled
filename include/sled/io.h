@@ -27,20 +27,20 @@ typedef struct sl_io_op sl_io_op_t;
 typedef struct sl_io_port sl_io_port_t;
 
 struct sl_io_op {
-    u64 addr;   // bus address of target data
-    u16 size;   // size of a single entry in bytes. should be power of 2.
-    u8 op;      // IO_OP
-    u8 align;   // enforce alignment - boolean value, always true for atomics
+    u8 addr;   // bus address of target data
+    u2 size;   // size of a single entry in bytes. should be power of 2.
+    u1 op;      // IO_OP
+    u1 align;   // enforce alignment - boolean value, always true for atomics
     union {
-        u32 count;          // number of 'size' entries - used for IN, OUT
+        u4 count;          // number of 'size' entries - used for IN, OUT
         struct {
-            u8 order;       // memory order - used for all atomics
-            u8 order_fail;  // only used for IO_OP_ATOMIC_CAS
+            u1 order;       // memory order - used for all atomics
+            u1 order_fail;  // only used for IO_OP_ATOMIC_CAS
         };
     };
     union {
         void *buf;          // io buffer, used for IN, OUT
-        u64 arg[2];         // arg[0] used for all atomics, arg[1] for IO_OP_ATOMIC_CAS
+        u8 arg[2];         // arg[0] used for all atomics, arg[1] for IO_OP_ATOMIC_CAS
     };
     void *agent;            // io source, used for permission checking and attribution
 };

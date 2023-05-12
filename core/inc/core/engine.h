@@ -11,11 +11,11 @@
 struct sl_engine {
     sl_obj_t obj_;
 
-    u32 state;         // current running state
+    u4 state;         // current running state
     sl_bus_t *bus;
     sl_irq_ep_t irq_ep;
     sl_worker_t *worker;
-    u32 epid;
+    u4 epid;
     sl_event_ep_t event_ep;
     sl_engine_ops_t ops;
     void *context;

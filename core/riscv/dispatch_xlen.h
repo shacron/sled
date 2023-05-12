@@ -9,16 +9,16 @@
 
 #include "xlen.h"
 
-#define SIGN_EXT_IMM12(inst) (((i32)inst.raw) >> 20)
+#define SIGN_EXT_IMM12(inst) (((i4)inst.raw) >> 20)
 
-static inline i32 sign_extend32(i32 value, u8 valid_bits) {
-    const u8 shift = (32 - valid_bits);
-    return ((i32)((u32)value << shift) >> shift);
+static inline i4 sign_extend32(i4 value, u1 valid_bits) {
+    const u1 shift = (32 - valid_bits);
+    return ((i4)((u4)value << shift) >> shift);
 }
 
 static int XLEN_PREFIX(exec_u_type)(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
-    const uxlen_t offset = (sxlen_t)(i32)(inst.raw & 0xfffff000);
+    const uxlen_t offset = (sxlen_t)(i4)(inst.raw & 0xfffff000);
     uxlen_t result;
 
     if (inst.u.opcode == OP_AUIPC) {
@@ -38,9 +38,9 @@ static int XLEN_PREFIX(exec_u_type)(rv_core_t *c, rv_inst_t inst) {
 }
 
 static int XLEN_PREFIX(exec_jump)(rv_core_t *c, rv_inst_t inst) {
-    i32 imm = (inst.j.imm3 << 12) | (inst.j.imm2 << 11) | (inst.j.imm1 << 1);
+    i4 imm = (inst.j.imm3 << 12) | (inst.j.imm2 << 11) | (inst.j.imm1 << 1);
     // or imm4 with sign extend
-    imm |= ((i32)(inst.raw & 0x80000000)) >> (31 - 20);
+    imm |= ((i4)(inst.raw & 0x80000000)) >> (31 - 20);
 
 #if RV_TRACE
     uxlen_t trace_dest = RV_BR_TARGET(imm + c->pc, imm);
@@ -98,9 +98,9 @@ static int XLEN_PREFIX(exec_branch)(rv_core_t *c, rv_inst_t inst) {
         return rv_undef(c, inst);
     }
 
-    i32 imm = (inst.b.imm3 << 11) | (inst.b.imm2 << 5) | (inst.b.imm1 << 1);
+    i4 imm = (inst.b.imm3 << 11) | (inst.b.imm2 << 5) | (inst.b.imm1 << 1);
     // or imm4 with sign extend
-    imm |= ((i32)(inst.raw & 0x80000000)) >> (31 - 12);
+    imm |= ((i4)(inst.raw & 0x80000000)) >> (31 - 12);
     RV_TRACE_PRINT(c, "%s x%u, x%u, %#" PRIXLENx, opstr, inst.b.rs1, inst.b.rs2, (uxlen_t)RV_BR_TARGET(c->pc + imm, imm));
     if (cond) {
         c->pc = (uxlen_t)(c->pc + imm);
@@ -115,7 +115,7 @@ static int XLEN_PREFIX(exec_jalr)(rv_core_t *c, rv_inst_t inst) {
     if (inst.i.funct3 != 0)
         return rv_undef(c, inst);
 
-    const i32 imm = ((i32)inst.raw) >> 20;
+    const i4 imm = ((i4)inst.raw) >> 20;
     uxlen_t dest = c->r[inst.i.rs1] + imm;
     dest &= ~((uxlen_t)1);
 
@@ -137,30 +137,30 @@ static int XLEN_PREFIX(exec_load)(rv_core_t *c, rv_inst_t inst) {
     int err;
 
     uxlen_t x;
-    u32 w;
-    u16 h;
-    u8 b;
+    u4 w;
+    u2 h;
+    u1 b;
 
-    const i32 imm = ((i32)inst.raw) >> 20;
+    const i4 imm = ((i4)inst.raw) >> 20;
     const uxlen_t dest = c->r[inst.i.rs1] + imm;
 
     switch (inst.i.funct3) {
     case 0b000: // LB
         RV_TRACE_OPSTR("lb");
         err = sl_core_mem_read(&c->core, dest, 1, 1, &b);
-        x = (i8)b;
+        x = (i1)b;
         break;
 
     case 0b001: // LH
         RV_TRACE_OPSTR("lh");
         err = sl_core_mem_read(&c->core, dest, 2, 1, &h);
-        x = (i16)h;
+        x = (i2)h;
         break;
 
     case 0b010: // LW
         RV_TRACE_OPSTR("lw");
         err = sl_core_mem_read(&c->core, dest, 4, 1, &w);
-        x = (i32)w;
+        x = (i4)w;
         break;
 
     case 0b100: // LBU
@@ -204,31 +204,31 @@ static int XLEN_PREFIX(exec_load)(rv_core_t *c, rv_inst_t inst) {
 
 static int XLEN_PREFIX(exec_store)(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
-    const i32 imm = (((i32)inst.raw >> 20) & ~(0x1f)) | inst.s.imm1;
+    const i4 imm = (((i4)inst.raw >> 20) & ~(0x1f)) | inst.s.imm1;
     const uxlen_t dest = c->r[inst.s.rs1] + imm;
     uxlen_t val = c->r[inst.s.rs2];
-    u32 w;
-    u16 h;
-    u8 b;
+    u4 w;
+    u2 h;
+    u1 b;
     int err = 0;
 
     switch (inst.s.funct3) {
     case 0b000: // SB
-        b = (u8)val;
+        b = (u1)val;
         err = sl_core_mem_write(&c->core, dest, 1, 1, &b);
         val = b;
         RV_TRACE_OPSTR("sb");
         break;
 
     case 0b001: // SH
-        h = (u16)val;
+        h = (u2)val;
         err = sl_core_mem_write(&c->core, dest, 2, 1, &h);
         val = h;
         RV_TRACE_OPSTR("sh");
         break;
 
     case 0b010: // SW
-        w = (u32)val;
+        w = (u4)val;
         err = sl_core_mem_write(&c->core, dest, 4, 1, &w);
         val = w;
         RV_TRACE_OPSTR("sw");
@@ -256,12 +256,12 @@ static int XLEN_PREFIX(exec_store)(rv_core_t *c, rv_inst_t inst) {
 
 static int XLEN_PREFIX(exec_alu_imm)(rv_core_t *c, rv_inst_t inst) {
     const uxlen_t u1 = c->r[inst.i.rs1];
-    const i32 imm = ((i32)inst.raw) >> 20;  // sign extend immediate
-    const u32 shift = inst.i.imm & (XLEN - 1);
+    const i4 imm = ((i4)inst.raw) >> 20;  // sign extend immediate
+    const u4 shift = inst.i.imm & (XLEN - 1);
 #if USING_RV32
-    const u32 func7 = inst.i.imm >> 5;
+    const u4 func7 = inst.i.imm >> 5;
 #else
-    const u32 func7 = (inst.i.imm >> 5) & (~1);
+    const u4 func7 = (inst.i.imm >> 5) & (~1);
 #endif
     uxlen_t result;
 
@@ -293,27 +293,27 @@ static int XLEN_PREFIX(exec_alu_imm)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b010: // SLTI
         result = ((sxlen_t)u1 < imm) ? 1 : 0;
-        RV_TRACE_PRINT(c, "slti x%u, x%u, %u", inst.i.rd, inst.i.rs1, (u32)imm);
+        RV_TRACE_PRINT(c, "slti x%u, x%u, %u", inst.i.rd, inst.i.rs1, (u4)imm);
         break;
 
     case 0b011: // SLTIU
-        result = (u1 < (u32)imm) ? 1 : 0;
-        RV_TRACE_PRINT(c, "sltiu x%u, x%u, %u", inst.i.rd, inst.i.rs1, (u32)imm);
+        result = (u1 < (u4)imm) ? 1 : 0;
+        RV_TRACE_PRINT(c, "sltiu x%u, x%u, %u", inst.i.rd, inst.i.rs1, (u4)imm);
         break;
 
     case 0b100: // XORI
         result = u1 ^ (uxlen_t)imm;
-        RV_TRACE_PRINT(c, "xori x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u32)imm);
+        RV_TRACE_PRINT(c, "xori x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)imm);
         break;
 
     case 0b110: // ORI
         result = u1 | (uxlen_t)imm;
-        RV_TRACE_PRINT(c, "ori x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u32)imm);
+        RV_TRACE_PRINT(c, "ori x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)imm);
         break;
 
     case 0b111: // ANDI
         result = u1 & (uxlen_t)imm;
-        RV_TRACE_PRINT(c, "andi x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u32)imm);
+        RV_TRACE_PRINT(c, "andi x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)imm);
         break;
     }
     if (inst.i.rd != RV_ZERO) {
@@ -463,15 +463,15 @@ undef:
 #if USING_RV64
 // 32-bit instructions in 64-bit mode
 int rv64_exec_alu_imm32(rv_core_t *c, rv_inst_t inst) {
-    const i32 s1 = (u32)c->r[inst.i.rs1];
-    const u32 shift = inst.i.imm & 63;
-    i32 result;
+    const i4 s1 = (u4)c->r[inst.i.rs1];
+    const u4 shift = inst.i.imm & 63;
+    i4 result;
 
     switch (inst.i.funct3) {
     case 0b000: // ADDIW
     {
-        const i32 imm = SIGN_EXT_IMM12(inst);
-        result = (i64)(i32)(c->r[inst.i.rs1] + imm);
+        const i4 imm = SIGN_EXT_IMM12(inst);
+        result = (i8)(i4)(c->r[inst.i.rs1] + imm);
         if (imm == 0) RV_TRACE_PRINT(c, "sext.w x%u, x%u", inst.i.rd, inst.i.rs1);
         else          RV_TRACE_PRINT(c, "addiw x%u, x%u, %d", inst.i.rd, inst.i.rs1, imm);
         break;
@@ -485,10 +485,10 @@ int rv64_exec_alu_imm32(rv_core_t *c, rv_inst_t inst) {
 
     case 0b101: // SRLIW SRAIW
     {
-        const u32 imm = inst.i.imm >> 5;
+        const u4 imm = inst.i.imm >> 5;
         if (shift > 31) return rv_undef(c, inst);
         if (imm == 0) {  // SRLIW
-            result = (u32)s1 >> shift;
+            result = (u4)s1 >> shift;
             RV_TRACE_PRINT(c, "srliw x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
             break;
         } else if (imm == 0b0100000) {   // SRAIW
@@ -504,34 +504,34 @@ int rv64_exec_alu_imm32(rv_core_t *c, rv_inst_t inst) {
     }
 
     if (inst.i.rd != RV_ZERO) {
-        c->r[inst.i.rd] = (i64)result;
+        c->r[inst.i.rd] = (i8)result;
         RV_TRACE_RD(c, inst.i.rd, c->r[inst.i.rd]);
     }
     return 0;
 }
 
-static int rv64_exec_alu32(rv_core_t *c, rv_inst_t inst) {
+static int rv64_exec_alu4(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
-    const u32 u1 = c->r[inst.r.rs1];
-    const u32 u2 = c->r[inst.r.rs2];
-    const u32 shift = u2 & 0x1f;
-    u64 result;
+    const u4 u1 = c->r[inst.r.rs1];
+    const u4 u2 = c->r[inst.r.rs2];
+    const u4 shift = u2 & 0x1f;
+    u8 result;
 
     switch (inst.r.funct7) {
     case 0b0000000:
         switch (inst.r.funct3) {
         case 0b000: // ADDW
-            result = (i32)(u1 + u2);
+            result = (i4)(u1 + u2);
             RV_TRACE_OPSTR("addw");
             break;
 
         case 0b001: // SLLW
-            result = (u32)(u1 << shift);
+            result = (u4)(u1 << shift);
             RV_TRACE_OPSTR("sllw");
             break;
 
         case 0b101: // SRLW
-            result = (u32)(u1 >> shift);
+            result = (u4)(u1 >> shift);
             RV_TRACE_OPSTR("srlw");
             break;
 
@@ -543,12 +543,12 @@ static int rv64_exec_alu32(rv_core_t *c, rv_inst_t inst) {
     case 0b0100000:
         switch (inst.r.funct3) {
         case 0b000: // SUBW
-            result = (i32)(u1 - u2);
+            result = (i4)(u1 - u2);
             RV_TRACE_OPSTR("subw");
             break;
 
         case 0b101: // SRAW
-            result = (u32)(((i32)u1) >> shift);
+            result = (u4)(((i4)u1) >> shift);
             RV_TRACE_OPSTR("sraw");
             break;
 
@@ -561,32 +561,32 @@ static int rv64_exec_alu32(rv_core_t *c, rv_inst_t inst) {
         if (!(c->core.arch_options & SL_RISCV_EXT_M)) goto undef;
         switch (inst.r.funct3) {
         case 0b000: // MULW
-            result = (i32)(u1 * u2);
+            result = (i4)(u1 * u2);
             RV_TRACE_OPSTR("mulw");
             break;
 
         case 0b100: // DIVW
-            if (u2 == 0) result = ~((u64)0);
-            else         result = (i32)((i32)u1 / (i32)u2);
+            if (u2 == 0) result = ~((u8)0);
+            else         result = (i4)((i4)u1 / (i4)u2);
             RV_TRACE_OPSTR("divw");
             break;
 
         case 0b101: // DIVUW
-            if (u2 == 0) result = ~((u64)0);
-            else         result = (i32)(u1 / u2);
+            if (u2 == 0) result = ~((u8)0);
+            else         result = (i4)(u1 / u2);
             RV_TRACE_OPSTR("divuw");
             break;
 
 
         case 0b110: // REMW
-            if (u2 == 0) result = (i32)u1;
-            else         result = (i32)((i32)u1 % (i32)u2);
+            if (u2 == 0) result = (i4)u1;
+            else         result = (i4)((i4)u1 % (i4)u2);
             RV_TRACE_OPSTR("remw");
             break;
 
         case 0b111: // REMUW
-            if (u2 == 0) result = (i32)u1;
-            else         result = (i32)(u1 % u2);
+            if (u2 == 0) result = (i4)u1;
+            else         result = (i4)(u1 % u2);
             RV_TRACE_OPSTR("remuw");
             break;
 
@@ -613,18 +613,18 @@ undef:
 
 #define RVC_TO_REG(r) ((r) + 8)
 
-static int XLEN_PREFIX(dispatch_alu16)(rv_core_t *c, rv_cinst_t ci) {
+static int XLEN_PREFIX(dispatch_alu2)(rv_core_t *c, rv_cinst_t ci) {
     switch (ci.cba.funct2) {
     case 0b00:  // C.SRLI
     {
 #if USING_RV32
         if (ci.cba.imm1) return SL_ERR_UNDEF;
-        const u32 imm = ci.cba.imm0;
+        const u4 imm = ci.cba.imm0;
 #else
-        const u32 imm = CBAIMM(ci);
+        const u4 imm = CBAIMM(ci);
 #endif
         if (imm == 0) return SL_ERR_UNDEF;
-        const u32 rd = RVC_TO_REG(ci.cba.rsd);
+        const u4 rd = RVC_TO_REG(ci.cba.rsd);
         const uxlen_t result = (uxlen_t)(c->r[rd] >> imm);
         c->r[rd] = result;
         RV_TRACE_RD(c, rd, result);
@@ -636,12 +636,12 @@ static int XLEN_PREFIX(dispatch_alu16)(rv_core_t *c, rv_cinst_t ci) {
     {
 #if USING_RV32
         if (ci.cba.imm1) return SL_ERR_UNDEF;
-        const u32 imm = ci.cba.imm0;
+        const u4 imm = ci.cba.imm0;
 #else
-        const u32 imm = CBAIMM(ci);
+        const u4 imm = CBAIMM(ci);
 #endif
         if (imm == 0) return SL_ERR_UNDEF;
-        const u32 rd = RVC_TO_REG(ci.cba.rsd);
+        const u4 rd = RVC_TO_REG(ci.cba.rsd);
         const uxlen_t result = ((sxlen_t)c->r[rd]) >> imm;
         c->r[rd] = result;
         RV_TRACE_RD(c, rd, result);
@@ -652,7 +652,7 @@ static int XLEN_PREFIX(dispatch_alu16)(rv_core_t *c, rv_cinst_t ci) {
     case 0b10:  // C.ANDI
     {
         const sxlen_t imm = sign_extend32(CBAIMM(ci), 6);
-        const u32 rd = RVC_TO_REG(ci.cba.rsd);
+        const u4 rd = RVC_TO_REG(ci.cba.rsd);
         const uxlen_t result = (uxlen_t)(c->r[rd] & (uxlen_t)imm);
         c->r[rd] = result;
         RV_TRACE_RD(c, rd, result);
@@ -666,8 +666,8 @@ static int XLEN_PREFIX(dispatch_alu16)(rv_core_t *c, rv_cinst_t ci) {
 
     // case 0b11
 
-    const u32 rs2 = RVC_TO_REG(ci.cs.rs2);
-    const u32 rsd = RVC_TO_REG(ci.cs.rs1);
+    const u4 rs2 = RVC_TO_REG(ci.cs.rs2);
+    const u4 rsd = RVC_TO_REG(ci.cs.rs1);
     uxlen_t result;
     switch ((ci.cs.imm1 & 4) | ci.cs.imm0) {
     case 0b000: // C.SUB
@@ -692,12 +692,12 @@ static int XLEN_PREFIX(dispatch_alu16)(rv_core_t *c, rv_cinst_t ci) {
 
 #if USING_RV64
     case 0b100: // C.SUBW
-        result = (i32)(c->r[rsd] - c->r[rs2]);
+        result = (i4)(c->r[rsd] - c->r[rs2]);
         RV_TRACE_PRINT(c, "c.subw x%u, x%u", rsd, rs2);
         break;
 
     case 0b101: // C.ADDW
-        result = (i32)(c->r[rsd] + c->r[rs2]);
+        result = (i4)(c->r[rsd] + c->r[rs2]);
         RV_TRACE_PRINT(c, "c.addw x%u, x%u", rsd, rs2);
         break;
 
@@ -712,18 +712,18 @@ static int XLEN_PREFIX(dispatch_alu16)(rv_core_t *c, rv_cinst_t ci) {
 static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     int err = 0;
     rv_cinst_t ci;
-    ci.raw = (u16)inst.raw;
+    ci.raw = (u2)inst.raw;
 #if RV_TRACE
     c->core.trace->opcode = ci.raw;
     RV_TRACE_OPT(c, ITRACE_OPT_INST16);
 #endif
-    const u16 op = (ci.cj.opcode << 3) | ci.cj.funct3;
+    const u2 op = (ci.cj.opcode << 3) | ci.cj.funct3;
     switch (op) {
     case 0b00000:   // C.ADDI4SPN
     {
         if (ci.raw == 0) goto undef;
-        const u32 imm = CIWIMM(ci);
-        const u32 rd = RVC_TO_REG(ci.ciw.rd);
+        const u4 imm = CIWIMM(ci);
+        const u4 rd = RVC_TO_REG(ci.ciw.rd);
         c->r[rd] = (uxlen_t)(c->r[RV_SP] + imm);
         RV_TRACE_RD(c, rd, c->r[rd]);
         RV_TRACE_PRINT(c, "c.addi4spn x%u, %u", rd, imm);
@@ -734,17 +734,17 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b00010:   // C.LW
     {
-        const u32 imm = ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1 ) << 3) | ((ci.cl.imm0 & 1) << 6);
-        const u32 rs = RVC_TO_REG(ci.cl.rs);
-        const u32 rd = RVC_TO_REG(ci.cl.rd);
-        const u64 dest = c->r[rs] + imm;
+        const u4 imm = ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1 ) << 3) | ((ci.cl.imm0 & 1) << 6);
+        const u4 rs = RVC_TO_REG(ci.cl.rs);
+        const u4 rd = RVC_TO_REG(ci.cl.rd);
+        const u8 dest = c->r[rs] + imm;
 
-        u32 val;
+        u4 val;
         err = sl_core_mem_read(&c->core, dest, 4, 1, &val);
         RV_TRACE_RD(c, rd, val);
         RV_TRACE_PRINT(c, "c.lw x%u, %u(x%u)", rd, imm, rs);
         if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
-        c->r[rd] = (i32)val; // sign extend
+        c->r[rd] = (i4)val; // sign extend
         break;
     }
 
@@ -753,12 +753,12 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         goto undef; // C.FLW
 #else
     {   // C.LD
-        const u32 imm = ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1 ) << 3) | ((ci.cl.imm0 & 1) << 6);
-        const u32 rs = RVC_TO_REG(ci.cl.rs);
-        const u32 rd = RVC_TO_REG(ci.cl.rd);
-        const u64 dest = c->r[rs] + imm;
+        const u4 imm = ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1 ) << 3) | ((ci.cl.imm0 & 1) << 6);
+        const u4 rs = RVC_TO_REG(ci.cl.rs);
+        const u4 rd = RVC_TO_REG(ci.cl.rd);
+        const u8 dest = c->r[rs] + imm;
 
-        u64 val;
+        u8 val;
         err = sl_core_mem_read(&c->core, dest, 8, 1, &val);
         RV_TRACE_RD(c, rd, val);
         RV_TRACE_PRINT(c, "c.ld x%u, %u(x%u)", rd, imm, rs);
@@ -773,11 +773,11 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b00110:   // C.SW
     {
-        const u32 imm = CSIMM_SCALED_W(ci);
-        const u32 rs = RVC_TO_REG(ci.cs.rs1);
-        const u32 rd = RVC_TO_REG(ci.cs.rs2);
+        const u4 imm = CSIMM_SCALED_W(ci);
+        const u4 rs = RVC_TO_REG(ci.cs.rs1);
+        const u4 rd = RVC_TO_REG(ci.cs.rs2);
         const uxlen_t dest = c->r[rs] + imm;
-        u32 val = (u32)c->r[rd];
+        u4 val = (u4)c->r[rd];
         err = sl_core_mem_write(&c->core, dest, 4, 1, &val);
         RV_TRACE_STORE(c, dest, rd, val);
         RV_TRACE_PRINT(c, "c.sw x%u, %u(x%u)", rd, imm, rs);
@@ -790,11 +790,11 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         goto undef; // C.FSW
 #else
     {   // C.SD
-        const u32 imm = CSIMM_SCALED_D(ci);
-        const u32 rs = RVC_TO_REG(ci.cs.rs1);
-        const u32 rd = RVC_TO_REG(ci.cs.rs2);
-        const u64 dest = c->r[rs] + imm;
-        u64 val = c->r[rd];
+        const u4 imm = CSIMM_SCALED_D(ci);
+        const u4 rs = RVC_TO_REG(ci.cs.rs1);
+        const u4 rd = RVC_TO_REG(ci.cs.rs2);
+        const u8 dest = c->r[rs] + imm;
+        u8 val = c->r[rd];
         err = sl_core_mem_write(&c->core, dest, 8, 1, &val);
         RV_TRACE_STORE(c, dest, rd, val);
         RV_TRACE_PRINT(c, "c.sd x%u, %u(x%u)" PRIx64, rd, imm, rs);
@@ -811,7 +811,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         }
         // C.ADDI
         if (ci.ci.rsd == 0) goto undef;
-        const i32 imm = sign_extend32(CIIMM(ci), 6);
+        const i4 imm = sign_extend32(CIIMM(ci), 6);
         const uxlen_t result = (uxlen_t)(c->r[ci.ci.rsd] + imm);
         c->r[ci.ci.rsd] = result;
         RV_TRACE_RD(c, ci.ci.rsd, result);
@@ -823,7 +823,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     {
 #if USING_RV32
         // C.JAL
-        const i32 imm = sign_extend32(CJIMM(ci), 12);
+        const i4 imm = sign_extend32(CJIMM(ci), 12);
         const uxlen_t result = c->pc + imm;
         c->r[RV_RA] = c->pc + 2;
         RV_TRACE_RD(c, SL_CORE_REG_PC, RV_BR_TARGET(result, imm));
@@ -833,8 +833,8 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 #else
         // C.ADDIW
         if (ci.ci.rsd == 0) goto undef;
-        const i32 imm = sign_extend32(CIIMM(ci), 6);
-        const i64 result = (i32)(c->r[ci.ci.rsd] + imm);
+        const i4 imm = sign_extend32(CIIMM(ci), 6);
+        const i8 result = (i4)(c->r[ci.ci.rsd] + imm);
         c->r[ci.ci.rsd] = result;
         RV_TRACE_RD(c, ci.ci.rsd, result);
         // if imm=0, this is sext.w rd
@@ -846,7 +846,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     case 0b01010:   // C.LI
     {
         if (ci.ci.rsd == 0) goto undef;
-        const i32 val = sign_extend32(CIIMM(ci), 6);
+        const i4 val = sign_extend32(CIIMM(ci), 6);
         c->r[ci.ci.rsd] = (sxlen_t)val;
         RV_TRACE_RD(c, ci.ci.rsd, c->r[ci.ci.rsd]);
         RV_TRACE_PRINT(c, "c.li x%u, %d", ci.ci.rsd, val);
@@ -856,11 +856,11 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     case 0b01011:
         if (ci.ci.rsd == 0) goto undef;
         if (ci.ci.rsd == RV_SP) {   // C.ADDI16SP
-            const i32 imm = sign_extend32((CIMM_ADDI16SP(ci)), 10);
+            const i4 imm = sign_extend32((CIMM_ADDI16SP(ci)), 10);
             const uxlen_t sp = c->r[RV_SP] + imm;
             c->r[RV_SP] = sp;
             RV_TRACE_RD(c, RV_SP, sp);
-            RV_TRACE_PRINT(c, "c.addi16sp %d", imm);
+            RV_TRACE_PRINT(c, "c.addi2sp %d", imm);
         } else {    // C.LUI
             const sxlen_t imm = sign_extend32((CIIMM(ci) << 12), 18);
             if (imm == 0) goto undef;
@@ -871,7 +871,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         break;
 
     case 0b01100:
-        err = XLEN_PREFIX(dispatch_alu16)(c, ci);
+        err = XLEN_PREFIX(dispatch_alu2)(c, ci);
         if (err != 0) {
             if (err == SL_ERR_UNDEF) goto undef;
             return err;
@@ -880,7 +880,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b01101:   // C.J
     {
-        const i32 imm = sign_extend32(CJIMM(ci), 12);
+        const i4 imm = sign_extend32(CJIMM(ci), 12);
         uxlen_t result = c->pc + imm;
         RV_TRACE_RD(c, SL_CORE_REG_PC, result);
         RV_TRACE_PRINT(c, "c.j %#" PRIXLENx, RV_BR_TARGET(result, imm));
@@ -891,8 +891,8 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b01110:   // C.BEQZ
     {
-        const i32 imm = sign_extend32(CBIMM(ci), 9);
-        const u32 rs = RVC_TO_REG(ci.cb.rs);
+        const i4 imm = sign_extend32(CBIMM(ci), 9);
+        const u4 rs = RVC_TO_REG(ci.cb.rs);
         const uxlen_t result = (uxlen_t)(c->pc + imm);
         if (c->r[rs] == 0) {
             c->pc = result;
@@ -905,8 +905,8 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b01111:   // C.BNEZ
     {
-        const i32 imm = sign_extend32(CBIMM(ci), 9);
-        const u32 rs = RVC_TO_REG(ci.cb.rs);
+        const i4 imm = sign_extend32(CBIMM(ci), 9);
+        const u4 rs = RVC_TO_REG(ci.cb.rs);
         const uxlen_t result = (uxlen_t)(c->pc + imm);
         if (c->r[rs] != 0) {
             c->pc = result;
@@ -922,9 +922,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         else {
 #if USING_RV32
             if (ci.ci.imm1) goto undef;
-            const i32 imm = ci.ci.imm0;
+            const i4 imm = ci.ci.imm0;
 #else
-            const i32 imm = CIIMM(ci);
+            const i4 imm = CIIMM(ci);
 #endif
             if (imm == 0) goto undef;
             const uxlen_t result = (uxlen_t)(c->r[ci.ci.rsd] << imm);
@@ -939,10 +939,10 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     case 0b10010:   // C.LWSP
         if (ci.cilwsp.rd == RV_ZERO) goto undef;
         else {
-            const u32 imm = CILWSPIMM(ci);
+            const u4 imm = CILWSPIMM(ci);
             const uxlen_t addr = c->r[RV_SP] + imm;
 
-            u32 val;
+            u4 val;
             err = sl_core_mem_read(&c->core, addr, 4, 1, &val);
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.lwsp x%u, %u", ci.ci.rsd, imm);
@@ -958,9 +958,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         if (ci.ci.rsd == RV_ZERO) goto undef;
         else {
             // C.LDSP
-            const u32 imm = CLIDSPIMM(ci);
-            const u64 addr = c->r[RV_SP] + imm;
-            u64 val;
+            const u4 imm = CLIDSPIMM(ci);
+            const u8 addr = c->r[RV_SP] + imm;
+            u8 val;
             err = sl_core_mem_read(&c->core, addr, 8, 1, &val);
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.ldsp x%u, %u", ci.ci.rsd, imm);
@@ -1017,9 +1017,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b10110:   // C.SWSP
     {
-        const u32 imm = CSSIMM_SCALED_W(ci);
+        const u4 imm = CSSIMM_SCALED_W(ci);
         const uxlen_t addr = c->r[RV_SP] + imm;
-        u32 val = c->r[ci.css.rs2];
+        u4 val = c->r[ci.css.rs2];
         err = sl_core_mem_write(&c->core, addr, 4, 1, &val);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
         RV_TRACE_PRINT(c, "c.swsp x%u, %u", ci.css.rs2, imm);
@@ -1032,9 +1032,9 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         goto undef; // C.FSWSP
 #else
     {   // C.SDSP
-        const u32 imm = CSSIMM_SCALED_D(ci);
-        const u64 addr = c->r[RV_SP] + imm;
-        u64 val = c->r[ci.css.rs2];
+        const u4 imm = CSSIMM_SCALED_D(ci);
+        const u8 addr = c->r[RV_SP] + imm;
+        u8 val = c->r[ci.css.rs2];
         err = sl_core_mem_write(&c->core, addr, 8, 1, &val);
         RV_TRACE_STORE(c, addr, ci.css.rs2, val);
         RV_TRACE_PRINT(c, "c.sdsp x%u, %u", ci.css.rs2, imm);
@@ -1111,7 +1111,7 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
         break;
 
     case OP_ALU32:
-        err = rv64_exec_alu32(c, inst);
+        err = rv64_exec_alu4(c, inst);
         break;
 #endif
 

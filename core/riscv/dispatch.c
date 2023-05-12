@@ -28,7 +28,7 @@
 #define MONITOR_ARMED64 2
 
 #if RV_TRACE
-static void rv_fence_op_name(u8 op, char *s) {
+static void rv_fence_op_name(u1 op, char *s) {
     if (op & FENCE_I) *s++ = 'i';
     if (op & FENCE_O) *s++ = 'o';
     if (op & FENCE_R) *s++ = 'r';
@@ -42,9 +42,9 @@ int rv_exec_mem(rv_core_t *c, rv_inst_t inst) {
     switch (inst.i.funct3) {
     case 0b000:
     { // FENCE
-        const u32 succ = inst.i.imm & 0xf;
-        const u32 pred = (inst.i.imm >> 4) & 0xf;
-        u32 bar = 0;
+        const u4 succ = inst.i.imm & 0xf;
+        const u4 pred = (inst.i.imm >> 4) & 0xf;
+        u4 bar = 0;
         if (pred & (FENCE_W | FENCE_O)) bar |= BARRIER_STORE;
         if (succ & (FENCE_R | FENCE_I)) bar |= BARRIER_LOAD;
         if ((pred & (FENCE_I | FENCE_O)) || (succ & (FENCE_I | FENCE_O))) bar |= BARRIER_SYSTEM;
@@ -72,20 +72,20 @@ undef:
     return rv_undef(c, inst);
 }
 
-static int rv_atomic_alu32(rv_core_t *c, u64 addr, u8 op, u32 operand, u8 rd, u8 ord) {
-    u64 result;
+static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 ord) {
+    u8 result;
     int err;
     c->monitor_status = MONITOR_UNARMED;
     if ((err = sl_core_mem_atomic(&c->core, addr, 4, op, operand, 0, &result, ord, memory_order_relaxed))) return err;
     if (rd != RV_ZERO) {
-        c->r[rd] = (u32)result;
+        c->r[rd] = (u4)result;
         RV_TRACE_RD(c, rd, c->r[rd]);
     }
     return 0;
 }
 
-static int rv_atomic_alu64(rv_core_t *c, u64 addr, u8 op, u32 operand, u8 rd, u8 ord) {
-    u64 result;
+static int rv_atomic_alu64(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 ord) {
+    u8 result;
     int err;
     c->monitor_status = MONITOR_UNARMED;
     if ((err = sl_core_mem_atomic(&c->core, addr, 8, op, operand, 0, &result, ord, memory_order_relaxed))) return err;
@@ -104,12 +104,12 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
     };
 
     int err = 0;
-    const u8 op = inst.r.funct7 >> 2;
-    const u8 barrier = inst.r.funct7 & 3;   // 1: acquire, 0: release
-    const u8 ord = ord_index[barrier];
-    const u8 rd = inst.r.rd;
-    const u64 addr = c->r[inst.r.rs1];
-    u64 result;
+    const u1 op = inst.r.funct7 >> 2;
+    const u1 barrier = inst.r.funct7 & 3;   // 1: acquire, 0: release
+    const u1 ord = ord_index[barrier];
+    const u1 rd = inst.r.rd;
+    const u8 addr = c->r[inst.r.rs1];
+    u8 result;
 
 #if RV_TRACE
     const char *bstr_index[] = { "", ".rl", ".aq", ".aqrl" };
@@ -127,7 +127,7 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             c->monitor_addr = addr;
             c->monitor_status = MONITOR_UNARMED;
             if (barrier & 1) atomic_thread_fence(memory_order_release);
-            u32 w;
+            u4 w;
             if ((err = sl_core_mem_read(&c->core, addr, 4, 1, &w))) break;
             if (barrier & 2) atomic_thread_fence(memory_order_acquire);
             c->monitor_value = w;
@@ -153,7 +153,7 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             // todo: clarify if barrier is invoked on failure and ord_failure needs to be set
             if ((err = sl_core_mem_atomic(&c->core, addr, 4, IO_OP_ATOMIC_CAS, c->r[inst.r.rs2], c->monitor_value, &result, ord, ord))) return err;
             if (rd != RV_ZERO) {
-                c->r[rd] = (u32)result;
+                c->r[rd] = (u4)result;
                 RV_TRACE_RD(c, rd, c->r[rd]);
             }
             c->monitor_status = MONITOR_UNARMED;
@@ -219,7 +219,7 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             c->monitor_addr = addr;
             c->monitor_status = MONITOR_UNARMED;
             if (barrier & 1) atomic_thread_fence(memory_order_release);
-            u64 d;
+            u8 d;
             if ((err = sl_core_mem_read(&c->core, addr, 8, 1, &d))) break;
             if (barrier & 2) atomic_thread_fence(memory_order_acquire);
             c->monitor_value = d;
@@ -379,7 +379,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
 
     // CSR instruction
 
-    const u32 csr_op = inst.i.funct3;
+    const u4 csr_op = inst.i.funct3;
     RV_TRACE_DECL_OPSTR;
 
     switch (csr_op) {
@@ -392,7 +392,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     default: goto undef;
     }
 
-    u64 value;
+    u8 value;
     int op = (csr_op & 3);
     const bool csr_imm = csr_op & 0b100;
     if (csr_imm) value = inst.i.rs1; // treat rs1 as immediate value
@@ -404,7 +404,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         if (value == 0) op = RV_CSR_OP_READ;
     }
 
-    const u32 csr_addr = inst.i.imm;
+    const u4 csr_addr = inst.i.imm;
 #ifdef RV_TRACE
     const char *name = c->ext.name_for_sysreg(c, csr_addr);
     char namebuf[16];
@@ -430,7 +430,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     }
 
     if (inst.i.rd != RV_ZERO) {
-        if (c->mode == RV_MODE_RV32) result.value = (u32)result.value;
+        if (c->mode == RV_MODE_RV32) result.value = (u4)result.value;
         c->r[inst.i.rd] = result.value;
     }
 
@@ -450,7 +450,7 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_dispatch(rv_core_t *c, u32 instruction) {
+int rv_dispatch(rv_core_t *c, u4 instruction) {
     rv_inst_t inst;
     inst.raw = instruction;
     int err;
@@ -491,7 +491,7 @@ int rv_dispatch(rv_core_t *c, u32 instruction) {
                 len += snprintf(buf + len, BUFLEN - len, "; %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
             const char *n = c->ext.name_for_sysreg(c, tr.addr);
             if (n == NULL)
-                len += snprintf(buf + len, BUFLEN - len, " csr(%#x) = %#" PRIx64, (u32)tr.addr, tr.aux_value);
+                len += snprintf(buf + len, BUFLEN - len, " csr(%#x) = %#" PRIx64, (u4)tr.addr, tr.aux_value);
             else
                 len += snprintf(buf + len, BUFLEN - len, " %s = %#" PRIx64, n, tr.aux_value);
         } else if (tr.options & ITRACE_OPT_INST_STORE) {
@@ -505,7 +505,7 @@ int rv_dispatch(rv_core_t *c, u32 instruction) {
         if (c->jump_taken) {
             sym_entry_t *e = core_get_sym_for_addr(&c->core, c->pc);
             if (e != NULL) {
-                u64 dist = c->pc - e->addr;
+                u8 dist = c->pc - e->addr;
                 printf("<%s+%#"PRIx64">:\n", e->name, dist);
             }
         }

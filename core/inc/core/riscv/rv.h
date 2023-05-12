@@ -17,36 +17,36 @@
 #define RV_OP_SRET      RV_PL_SUPERVISOR
 
 typedef struct {
-    u64 scratch;
-    u64 epc;
-    u64 cause;
-    u64 tval;
-    u64 ip;
-    u64 isa;
-    u64 edeleg;
-    u64 ideleg;
-    u64 ie;
-    u64 tvec;
-    u64 counteren;
+    u8 scratch;
+    u8 epc;
+    u8 cause;
+    u8 tval;
+    u8 ip;
+    u8 isa;
+    u8 edeleg;
+    u8 ideleg;
+    u8 ie;
+    u8 tvec;
+    u8 counteren;
 } rv_sr_pl_t;
 
 typedef struct {
-    result64_t (*csr_op)(rv_core_t *c, int op, u32 csr, u64 value);
-    const char *(*name_for_sysreg)(rv_core_t *c, u16 num);
+    result64_t (*csr_op)(rv_core_t *c, int op, u4 csr, u8 value);
+    const char *(*name_for_sysreg)(rv_core_t *c, u2 num);
     void (*destroy)(void *ext_private);
 } rv_isa_extension_t;
 
 struct rv_core {
     core_t core;
-    u8 mode;
-    u8 pl;     // privilege level
-    u8 jump_taken;
-    u8 c_inst; // was the last dispatched instruction a C type short instruction?
+    u1 mode;
+    u1 pl;     // privilege level
+    u1 jump_taken;
+    u1 c_inst; // was the last dispatched instruction a C type short instruction?
 
-    u64 pc;
-    u64 r[32];
+    u8 pc;
+    u8 r[32];
 
-    u64 status;
+    u8 status;
 
     uint64_t monitor_addr;
     uint64_t monitor_value;
@@ -54,34 +54,34 @@ struct rv_core {
 
     // system registers
     rv_sr_pl_t sr_pl[3];
-    u64 mvendorid;
-    u64 marchid;
-    u64 mimpid;
-    u64 mhartid;
-    u64 mconfigptr;
+    u8 mvendorid;
+    u8 marchid;
+    u8 mimpid;
+    u8 mhartid;
+    u8 mconfigptr;
 
-    u64 stap;
+    u8 stap;
 
     // offsets for calculating these from running counters
-    i64 mcycle_offset;
-    i64 minstret_offset;
+    i8 mcycle_offset;
+    i8 minstret_offset;
 
-    u32 pmpcfg[16];
-    u64 pmpaddr[64];
-    u64 mhpmcounter[29];
-    u64 mhpevent[29]; // mhpevent3-mhpevent31
+    u4 pmpcfg[16];
+    u8 pmpaddr[64];
+    u8 mhpmcounter[29];
+    u8 mhpevent[29]; // mhpevent3-mhpevent31
 
     rv_isa_extension_t ext; // isa extension
     void *ext_private;
 };
 
-int rv_dispatch(rv_core_t *c, u32 instruction);
+int rv_dispatch(rv_core_t *c, u4 instruction);
 
-int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u64 value, u32 status);
-int rv_exception_enter(rv_core_t *c, u64 cause, u64 addr);
-int rv_exception_return(rv_core_t *c, u8 op);
+int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status);
+int rv_exception_enter(rv_core_t *c, u8 cause, u8 addr);
+int rv_exception_return(rv_core_t *c, u1 op);
 
-rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u8 pl);
+rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u1 pl);
 
-const char *rv_name_for_reg(u32 reg);
-u32 rv_reg_for_name(const char *name);
+const char *rv_name_for_reg(u4 reg);
+u4 rv_reg_for_name(const char *name);

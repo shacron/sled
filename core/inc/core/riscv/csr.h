@@ -34,91 +34,91 @@
 // fields starting with m_ are only available in M mode, otherwise wpri
 
 typedef union {
-    u32 raw;
+    u4 raw;
     struct {
-        u32 _wpri0:1;  // write preserve, read ignore
-        u32 sie:1;     // s-mode interrupts enabled
-        u32 _wpri1:1;  // -------------
-        u32 m_mie:1;   // m-mode interrupts enabled
-        u32 _wpri2:1;  // -------------
-        u32 spie:1;    // s-mode interrupt state prior to exception
-        u32 ube:1;     // big endian
-        u32 m_mpie:1;  // m-mode interrupt state prior to exception
-        u32 spp:1;     // s-mode prior privilege
-        u32 vs:2;      // vector state
-        u32 m_mpp:2;   // m-mode prior privilege
-        u32 fs:2;      // floating point state
-        u32 xs:2;      // user mode extension state
-        u32 m_mprv:1;  // effective memory privilege mode
-        u32 sum:1;     // supervisor user memory access
-        u32 mxr:1;     // make executable readable
-        u32 m_tvm:1;   // trap virtual memory
-        u32 m_tw:1;    // timeout wait
-        u32 m_tsr:1;   // trap SRET
-        u32 _wpri3:8;  // -------------
-        u32 sd:1;      // (32-bit only) something dirty (fs/vs/xs)
+        u4 _wpri0:1;  // write preserve, read ignore
+        u4 sie:1;     // s-mode interrupts enabled
+        u4 _wpri1:1;  // -------------
+        u4 m_mie:1;   // m-mode interrupts enabled
+        u4 _wpri2:1;  // -------------
+        u4 spie:1;    // s-mode interrupt state prior to exception
+        u4 ube:1;     // big endian
+        u4 m_mpie:1;  // m-mode interrupt state prior to exception
+        u4 spp:1;     // s-mode prior privilege
+        u4 vs:2;      // vector state
+        u4 m_mpp:2;   // m-mode prior privilege
+        u4 fs:2;      // floating point state
+        u4 xs:2;      // user mode extension state
+        u4 m_mprv:1;  // effective memory privilege mode
+        u4 sum:1;     // supervisor user memory access
+        u4 mxr:1;     // make executable readable
+        u4 m_tvm:1;   // trap virtual memory
+        u4 m_tw:1;    // timeout wait
+        u4 m_tsr:1;   // trap SRET
+        u4 _wpri3:8;  // -------------
+        u4 sd:1;      // (32-bit only) something dirty (fs/vs/xs)
     };
 } csr_status_t;
 
 typedef struct {
-    u32 _wpri0:4;  // write preserve, read ignore
-    u32 sbe:1;     // s-mode big endian
-    u32 m_mbe:1;   // m-mode big endian
-    u32 _wpri1:26; // -------------
+    u4 _wpri0:4;  // write preserve, read ignore
+    u4 sbe:1;     // s-mode big endian
+    u4 m_mbe:1;   // m-mode big endian
+    u4 _wpri1:26; // -------------
 } csr_statush_t;
 
 typedef union {
-    u64 raw;
+    u8 raw;
     struct {
-        u64 _wpri0:1;  // write preserve, read ignore
-        u64 sie:1;     // s-mode interrupts enabled
-        u64 _wpri1:1;  // -------------
-        u64 m_mie:1;   // m-mode interrupts enabled
-        u64 _wpri2:1;  // -------------
-        u64 spie:1;    // s-mode interrupt state prior to exception
-        u64 ube:1;     // big endian
-        u64 m_mpie:1;  // m-mode interrupt state prior to exception
-        u64 spp:1;     // s-mode prior privilege
-        u64 vs:2;      // vector state
-        u64 m_mpp:2;   // m-mode prior privilege
-        u64 fs:2;      // floating point state
-        u64 xs:2;      // user mode extension state
-        u64 m_mprv:1;  // effective memory privilege mode
-        u64 sum:1;     // supervisor user memory access
-        u64 mxr:1;     // make executable readable
-        u64 m_tvm:1;   // trap virtual memory
-        u64 m_tw:1;    // timeout wait
-        u64 m_tsr:1;   // trap SRET
-        u64 _wpri3:9;  // -------------
-        u64 uxl:2;     // 64-bit only: u-mode xlen
-        u64 sxl:2;     // 64-bit only: s-mode xlen
-        u64 sbe:1;     // s-mode big endian
-        u64 m_mbe:1;   // m-mode big endian
-        u64 _wpri4:25; // -------------
-        u64 sd:1;      // something dirty (fs/vs/xs)
+        u8 _wpri0:1;  // write preserve, read ignore
+        u8 sie:1;     // s-mode interrupts enabled
+        u8 _wpri1:1;  // -------------
+        u8 m_mie:1;   // m-mode interrupts enabled
+        u8 _wpri2:1;  // -------------
+        u8 spie:1;    // s-mode interrupt state prior to exception
+        u8 ube:1;     // big endian
+        u8 m_mpie:1;  // m-mode interrupt state prior to exception
+        u8 spp:1;     // s-mode prior privilege
+        u8 vs:2;      // vector state
+        u8 m_mpp:2;   // m-mode prior privilege
+        u8 fs:2;      // floating point state
+        u8 xs:2;      // user mode extension state
+        u8 m_mprv:1;  // effective memory privilege mode
+        u8 sum:1;     // supervisor user memory access
+        u8 mxr:1;     // make executable readable
+        u8 m_tvm:1;   // trap virtual memory
+        u8 m_tw:1;    // timeout wait
+        u8 m_tsr:1;   // trap SRET
+        u8 _wpri3:9;  // -------------
+        u8 uxl:2;     // 64-bit only: u-mode xlen
+        u8 sxl:2;     // 64-bit only: s-mode xlen
+        u8 sbe:1;     // s-mode big endian
+        u8 m_mbe:1;   // m-mode big endian
+        u8 _wpri4:25; // -------------
+        u8 sd:1;      // something dirty (fs/vs/xs)
     };
 } csr_status64_t;
 
 typedef struct {
-    u32 cy:1;
-    u32 tm:1;
-    u32 ir:1;
-    u32 hpm:29; // hpm3 ... hpm31
+    u4 cy:1;
+    u4 tm:1;
+    u4 ir:1;
+    u4 hpm:29; // hpm3 ... hpm31
 } csr_counteren_t;
 
 
 typedef union {
-    u32 raw;
+    u4 raw;
     struct {
-        u32 num:4;
-        u32 func:4;
-        u32 level:2;
-        u32 type:2;
-        u32 _unused:20;
+        u4 num:4;
+        u4 func:4;
+        u4 level:2;
+        u4 type:2;
+        u4 _unused:20;
     } f;
 } csr_addr_t;
 
-result64_t rv_csr_op(rv_core_t *c, int op, u32 csr, u64 value);
-result64_t rv_csr_update(rv_core_t *c, int op, u64 *reg, u64 update_value);
+result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value);
+result64_t rv_csr_update(rv_core_t *c, int op, u8 *reg, u8 update_value);
 
-const char *rv_name_for_sysreg(rv_core_t *c, u16 num);
+const char *rv_name_for_sysreg(rv_core_t *c, u2 num);

@@ -21,11 +21,11 @@ struct sl_event_ep {
 
 struct sl_event {
     sl_list_node_t node;        // internal, should be zero
-    u32 epid;              // endpoint id
-    u32 type;              // user-defined
-    u32 flags;             // combination of zero or more S_EV_FLAGs
-    u32 option;            // user-defined
-    u64 arg[4];            // user-defined
+    u4 epid;              // endpoint id
+    u4 type;              // user-defined
+    u4 flags;             // combination of zero or more S_EV_FLAGs
+    u4 option;            // user-defined
+    u8 arg[4];            // user-defined
     uintptr_t signal;           // internal, should be zero
     int (*callback)(sl_event_t *ev); // NULL unless epid is SL_EV_EP_CALLBACK
     void *cookie;               // user-defined, may be NULL

@@ -43,9 +43,9 @@ extern "C" {
 #define SL_RISCV_EXT_V         (1u << 11)  // vector
 #define SL_RISCV_EXT_N         (1u << 12)  // user-level interrupts
 
-const char *sl_arch_name(u8 arch);
-u32 sl_arch_reg_for_name(u8 arch, const char *name);
-u32 sl_arch_get_reg_count(u8 arch, u8 subarch, int type);
+const char *sl_arch_name(u1 arch);
+u4 sl_arch_reg_for_name(u1 arch, const char *name);
+u4 sl_arch_get_reg_count(u1 arch, u1 subarch, int type);
 
 #ifdef __cplusplus
 }

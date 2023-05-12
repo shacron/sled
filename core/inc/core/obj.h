@@ -18,15 +18,15 @@ typedef struct sl_obj sl_obj_t;
 typedef struct sl_obj_vtable sl_obj_vtable_t;
 
 struct sl_obj_vtable {
-    u8 type;
+    u1 type;
     void (*shutdown)(void *o);
 };
 
 struct sl_obj {
-    u16 refcount;
-    u8 type;
-    u8 flags;
-    u32 id;
+    u2 refcount;
+    u1 type;
+    u1 flags;
+    u4 id;
     const char *name;
     const sl_obj_vtable_t *vtab;
 };

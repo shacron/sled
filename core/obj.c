@@ -7,7 +7,7 @@
 
 static atomic_uint_least32_t g_obj_id = 0;
 
-static void obj_init_common(sl_obj_t *o, const char *name, const sl_obj_vtable_t *vtab, u8 flags) {
+static void obj_init_common(sl_obj_t *o, const char *name, const sl_obj_vtable_t *vtab, u1 flags) {
     o->refcount = 1;
     o->type = vtab->type;
     o->flags = flags;
@@ -43,13 +43,13 @@ void sl_obj_retain(sl_obj_t *o) {
     assert(o != NULL);
     assert(o->type != SL_OBJ_TYPE_INVALID);
 
-    atomic_fetch_add_explicit((_Atomic u16 *)&o->refcount, 1, memory_order_relaxed);
+    atomic_fetch_add_explicit((_Atomic u2 *)&o->refcount, 1, memory_order_relaxed);
 }
 
 void sl_obj_release(sl_obj_t *o) {
     if (o == NULL) return;
     assert(o->refcount > 0);
-    atomic_fetch_sub_explicit((_Atomic u16 *)&o->refcount, 1, memory_order_relaxed);
+    atomic_fetch_sub_explicit((_Atomic u2 *)&o->refcount, 1, memory_order_relaxed);
     if (o->refcount == 0) {
         // printf("obj_release shutting down %s\n", o->name);
         if (o->vtab->shutdown != NULL) o->vtab->shutdown(o);

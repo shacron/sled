@@ -21,7 +21,7 @@
 
 // Called in device context
 // Send a message to dispatch loop to handle interrupt change
-static int engine_irq_transition_async(sl_irq_ep_t *ep, u32 num, bool high) {
+static int engine_irq_transition_async(sl_irq_ep_t *ep, u4 num, bool high) {
     sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
 
@@ -49,7 +49,7 @@ static void engine_set_wfi(sl_engine_t *e, bool enable) {
 
 static int engine_handle_irq_event(sl_engine_t *e, sl_event_t *ev) {
     sl_irq_ep_t *ep = &e->irq_ep;
-    u32 num = ev->arg[0];
+    u4 num = ev->arg[0];
     bool high = ev->arg[1];
     int err = sl_irq_endpoint_assert(ep, num, high);
     return err;
@@ -63,7 +63,7 @@ static void engine_shutdown(void *o) {
 void sl_engine_set_context(sl_engine_t *e, void *ctx) { e->context = ctx; }
 void * sl_engine_get_context(sl_engine_t *e) { return e->context; }
 
-int sl_engine_async_command(sl_engine_t *e, u32 cmd, bool wait) {
+int sl_engine_async_command(sl_engine_t *e, u4 cmd, bool wait) {
     sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
     ev->epid = e->epid;
@@ -91,7 +91,7 @@ const sl_engine_ops_t * engine_get_ops(sl_engine_t *e) {
 }
 
 void sl_engine_interrupt_set(sl_engine_t *e, bool enable) {
-    u32 bit = (1u << SL_CORE_STATE_INTERRUPTS_EN);
+    u4 bit = (1u << SL_CORE_STATE_INTERRUPTS_EN);
     if (enable) e->state |= bit;
     else e->state &= ~bit;
 }
@@ -140,7 +140,7 @@ int sl_engine_handle_interrupts(sl_engine_t *e) {
     return e->ops.interrupt(e);
 }
 
-int sl_engine_step(sl_engine_t *e, u64 num) {
+int sl_engine_step(sl_engine_t *e, u8 num) {
     return sl_worker_step(e->worker, num);
 }
 

@@ -78,10 +78,10 @@ int sl_io_for_data(void *data, sl_io_op_t *op) {
     if ((uptr)data & (sizeof(op->size) - 1)) return SL_ERR_IO_ALIGN;
 
     switch (op->size) {
-    case 1: ATOMIC_OP(op, data, u8, i8);      break;
-    case 2: ATOMIC_OP(op, data, u16, i16);    break;
-    case 4: ATOMIC_OP(op, data, u32, i32);    break;
-    case 8: ATOMIC_OP(op, data, u64, i64);    break;
+    case 1: ATOMIC_OP(op, data, u1, i1);      break;
+    case 2: ATOMIC_OP(op, data, u2, i2);    break;
+    case 4: ATOMIC_OP(op, data, u4, i4);    break;
+    case 8: ATOMIC_OP(op, data, u8, i8);    break;
     default:
         return SL_ERR_IO_SIZE;
     }

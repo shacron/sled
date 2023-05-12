@@ -12,7 +12,7 @@
 #include <sled/error.h>
 
 // default irq handler wrapper
-static int device_accept_irq(sl_irq_ep_t *ep, u32 num, bool high) {
+static int device_accept_irq(sl_irq_ep_t *ep, u4 num, bool high) {
     if (num > 31) return SL_ERR_ARG;
     sl_dev_t *d = containerof(ep, sl_dev_t, irq_ep);
     dev_lock(d);
@@ -21,11 +21,11 @@ static int device_accept_irq(sl_irq_ep_t *ep, u32 num, bool high) {
     return err;
 }
 
-static int dev_dummy_read(void *d, u64 addr, u32 size, u32 count, void *buf) {
+static int dev_dummy_read(void *d, u8 addr, u4 size, u4 count, void *buf) {
     return SL_ERR_IO_NORD;
 }
 
-static int dev_dummy_write(void *d, u64 addr, u32 size, u32 count, void *buf) {
+static int dev_dummy_write(void *d, u8 addr, u4 size, u4 count, void *buf) {
     return SL_ERR_IO_NOWR;
 }
 
@@ -48,7 +48,7 @@ sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d) { return &d->irq_ep; }
 sl_mapper_t * sl_device_get_mapper(sl_dev_t *d) { return d->mapper; }
 void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m) { d->mapper = m; }
 
-void sl_device_set_worker(sl_dev_t *d, sl_worker_t *w, u32 epid) {
+void sl_device_set_worker(sl_dev_t *d, sl_worker_t *w, u4 epid) {
     d->worker = w;
     d->worker_epid = epid;
 }
@@ -67,7 +67,7 @@ static int device_ep_handle_event(sl_event_ep_t *ep, sl_event_t *ev) {
     return mapper_update(d->mapper, ev);
 }
 
-int sl_device_update_mapper_async(sl_dev_t *d, u32 ops, u32 count, sl_mapping_t *ent_list) {
+int sl_device_update_mapper_async(sl_dev_t *d, u4 ops, u4 count, sl_mapping_t *ent_list) {
     if (d->worker == NULL) return SL_ERR_UNSUPPORTED;
     if (d->mapper == NULL) return SL_ERR_UNSUPPORTED;
 
@@ -104,7 +104,7 @@ static const sl_obj_vtable_t device_vtab = {
     .shutdown = device_obj_shutdown,
 };
 
-static void device_init_common(sl_dev_t *d, u32 type, const sl_dev_ops_t *ops) {
+static void device_init_common(sl_dev_t *d, u4 type, const sl_dev_ops_t *ops) {
     d->type = type;
     d->irq_ep.assert = device_accept_irq;
     lock_init(&d->lock);
@@ -116,12 +116,12 @@ static void device_init_common(sl_dev_t *d, u32 type, const sl_dev_ops_t *ops) {
     if (d->ops.release == NULL) d->ops.release = dev_dummy_release;
 }
 
-void device_embedded_init(sl_dev_t *d, u32 type, const char *name, const sl_dev_ops_t *ops) {
+void device_embedded_init(sl_dev_t *d, u4 type, const char *name, const sl_dev_ops_t *ops) {
     sl_obj_embedded_init(&d->obj_, name, &device_vtab);
     device_init_common(d, type, ops);
 }
 
-int sl_device_allocate(u32 type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
+int sl_device_allocate(u4 type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
     sl_dev_t *d = sl_obj_allocate(sizeof(*d), name, &device_vtab);
     if (d == NULL) return SL_ERR_MEM;
     *dev_out = d;

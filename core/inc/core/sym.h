@@ -3,16 +3,16 @@
 #include <core/types.h>
 
 struct sym_entry {
-    u64 addr;
-    u64 size;
-    u32 flags;
+    u8 addr;
+    u8 size;
+    u4 flags;
     char *name;
 };
 
 struct sym_list {
     sym_list_t *next;
     char *name;
-    u64 num;
+    u8 num;
     sym_entry_t *ent;
 };
 

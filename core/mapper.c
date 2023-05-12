@@ -13,11 +13,11 @@
 #define MAP_ALLOC_INCREMENT 256
 
 struct map_ent {
-    u64 va_base;
-    u64 va_end;
-    u64 pa_base;
-    u32 domain;
-    u16 permissions;
+    u8 va_base;
+    u8 va_end;
+    u8 pa_base;
+    u4 domain;
+    u2 permissions;
     sl_map_ep_t *ep;
 };
 
@@ -64,10 +64,10 @@ int sl_mappper_add_mapping(sl_mapper_t *m, sl_mapping_t *ent) {
     return 0;
 }
 
-static map_ent_t * ent_for_address(sl_mapper_t *m, u64 addr) {
+static map_ent_t * ent_for_address(sl_mapper_t *m, u8 addr) {
     if (m->num_ents == 0) return NULL;
 
-    u32 start, end, cur;
+    u4 start, end, cur;
     start = 0;
     end = m->num_ents;
 
@@ -95,19 +95,19 @@ static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     if (m->mode == SL_MAP_OP_MODE_PASSTHROUGH) return sl_mapper_io(m->next, op);
 
     int err = 0;
-    u64 addr = op->addr;
+    u8 addr = op->addr;
 
     if (unlikely(IO_IS_ATOMIC(op->op))) {
         map_ent_t *e = ent_for_address(m, op->addr);
         if (e == NULL) return SL_ERR_IO_NOMAP;
 
-        u64 offset = addr - e->va_base;
+        u8 offset = addr - e->va_base;
         op->addr = e->pa_base + offset;
         return e->ep->io(e->ep, op);
     }
 
-    const u16 size = op->size;
-    u64 len = size * op->count;
+    const u2 size = op->size;
+    u8 len = size * op->count;
     sl_io_op_t subop = *op;
 
     while (len) {
@@ -117,8 +117,8 @@ static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
         if (e == NULL)
             return SL_ERR_IO_NOMAP;
 
-        u64 offset = addr - e->va_base;
-        u64 avail = e->va_end - e->va_base - offset;
+        u8 offset = addr - e->va_base;
+        u8 avail = e->va_end - e->va_base - offset;
         if (avail > len) avail = len;
 
         // todo: verify we are not lopping off trailing bytes
@@ -143,16 +143,16 @@ int mapper_update(sl_mapper_t *m, sl_event_t *ev) {
     if (ev->type != SL_MAP_EV_TYPE_UPDATE) return SL_ERR_ARG;
     int err = 0;
 
-    u32 op = ev->arg[0];
+    u4 op = ev->arg[0];
     if (op & SL_MAP_OP_REPLACE) {
-        u32 count = ev->arg[1];
+        u4 count = ev->arg[1];
         sl_mapping_t *ent_list = (sl_mapping_t *)(ev->arg[2]);
 
-        u32 size = ((count + MAP_ALLOC_INCREMENT - 1) / MAP_ALLOC_INCREMENT) * MAP_ALLOC_INCREMENT;
+        u4 size = ((count + MAP_ALLOC_INCREMENT - 1) / MAP_ALLOC_INCREMENT) * MAP_ALLOC_INCREMENT;
         map_ent_t **list = calloc(size, sizeof(map_ent_t *));
         if (list == NULL) return SL_ERR_MEM;
 
-        for (u32 i = 0; i < count; i++) {
+        for (u4 i = 0; i < count; i++) {
             list[i] = create_map_ent(ent_list + i);
             if (list[i] == NULL) {
                 err = SL_ERR_MEM;
@@ -160,13 +160,13 @@ int mapper_update(sl_mapper_t *m, sl_event_t *ev) {
             }
         }
 
-        u32 fnum = m->num_ents;
+        u4 fnum = m->num_ents;
         map_ent_t **flist = m->list;
         if (err) {
             fnum = count;
             flist = list;
         }
-        for (u32 i = 0; i < fnum; i++) {
+        for (u4 i = 0; i < fnum; i++) {
             if (flist[i] != NULL) free(flist[i]);
         }
         free(flist);
@@ -195,7 +195,7 @@ int sl_mapper_create(sl_mapper_t **map_out) {
 }
 
 void mapper_shutdown(sl_mapper_t *m) {
-    for (u32 i = 0; i < m->num_ents; i++) {
+    for (u4 i = 0; i < m->num_ents; i++) {
         free(m->list[i]);
     }
     free(m->list);

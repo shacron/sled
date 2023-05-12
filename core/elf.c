@@ -53,9 +53,9 @@ struct sl_elf_obj {
     size_t size;
     bool is64;
 
-    u32 arch;
-    u32 subarch;
-    u32 arch_options;
+    u4 arch;
+    u4 subarch;
+    u4 arch_options;
 
     char *str;      // strings
     char *shstr;    // section header strings
@@ -64,7 +64,7 @@ struct sl_elf_obj {
 };
 
 
-void *sl_elf_pointer_for_offset(sl_elf_obj_t *obj, u64 offset) {
+void *sl_elf_pointer_for_offset(sl_elf_obj_t *obj, u8 offset) {
     return obj->image + offset;
 }
 
@@ -84,7 +84,7 @@ bool sl_elf_is_64bit(sl_elf_obj_t *obj) {
     return obj->is64;
 }
 
-u64 sl_elf_get_entry(sl_elf_obj_t *obj) {
+u8 sl_elf_get_entry(sl_elf_obj_t *obj) {
     return GET_HEADER_FIELD(obj, e_entry);
 }
 
@@ -298,7 +298,7 @@ int sl_elf_subarch(sl_elf_obj_t *obj) {
     return obj->subarch;
 }
 
-u32 sl_elf_arch_options(sl_elf_obj_t *obj) {
+u4 sl_elf_arch_options(sl_elf_obj_t *obj) {
     return obj->arch_options;
 }
 
@@ -358,7 +358,7 @@ ssize_t sl_elf_read_symbol(sl_elf_obj_t *obj, const char *name, void *buf, size_
     return size;
 }
 
-void *sl_elf_get_program_header(sl_elf_obj_t *obj, u32 index) {
+void *sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index) {
     Elf64_Half phnum, phentsize;
     Elf64_Off phoff;
     if (obj->is64) {
@@ -405,7 +405,7 @@ int elf_read_symbols(sl_elf_obj_t *obj, sym_list_t *list) {
         return -1;
     }
 
-    u32 n = 0;
+    u4 n = 0;
     for (Elf64_Xword i = 0; i < num_symbols; i++) {
         char *name = NULL;
         if (obj->is64) {

@@ -33,11 +33,11 @@ must be used. The map driver must not block the mapping client from completing i
 #define SL_MAP_OP_REPLACE           (1u << 2)
 
 struct sl_mapping {
-    u64 input_base;
-    u64 length;
-    u64 output_base;
-    u32 domain;
-    u16 permissions;
+    u8 input_base;
+    u8 length;
+    u8 output_base;
+    u4 domain;
+    u2 permissions;
     sl_map_ep_t *ep;
 };
 

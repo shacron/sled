@@ -12,15 +12,15 @@
 #define ITRACE_OPT_SYSREG       (1u << 2)
 
 typedef struct {
-    u64 pc;
-    u64 sp;
-    u32 opcode;
-    u16 rd;
-    u16 options;
-    u8 pl;
-    u64 rd_value;
-    u64 addr;
-    u64 aux_value;
-    u32 cur;
+    u8 pc;
+    u8 sp;
+    u4 opcode;
+    u2 rd;
+    u2 options;
+    u1 pl;
+    u8 rd_value;
+    u8 addr;
+    u8 aux_value;
+    u4 cur;
     char opstr[TRACE_STR_LEN];
 } itrace_t;

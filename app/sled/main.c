@@ -34,9 +34,9 @@
 
 typedef struct bin_file {
     struct bin_file* next;
-    u32 flags;
+    u4 flags;
     char *file;
-    u64 addr;
+    u8 addr;
 } bin_file_t;
 
 typedef struct {
@@ -44,8 +44,8 @@ typedef struct {
     pthread_t core0;
     int core_id;
 
-    u64 steps;
-    u64 entry;
+    u8 steps;
+    u8 entry;
     bin_file_t *bin_list;
     bool cons_on_start;
     bool cons_on_err;
@@ -143,7 +143,7 @@ static bool parse_bool(const char *s, bool fallback) {
     return fallback;
 }
 
-static int add_binary(sm_t *sm, u32 flags, char *file, u64 addr) {
+static int add_binary(sm_t *sm, u4 flags, char *file, u8 addr) {
     bin_file_t *b = malloc(sizeof(*b));
     if (b == NULL) return -1;
     b->flags = flags;
@@ -179,7 +179,7 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
             }
             *a = '\0';
             a++;
-            u64 addr = strtoull(a, NULL, 0);
+            u8 addr = strtoull(a, NULL, 0);
             if (addr == 0) {
                 fprintf(stderr, "invalid binary address '%s'\n", a);
                 free(s);
@@ -250,7 +250,7 @@ int start_thread_for_core(sm_t *sm) {
     return 0;
 }
 
-static int load_binary(sl_machine_t *m, u32 core_id, bin_file_t *b) {
+static int load_binary(sl_machine_t *m, u4 core_id, bin_file_t *b) {
     int err = -1;
     void *buf = NULL;
     int fd = open(b->file, O_RDONLY);
@@ -289,7 +289,7 @@ out_err:
 int simple_machine(sm_t *sm) {
     sl_machine_t *m;
     int err;
-    u64 a0, a1;
+    u8 a0, a1;
     sm->uart_fd_in = -1;
     sm->uart_fd_out = -1;
 

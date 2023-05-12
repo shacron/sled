@@ -12,19 +12,19 @@
 #define IS_READER(c) ((c->flags & SL_RB_FLAG_WRITER) == 0)
 
 typedef struct {
-    u32 read_index;
-    u32 write_index;
-    u32 length; // in bytes
-    u32 flags;
-    u8 data[];
+    u4 read_index;
+    u4 write_index;
+    u4 length; // in bytes
+    u4 flags;
+    u1 data[];
 } rb_header_t;
 
-static inline u32 load_explicit32(const u32 *p, memory_order order) {
-    return atomic_load_explicit((const _Atomic u32 *)p, order);
+static inline u4 load_explicit32(const u4 *p, memory_order order) {
+    return atomic_load_explicit((const _Atomic u4 *)p, order);
 }
 
-static inline void store_explicit32(u32 *p, u32 value, memory_order order) {
-    atomic_store_explicit((_Atomic u32 *)p, value, order);
+static inline void store_explicit32(u4 *p, u4 value, memory_order order) {
+    atomic_store_explicit((_Atomic u4 *)p, value, order);
 }
 
 size_t sl_ringbuf_get_header_size(void) { return sizeof(rb_header_t); }
@@ -40,7 +40,7 @@ int sl_ringbuf_init(void *base, size_t len) {
     return 0;
 }
 
-int sl_ringbuf_client_init(void *base, sl_ringbuf_client_t *c, u32 flags) {
+int sl_ringbuf_client_init(void *base, sl_ringbuf_client_t *c, u4 flags) {
     rb_header_t *q = base;
     c->flags = flags;
     c->base = base;
@@ -50,19 +50,19 @@ int sl_ringbuf_client_init(void *base, sl_ringbuf_client_t *c, u32 flags) {
     return 0;
 }
 
-u32 sl_ringbuf_num_bytes(sl_ringbuf_client_t *c) {
+u4 sl_ringbuf_num_bytes(sl_ringbuf_client_t *c) {
     rb_header_t *q = c->base;
     if (IS_WRITER(c)) {
         c->read_index = load_explicit32(&q->read_index, memory_order_relaxed);
     } else {
         c->write_index = load_explicit32(&q->write_index, memory_order_relaxed);
     }
-    u32 write_index = c->write_index;
+    u4 write_index = c->write_index;
     if (write_index < c->read_index) write_index += c->length;
     return write_index - c->read_index;
 }
 
-u32 sl_ringbuf_num_free(sl_ringbuf_client_t *c) {
+u4 sl_ringbuf_num_free(sl_ringbuf_client_t *c) {
     return c->length - sl_ringbuf_num_bytes(c) - 1;
 }
 
@@ -77,7 +77,7 @@ ssize_t sl_ringbuf_read(sl_ringbuf_client_t *c, void *buf, size_t len) {
     ssize_t num_read = 0;
     if (c->read_index > c->write_index) {
         // read from [read_index to end)
-        u32 bytes = c->length - c->read_index;
+        u4 bytes = c->length - c->read_index;
         if (bytes > len) bytes = len;
         if (buf != NULL) memcpy(buf, q->data + c->read_index, bytes);
         num_read += bytes;
@@ -89,7 +89,7 @@ ssize_t sl_ringbuf_read(sl_ringbuf_client_t *c, void *buf, size_t len) {
 
     if ((c->read_index < c->write_index) && (len > 0)) {
         // read from [read_index to write_index)
-        u32 bytes = c->write_index - c->read_index;
+        u4 bytes = c->write_index - c->read_index;
         if (bytes > len) bytes = len;
         if (buf != NULL) memcpy(buf, q->data + c->read_index, bytes);
         num_read += bytes;
@@ -112,7 +112,7 @@ ssize_t sl_ringbuf_write(sl_ringbuf_client_t *c, const void *buf, size_t len) {
     ssize_t num_written = 0;
     if (c->read_index <= c->write_index) {
         // write [write_index to end)
-        u32 bytes = c->length - c->write_index;
+        u4 bytes = c->length - c->write_index;
         if (c->read_index == 0) bytes--;
         if (bytes > len) bytes = len;
         memcpy(q->data + c->write_index, buf, bytes);
@@ -124,7 +124,7 @@ ssize_t sl_ringbuf_write(sl_ringbuf_client_t *c, const void *buf, size_t len) {
     }
 
     if ((c->write_index < c->read_index) && (len > 0)) {
-        u32 bytes = c->read_index - c->write_index - 1;
+        u4 bytes = c->read_index - c->write_index - 1;
         if (bytes > len) bytes = len;
         if (bytes > 0) {
             memcpy(q->data + c->write_index, buf, bytes);

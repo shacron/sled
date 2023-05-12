@@ -13,15 +13,15 @@ extern "C" {
 
 // public types
 
-typedef int8_t  i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
+typedef int8_t  i1;
+typedef int16_t i2;
+typedef int32_t i4;
+typedef int64_t i8;
 
-typedef uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+typedef uint8_t  u1;
+typedef uint16_t u2;
+typedef uint32_t u4;
+typedef uint64_t u8;
 
 // typedef ssize_t ssize;
 typedef size_t  usize;
@@ -52,12 +52,12 @@ typedef struct sym_list sym_list_t;
 typedef struct sym_entry sym_entry_t;
 
 typedef struct {
-    u32 value;
+    u4 value;
     int err;
 } result32_t;
 
 typedef struct {
-    u64 value;
+    u8 value;
     int err;
 } result64_t;
 

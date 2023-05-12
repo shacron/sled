@@ -50,9 +50,9 @@
 
 #ifndef LOCORE
 typedef struct {
-	u32	n_namesz;	/* Length of name. */
-	u32	n_descsz;	/* Length of descriptor. */
-	u32	n_type;		/* Type of this note. */
+	u4	n_namesz;	/* Length of name. */
+	u4	n_descsz;	/* Length of descriptor. */
+	u4	n_type;		/* Type of this note. */
 } Elf_Note;
 typedef Elf_Note Elf_Nhdr;
 #endif
@@ -118,10 +118,10 @@ typedef Elf_Note Elf_Nhdr;
 
 #ifndef LOCORE
 typedef struct {
-	u32	gh_nbuckets;	/* Number of hash buckets. */
-	u32	gh_symndx;	/* First visible symbol in .dynsym. */
-	u32	gh_maskwords;	/* #maskwords used in bloom filter. */
-	u32	gh_shift2;	/* Bloom filter shift count. */
+	u4	gh_nbuckets;	/* Number of hash buckets. */
+	u4	gh_symndx;	/* First visible symbol in .dynsym. */
+	u4	gh_maskwords;	/* #maskwords used in bloom filter. */
+	u4	gh_shift2;	/* Bloom filter shift count. */
 } Elf_GNU_Hash_Header;
 #endif
 
