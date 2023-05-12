@@ -26,18 +26,16 @@ Supported:
 
 * rv32i
 * rv64i
-* M, C extensions
+* M, C, A extensions
 * machine, system, and user modes
 * interrupts
 * most exceptions
 
 In progress:
-
 * more exceptions
-* A extension
 * most of the CSRs
 * timers
-* MMU/MPU
+* MMU/MPU (mapper backend implemented)
 
 Long term:
 * floating point support
