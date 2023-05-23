@@ -613,7 +613,7 @@ undef:
 
 #define RVC_TO_REG(r) ((r) + 8)
 
-static int XLEN_PREFIX(dispatch_alu2)(rv_core_t *c, rv_cinst_t ci) {
+static int XLEN_PREFIX(dispatch_alu32)(rv_core_t *c, rv_cinst_t ci) {
     switch (ci.cba.funct2) {
     case 0b00:  // C.SRLI
     {
@@ -871,7 +871,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         break;
 
     case 0b01100:
-        err = XLEN_PREFIX(dispatch_alu2)(c, ci);
+        err = XLEN_PREFIX(dispatch_alu32)(c, ci);
         if (err != 0) {
             if (err == SL_ERR_UNDEF) goto undef;
             return err;
