@@ -95,7 +95,7 @@ typedef union {
         u2 rd     : 5;
         u2 off_5  : 1;
         u2 funct3 : 3;
-    } cilwsp;
+    } ci4;
     struct {
         u2 opcode : 2;
         u2 off_6  : 3;
@@ -103,7 +103,7 @@ typedef union {
         u2 rd     : 5;
         u2 off_5  : 1;
         u2 funct3 : 3;
-    } cildsp;
+    } ci8;
     struct {
         u2 opcode : 2;
         u2 rs2    : 5;
@@ -167,11 +167,21 @@ typedef union {
     } cj;
 } rv_cinst_t;
 
-#define CIIMM(ci) (ci.ci.imm0 | (ci.ci.imm1 << 5))
-#define CIMM_ADDI16SP(ci) (((ci.ci.imm0 & 1) << 5) | ((ci.ci.imm0 & 6) << 6) | \
-                           ((ci.ci.imm0 & 8) << 3) | (ci.ci.imm0 & 0x10) | (ci.ci.imm1 << 9))
-#define CILWSPIMM(ci) ((ci.cilwsp.off_6 << 6) | (ci.cilwsp.off_2 << 2) | (ci.cilwsp.off_5 << 5))
-#define CLIDSPIMM(ci) ((ci.cildsp.off_6 << 6) | (ci.cildsp.off_3 << 3) | (ci.cildsp.off_5 << 5))
+// The ci immediate is a mess depending on the instruction
+
+// ci format: imm1: imm[5], imm0: imm[4:0]
+#define CI_IMM(ci) (ci.ci.imm0 | (ci.ci.imm1 << 5))
+
+// ci format: imm1: imm[9], imm0: imm[4|6|8:7|5]
+#define CI_ADDI16SP_IMM(ci) (((ci.ci.imm0 & 1) << 5) | ((ci.ci.imm0 & 6) << 6) | \
+                             ((ci.ci.imm0 & 8) << 3) | (ci.ci.imm0 & 0x10) | (ci.ci.imm1 << 9))
+
+// ci format: imm1: offset[5], imm0: offset[4:2|7:6]
+#define CI4_IMM(ci) ((ci.ci4.off_6 << 6) | (ci.ci4.off_2 << 2) | (ci.ci4.off_5 << 5))
+
+// ci format: imm1: offset[5], imm0: offset[4:3|8:6]
+#define CI8_IMM(ci) ((ci.ci8.off_6 << 6) | (ci.ci8.off_3 << 3) | (ci.ci8.off_5 << 5))
+
 
 #define CIWIMM(ci) ((ci.ciw.imm1 << 2) | (ci.ciw.imm0 << 3) | (ci.ciw.imm3 << 4) | (ci.ciw.imm2 << 6))
 #define CJIMM(ci) ((ci.cj.imm0 << 5) | (ci.cj.imm1 << 1) | (ci.cj.imm2 << 7) | \
