@@ -113,10 +113,10 @@ typedef union {
     struct {
         u2 opcode : 2;
         u2 rd     : 3;
-        u2 imm0   : 1;
-        u2 imm1   : 1;
-        u2 imm2   : 4;
-        u2 imm3   : 2;
+        u2 off_3  : 1;
+        u2 off_2  : 1;
+        u2 off_6  : 4;
+        u2 off_4  : 2;
         u2 funct3 : 3;
     } ciw;
     struct {
@@ -155,19 +155,20 @@ typedef union {
     } cba; // CB-ALU format
     struct {
         u2 opcode : 2;
-        u2 imm0   : 1;
-        u2 imm1   : 3;
-        u2 imm2   : 1;
-        u2 imm3   : 1;
-        u2 imm4   : 1;
-        u2 imm5   : 2;
-        u2 imm6   : 1;
-        u2 imm7   : 1;
+        u2 off_5  : 1;
+        u2 off_1  : 3;
+        u2 off_7  : 1;
+        u2 off_6  : 1;
+        u2 off_10 : 1;
+        u2 off_8  : 2;
+        u2 off_4  : 1;
+        u2 off_11 : 1;
         u2 funct3 : 3;
     } cj;
 } rv_cinst_t;
 
-// The ci immediate is a mess depending on the instruction
+// The CI, CS, and CSS immediate format varies depending on the instruction
+// This is an attempt to make extracting them more sane.
 
 // ci format: imm1: imm[5], imm0: imm[4:0]
 #define CI_IMM(ci) (ci.ci.imm0 | (ci.ci.imm1 << 5))
@@ -177,23 +178,25 @@ typedef union {
                              ((ci.ci.imm0 & 8) << 3) | (ci.ci.imm0 & 0x10) | (ci.ci.imm1 << 9))
 
 // ci format: imm1: offset[5], imm0: offset[4:2|7:6]
-#define CI4_IMM(ci) ((ci.ci4.off_6 << 6) | (ci.ci4.off_2 << 2) | (ci.ci4.off_5 << 5))
+#define CI_IMM_SCALED_4(ci) ((ci.ci4.off_6 << 6) | (ci.ci4.off_2 << 2) | (ci.ci4.off_5 << 5))
 
 // ci format: imm1: offset[5], imm0: offset[4:3|8:6]
-#define CI8_IMM(ci) ((ci.ci8.off_6 << 6) | (ci.ci8.off_3 << 3) | (ci.ci8.off_5 << 5))
+#define CI_IMM_SCALED_8(ci) ((ci.ci8.off_6 << 6) | (ci.ci8.off_3 << 3) | (ci.ci8.off_5 << 5))
 
+#define CIW_IMM(ci) ((ci.ciw.off_2 << 2) | (ci.ciw.off_3 << 3) | (ci.ciw.off_4 << 4) | (ci.ciw.off_6 << 6))
 
-#define CIWIMM(ci) ((ci.ciw.imm1 << 2) | (ci.ciw.imm0 << 3) | (ci.ciw.imm3 << 4) | (ci.ciw.imm2 << 6))
-#define CJIMM(ci) ((ci.cj.imm0 << 5) | (ci.cj.imm1 << 1) | (ci.cj.imm2 << 7) | \
-                   (ci.cj.imm3 << 6) | (ci.cj.imm4 << 10) | (ci.cj.imm5 << 8) | \
-                   (ci.cj.imm6 << 4) | (ci.cj.imm7 << 11))
+#define CJ_IMM(ci) ((ci.cj.off_5 << 5) | (ci.cj.off_1 << 1) | (ci.cj.off_7 << 7) | \
+                    (ci.cj.off_6 << 6) | (ci.cj.off_10 << 10) | (ci.cj.off_8 << 8) | \
+                    (ci.cj.off_4 << 4) | (ci.cj.off_11 << 11))
 
-#define CBIMM(ci) ((ci.cb.off_5 << 5) | (ci.cb.off_1 << 1) | (ci.cb.off_6 << 6) | \
-                   (ci.cb.off_3 << 3) | (ci.cb.off_8 << 8))
-#define CBAIMM(ci) ((ci.cba.imm1 << 5) | ci.cba.imm0)
-#define CSIMM_SCALED_W(ci) (((ci.cl.imm0 & 1) << 6) | ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1) << 3))
-#define CSIMM_SCALED_D(ci) ((ci.cl.imm0 << 6) | (ci.cl.imm1 << 3))
+#define CB_IMM(ci) ((ci.cb.off_5 << 5) | (ci.cb.off_1 << 1) | (ci.cb.off_6 << 6) | \
+                    (ci.cb.off_3 << 3) | (ci.cb.off_8 << 8))
 
-// CSS format has multiple shift patterns depending on the instruction
-#define CSSIMM_SCALED_W(ci) (((ci.css.imm & 3) << 6) | (ci.css.imm & ~3))
-#define CSSIMM_SCALED_D(ci) (((ci.css.imm & 7) << 6) | (ci.css.imm & ~7))
+// same as CI_IMM
+#define CBA_IMM(ci) (ci.cba.imm0 | (ci.cba.imm1 << 5))
+
+#define CS_IMM_SCALED_4(ci) (((ci.cl.imm0 & 1) << 6) | ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1) << 3))
+#define CS_IMM_SCALED_8(ci) ((ci.cl.imm0 << 6) | (ci.cl.imm1 << 3))
+
+#define CSS_SIMM_SCALED_4(ci) (((ci.css.imm & 3) << 6) | (ci.css.imm & ~3))
+#define CSS_SIMM_SCALED_8(ci) (((ci.css.imm & 7) << 6) | (ci.css.imm & ~7))

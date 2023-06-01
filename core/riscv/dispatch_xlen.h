@@ -621,7 +621,7 @@ static int XLEN_PREFIX(dispatch_alu32)(rv_core_t *c, rv_cinst_t ci) {
         if (ci.cba.imm1) return SL_ERR_UNDEF;
         const u4 imm = ci.cba.imm0;
 #else
-        const u4 imm = CBAIMM(ci);
+        const u4 imm = CBA_IMM(ci);
 #endif
         if (imm == 0) return SL_ERR_UNDEF;
         const u4 rd = RVC_TO_REG(ci.cba.rsd);
@@ -638,7 +638,7 @@ static int XLEN_PREFIX(dispatch_alu32)(rv_core_t *c, rv_cinst_t ci) {
         if (ci.cba.imm1) return SL_ERR_UNDEF;
         const u4 imm = ci.cba.imm0;
 #else
-        const u4 imm = CBAIMM(ci);
+        const u4 imm = CBA_IMM(ci);
 #endif
         if (imm == 0) return SL_ERR_UNDEF;
         const u4 rd = RVC_TO_REG(ci.cba.rsd);
@@ -651,7 +651,7 @@ static int XLEN_PREFIX(dispatch_alu32)(rv_core_t *c, rv_cinst_t ci) {
 
     case 0b10:  // C.ANDI
     {
-        const sxlen_t imm = sign_extend32(CBAIMM(ci), 6);
+        const sxlen_t imm = sign_extend32(CBA_IMM(ci), 6);
         const u4 rd = RVC_TO_REG(ci.cba.rsd);
         const uxlen_t result = (uxlen_t)(c->r[rd] & (uxlen_t)imm);
         c->r[rd] = result;
@@ -722,7 +722,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     case 0b00000:   // C.ADDI4SPN
     {
         if (ci.raw == 0) goto undef;
-        const u4 imm = CIWIMM(ci);
+        const u4 imm = CIW_IMM(ci);
         const u4 rd = RVC_TO_REG(ci.ciw.rd);
         c->r[rd] = (uxlen_t)(c->r[RV_SP] + imm);
         RV_TRACE_RD(c, rd, c->r[rd]);
@@ -773,7 +773,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b00110:   // C.SW
     {
-        const u4 imm = CSIMM_SCALED_W(ci);
+        const u4 imm = CS_IMM_SCALED_4(ci);
         const u4 rs = RVC_TO_REG(ci.cs.rs1);
         const u4 rd = RVC_TO_REG(ci.cs.rs2);
         const uxlen_t dest = c->r[rs] + imm;
@@ -790,7 +790,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         goto undef; // C.FSW
 #else
     {   // C.SD
-        const u4 imm = CSIMM_SCALED_D(ci);
+        const u4 imm = CS_IMM_SCALED_8(ci);
         const u4 rs = RVC_TO_REG(ci.cs.rs1);
         const u4 rd = RVC_TO_REG(ci.cs.rs2);
         const u8 dest = c->r[rs] + imm;
@@ -823,7 +823,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     {
 #if USING_RV32
         // C.JAL
-        const i4 imm = sign_extend32(CJIMM(ci), 12);
+        const i4 imm = sign_extend32(CJ_IMM(ci), 12);
         const uxlen_t result = c->pc + imm;
         c->r[RV_RA] = c->pc + 2;
         RV_TRACE_RD(c, SL_CORE_REG_PC, RV_BR_TARGET(result, imm));
@@ -880,7 +880,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b01101:   // C.J
     {
-        const i4 imm = sign_extend32(CJIMM(ci), 12);
+        const i4 imm = sign_extend32(CJ_IMM(ci), 12);
         uxlen_t result = c->pc + imm;
         RV_TRACE_RD(c, SL_CORE_REG_PC, result);
         RV_TRACE_PRINT(c, "c.j %#" PRIXLENx, RV_BR_TARGET(result, imm));
@@ -891,7 +891,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b01110:   // C.BEQZ
     {
-        const i4 imm = sign_extend32(CBIMM(ci), 9);
+        const i4 imm = sign_extend32(CB_IMM(ci), 9);
         const u4 rs = RVC_TO_REG(ci.cb.rs);
         const uxlen_t result = (uxlen_t)(c->pc + imm);
         if (c->r[rs] == 0) {
@@ -905,7 +905,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b01111:   // C.BNEZ
     {
-        const i4 imm = sign_extend32(CBIMM(ci), 9);
+        const i4 imm = sign_extend32(CB_IMM(ci), 9);
         const u4 rs = RVC_TO_REG(ci.cb.rs);
         const uxlen_t result = (uxlen_t)(c->pc + imm);
         if (c->r[rs] != 0) {
@@ -939,7 +939,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     case 0b10010:   // C.LWSP
         if (ci.ci4.rd == RV_ZERO) goto undef;
         else {
-            const u4 imm = CI4_IMM(ci);
+            const u4 imm = CI_IMM_SCALED_4(ci);
             const uxlen_t addr = c->r[RV_SP] + imm;
 
             u4 val;
@@ -958,7 +958,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         if (ci.ci.rsd == RV_ZERO) goto undef;
         else {
             // C.LDSP
-            const u4 imm = CI8_IMM(ci);
+            const u4 imm = CI_IMM_SCALED_8(ci);
             const u8 addr = c->r[RV_SP] + imm;
             u8 val;
             err = sl_core_mem_read(&c->core, addr, 8, 1, &val);
@@ -1017,7 +1017,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b10110:   // C.SWSP
     {
-        const u4 imm = CSSIMM_SCALED_W(ci);
+        const u4 imm = CSS_SIMM_SCALED_4(ci);
         const uxlen_t addr = c->r[RV_SP] + imm;
         u4 val = c->r[ci.css.rs2];
         err = sl_core_mem_write(&c->core, addr, 4, 1, &val);
@@ -1032,7 +1032,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         goto undef; // C.FSWSP
 #else
     {   // C.SDSP
-        const u4 imm = CSSIMM_SCALED_D(ci);
+        const u4 imm = CSS_SIMM_SCALED_8(ci);
         const u8 addr = c->r[RV_SP] + imm;
         u8 val = c->r[ci.css.rs2];
         err = sl_core_mem_write(&c->core, addr, 8, 1, &val);
