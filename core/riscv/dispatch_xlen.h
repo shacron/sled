@@ -16,6 +16,9 @@ static inline i4 sign_extend32(i4 value, u1 valid_bits) {
     return ((i4)((u4)value << shift) >> shift);
 }
 
+__attribute__((no_sanitize("signed-integer-overflow")))
+static inline sxlen_t mulx_ss(sxlen_t a, sxlen_t b) { return a * b; }
+
 static int XLEN_PREFIX(exec_u_type)(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     const uxlen_t offset = (sxlen_t)(i4)(inst.raw & 0xfffff000);
@@ -402,7 +405,7 @@ static int XLEN_PREFIX(exec_alu)(rv_core_t *c, rv_inst_t inst) {
             break;
 
         case 0b001: // MULH
-            result_sl = (sxlen_t)u1 * (sxlen_t)u2;
+            result_sl = mulx_ss((sxlen_t)u1, (sxlen_t)u2);
             result = (uxlen_t)(result_sl >> XLEN);
             RV_TRACE_OPSTR("mulh");
             break;
