@@ -97,7 +97,7 @@ Sled is not a VM and does not rely on any virtualization framework. It is purely
 
 In some ways this project is similar to QEMU, but is intended to serve a different purpose. QEMU will be significantly faster in almost all cases. Sled is intended to make whole system introspection and debugging possible, not to perform at maximum speed.
 
-That being said, sled is not that slow. At last test it could execute 35 million instructions per second on an emulated rv32 core when benchmarked on an Apple M1 processor. Scaling for multiple emulated cores should be fairly linear as long as there is a similar number of physical cores in the host machine.
+That being said, sled is not that slow. At last test it could execute 39 million instructions per second on an emulated rv32 core when benchmarked on an Apple M1 processor. Scaling for multiple emulated cores should be fairly linear as long as there is a similar number of physical cores in the host machine. For maximum speed, compile with `BLD_HOST_USE_SANITIZERS=0`, which is not the default.
 
 
 ## Building
