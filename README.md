@@ -26,19 +26,20 @@ Supported:
 
 * rv32i
 * rv64i
-* M, C, A extensions
+* M, C, A, F, Zicsr, Zifencei extensions
 * machine, system, and user modes
 * interrupts
 * most exceptions
+* floating point (fp32 only at the moment)
 
 In progress:
 * more exceptions
+* B, D extensions
 * most of the CSRs
 * timers
 * MMU/MPU (mapper backend implemented)
 
 Long term:
-* floating point support
 * SMP
 * hypervisor mode
 
