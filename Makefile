@@ -9,6 +9,7 @@ BLD_HOST_INCDIR ?= $(SDKDIR)/include
 BLD_HOST_OS ?= $(shell uname -s)
 BLD_HOST_UNIVERSAL ?= 0
 BLD_HOST_USE_SANITIZERS ?= 1
+BLD_HOST_LTO ?= 0
 
 SILENT ?= @
 
@@ -52,6 +53,7 @@ CFLAGS += -g -O3
 else
 CFLAGS += -g3 -O0
 DEFINES += -DBUILD_DEBUG=1
+BLD_HOST_LTO := 0
 endif
 
 ifeq ($(BLD_HOST_USE_SANITIZERS),1)
@@ -60,6 +62,11 @@ endif
 
 ifeq ($(BLD_HOST_UNIVERSAL),1)
 CFLAGS += -arch arm64 -arch x86_64
+endif
+
+ifeq ($(BLD_HOST_LTO),1)
+CFLAGS += -flto=thin
+LDFLAGS := -flto=thin
 endif
 
 CXXFLAGS := $(CFLAGS) -std=c++17
