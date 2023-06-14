@@ -30,14 +30,14 @@ Dynamic Section:
 
 Sections:
 Idx Name              Size     VMA      Type
-  0                   00000000 00000000 
-  1 .strtab           0000005b 00000000 
+  0                   00000000 00000000
+  1 .strtab           0000005b 00000000
   2 .text             00000008 00000000 TEXT
-  3 .comment          00000016 00000000 
-  4 .note.GNU-stack   00000000 00000000 
-  5 .riscv.attributes 0000001c 00000000 
-  6 .llvm_addrsig     00000000 00000000 
-  7 .symtab           00000030 00000000 
+  3 .comment          00000016 00000000
+  4 .note.GNU-stack   00000000 00000000
+  5 .riscv.attributes 0000001c 00000000
+  6 .llvm_addrsig     00000000 00000000
+  7 .symtab           00000030 00000000
 
 SYMBOL TABLE:
 00000000 l    df *ABS*	00000000 test.c
@@ -143,10 +143,15 @@ static int elf_riscv_attributes(sl_elf_obj_t *o, void *vsh) {
                 o->arch_options |= SL_RISCV_EXT_C;
                 break;
 
-            // case 'f':
-            // case 'd':
-            //     printf("Faking support for attribute F/D, not actually supported\n");
-            //     break;
+            case 'd':
+                printf("D attribute version %c\n", c1);
+                o->arch_options |= SL_RISCV_EXT_D | SL_RISCV_EXT_F;
+                break;
+
+            case 'f':
+                printf("F attribute version %c\n", c1);
+                o->arch_options |= SL_RISCV_EXT_F;
+                break;
 
             default:
                 printf("unhandled attribute %c\n", c0);

@@ -21,6 +21,14 @@
 #define OP_SYSTEM       0b1110011 // csr ecall ebreak
 
 #define OP_AMO          0b0101111 // RV32A / RV64A extension
+#define OP_FP           0b1010011 // FP32/64
+#define OP_FP_LOAD      0b0000111 // FP32/64 load
+#define OP_FP_STORE     0b0100111 // FP32/64 store
+
+#define OP_FMADD_S      0b1000011 // FMADD.S
+#define OP_FMSUB_S      0b1000111 // FMSUB.S
+#define OP_FNMSUB_S     0b1001011 // FNMSUB.S
+#define OP_FNMADD_S     0b1001111 // FNMADD.S
 
 typedef union {
     u4 raw;
@@ -70,6 +78,15 @@ typedef union {
         u4 rd     : 5;
         u4 imm    : 20;
     } u;
+    struct {
+        u4 opcode : 7;
+        u4 rd     : 5;
+        u4 rm     : 3;
+        u4 rs1    : 5;
+        u4 rs2    : 5;
+        u4 fmt    : 2;
+        u4 funct5 : 5; // rs3
+    } r4;
 } rv_inst_t;
 
 typedef union {
@@ -198,5 +215,5 @@ typedef union {
 #define CS_IMM_SCALED_4(ci) (((ci.cl.imm0 & 1) << 6) | ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1) << 3))
 #define CS_IMM_SCALED_8(ci) ((ci.cl.imm0 << 6) | (ci.cl.imm1 << 3))
 
-#define CSS_SIMM_SCALED_4(ci) (((ci.css.imm & 3) << 6) | (ci.css.imm & ~3))
-#define CSS_SIMM_SCALED_8(ci) (((ci.css.imm & 7) << 6) | (ci.css.imm & ~7))
+#define CSS_IMM_SCALED_4(ci) (((ci.css.imm & 3) << 6) | (ci.css.imm & ~3))
+#define CSS_IMM_SCALED_8(ci) (((ci.css.imm & 7) << 6) | (ci.css.imm & ~7))

@@ -143,3 +143,21 @@
 #define RV_CSR_DSCRATCH0        0x7b2 // DRW dscratch0 - Debug scratch register 0.
 #define RV_CSR_DSCRATCH1        0x7b3 // DRW dscratch1 - Debug scratch register 1.
 
+
+// fcsr - floating point control and status register
+
+// rounding modes
+#define RV_FCSR_RM_RNE 0b000 // Round to Nearest, ties to Even
+#define RV_FCSR_RM_RTZ 0b001 // Round towards Zero
+#define RV_FCSR_RM_RDN 0b010 // Round Down (towards stem d086050f743ba2c7974a5de125f1962f)
+#define RV_FCSR_RM_RUP 0b011 // Round Up (towards stem 743c6212f9443387ec5e6950b44c06db)
+#define RV_FCSR_RM_RMM 0b100 // Round to Nearest, ties to Max Magnitude
+#define RV_FCSR_RM_DYN 0b111 // In instruction’s rm field, selects dynamic rounding mode; In Rounding Mode register, reserved.
+
+// flags
+#define RV_FCSR_NV (1u << 4) // Invalid Operation
+#define RV_FCSR_DZ (1u << 3) // Divide by Zero
+#define RV_FCSR_OF (1u << 2) // Overflow
+#define RV_FCSR_UF (1u << 1) // Underflow
+#define RV_FCSR_NX (1u << 0) // Inexact
+

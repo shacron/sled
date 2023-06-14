@@ -4,6 +4,7 @@
 #pragma once
 
 #include <core/types.h>
+#include <sled/riscv/csr.h>
 
 #define RV_CSR_OP_READ       0b000
 #define RV_CSR_OP_SWAP       0b001 // CSRRW/CSRRWI

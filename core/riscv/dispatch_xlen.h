@@ -11,6 +11,11 @@
 
 #define SIGN_EXT_IMM12(inst) (((i4)inst.raw) >> 20)
 
+int rv_exec_fp(rv_core_t *c, rv_inst_t inst);
+int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst);
+int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst);
+int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst);
+
 static inline i4 sign_extend32(i4 value, u1 valid_bits) {
     const u1 shift = (32 - valid_bits);
     return ((i4)((u4)value << shift) >> shift);
@@ -753,19 +758,33 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b00011:
 #if USING_RV32
-        goto undef; // C.FLW
+        // C.FLW
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        else {
+            const u4 imm = CI_IMM_SCALED_4(ci);
+            const u4 rs = RVC_TO_REG(ci.cl.rs);
+            const u4 rd = RVC_TO_REG(ci.cl.rd);
+            const u4 addr = c->r[rs] + imm;
+            float val;
+            err = sl_core_mem_read(&c->core, addr, 4, 1, &val);
+            RV_TRACE_RDF(c, rd, val);
+            RV_TRACE_PRINT(c, "c.flw f%u, %u(x%u)", rd, imm, rs);
+            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
+            c->f[rd].f = val;
+            break;
+        }
 #else
     {   // C.LD
         const u4 imm = ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1 ) << 3) | ((ci.cl.imm0 & 1) << 6);
         const u4 rs = RVC_TO_REG(ci.cl.rs);
         const u4 rd = RVC_TO_REG(ci.cl.rd);
-        const u8 dest = c->r[rs] + imm;
+        const u8 addr = c->r[rs] + imm;
 
         u8 val;
-        err = sl_core_mem_read(&c->core, dest, 8, 1, &val);
+        err = sl_core_mem_read(&c->core, addr, 8, 1, &val);
         RV_TRACE_RD(c, rd, val);
         RV_TRACE_PRINT(c, "c.ld x%u, %u(x%u)", rd, imm, rs);
-        if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, dest, err);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
         c->r[rd] = val;
         break;
     }
@@ -937,7 +956,19 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             break;
         }
 
-    case 0b10001: goto undef;   // C.FLDSP
+    case 0b10001:   // C.FLDSP
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+        else {
+            const u4 imm = CI_IMM_SCALED_8(ci);
+            const uxlen_t addr = c->r[RV_SP] + imm;
+            double val;
+            err = sl_core_mem_read(&c->core, addr, 8, 1, &val);
+            RV_TRACE_RDD(c, ci.ci.rsd, val);
+            RV_TRACE_PRINT(c, "c.fldsp f%u, %u", ci.ci.rsd, imm);
+            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
+            c->f[ci.ci.rsd].d = val;
+            break;
+        }
 
     case 0b10010:   // C.LWSP
         if (ci.ci4.rd == RV_ZERO) goto undef;
@@ -956,7 +987,19 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b10011:
 #if USING_RV32
-        goto undef; // C.FLWSP
+        // C.FLWSP
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        else {
+            const u4 imm = CI_IMM_SCALED_4(ci);
+            const u4 addr = c->r[RV_SP] + imm;
+            float val;
+            err = sl_core_mem_read(&c->core, addr, 4, 1, &val);
+            RV_TRACE_RDF(c, ci.ci.rsd, val);
+            RV_TRACE_PRINT(c, "c.flwsp f%u, %u", ci.ci.rsd, imm);
+            if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
+            c->f[ci.ci.rsd].f = val;
+            break;
+        }
 #else
         if (ci.ci.rsd == RV_ZERO) goto undef;
         else {
@@ -1016,11 +1059,22 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         }
         break;
 
-    case 0b10101: goto undef;   // C.FSDSP
+    case 0b10101:   // C.FSDSP
+    {
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+        const u4 imm = CSS_IMM_SCALED_8(ci);
+        const u8 addr = c->r[RV_SP] + imm;
+        u8 val = c->f[ci.css.rs2].u8;
+        RV_TRACE_STORE_D(c, addr, ci.css.rs2, c->f[ci.css.rs2].d);
+        err = sl_core_mem_write(&c->core, addr, 8, 1, &val);
+        RV_TRACE_PRINT(c, "c.fsdsp x%u, %u", ci.css.rs2, imm);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
+        break;
+    }
 
     case 0b10110:   // C.SWSP
     {
-        const u4 imm = CSS_SIMM_SCALED_4(ci);
+        const u4 imm = CSS_IMM_SCALED_4(ci);
         const uxlen_t addr = c->r[RV_SP] + imm;
         u4 val = c->r[ci.css.rs2];
         err = sl_core_mem_write(&c->core, addr, 4, 1, &val);
@@ -1032,10 +1086,19 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
 
     case 0b10111:
 #if USING_RV32
-        goto undef; // C.FSWSP
+    {   // C.FSWSP
+        const u4 imm = CSS_IMM_SCALED_4(ci);
+        const u4 addr = c->r[RV_SP] + imm;
+        u4 val = c->f[ci.css.rs2].u4;
+        RV_TRACE_STORE_F(c, addr, ci.css.rs2, c->f[ci.css.rs2].f);
+        err = sl_core_mem_write(&c->core, addr, 4, 1, &val);
+        RV_TRACE_PRINT(c, "c.fswsp f%u, %u", ci.css.rs2, imm);
+        if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
+        break;
+    }
 #else
     {   // C.SDSP
-        const u4 imm = CSS_SIMM_SCALED_8(ci);
+        const u4 imm = CSS_IMM_SCALED_8(ci);
         const u8 addr = c->r[RV_SP] + imm;
         u8 val = c->r[ci.css.rs2];
         err = sl_core_mem_write(&c->core, addr, 8, 1, &val);
@@ -1117,6 +1180,25 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
         err = rv64_exec_alu32(c, inst);
         break;
 #endif
+
+    case OP_FP:
+        err = rv_exec_fp(c, inst);
+        break;
+
+    case OP_FP_LOAD:
+        err = rv_exec_fp_load(c, inst);
+        break;
+
+    case OP_FP_STORE:
+        err = rv_exec_fp_store(c, inst);
+        break;
+
+    case OP_FMADD_S:
+    case OP_FMSUB_S:
+    case OP_FNMSUB_S:
+    case OP_FNMADD_S:
+        err = rv_exec_fp_mac(c, inst);
+        break;
 
     // Other
     case OP_MISC_MEM:  // FENCE FENCE.I

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <fenv.h>
+
 #include <core/core.h>
 #include <core/ex.h>
 #include <core/types.h>
@@ -15,6 +17,9 @@
 
 #define RV_OP_MRET      RV_PL_MACHINE
 #define RV_OP_SRET      RV_PL_SUPERVISOR
+
+#define RV_NAN_S        0x7fc00000
+// #define RV_NAN_D        
 
 typedef struct {
     u8 scratch;
@@ -36,6 +41,13 @@ typedef struct {
     void (*destroy)(void *ext_private);
 } rv_isa_extension_t;
 
+typedef union {
+    u4 u4;
+    float f;
+    u8 u8;
+    double d;
+} rv_fp_reg_t;
+
 struct rv_core {
     core_t core;
     u1 mode;
@@ -47,6 +59,10 @@ struct rv_core {
     u8 r[32];
 
     u8 status;
+    u4 fcsr;
+    fexcept_t fexc; // host cumulative fp exception flags
+
+    rv_fp_reg_t f[32];
 
     uint64_t monitor_addr;
     uint64_t monitor_value;
