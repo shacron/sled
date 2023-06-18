@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
+#include <assert.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,8 @@
 #include <core/device.h>
 #include <core/event.h>
 #include <sled/error.h>
+
+#define DEV_MAGIC           0x91919192
 
 // default irq handler wrapper
 static int device_accept_irq(sl_irq_ep_t *ep, u4 num, bool high) {
@@ -85,27 +88,32 @@ int sl_device_update_mapper_async(sl_dev_t *d, u4 ops, u4 count, sl_mapping_t *e
     return err;
 }
 
-void device_embedded_shutdown(sl_dev_t *d) {
-    sl_obj_embedded_shutdown(&d->obj_);
-}
-
-static void device_obj_shutdown(void *o) {
-    sl_dev_t *d = o;
+void device_shutdown(sl_dev_t *d) {
+    assert(d->magic == DEV_MAGIC);
     d->ops.release(d->context);
     d->context = NULL;
     lock_destroy(&d->lock);
 }
 
-void sl_device_retain(sl_dev_t *d) { sl_obj_retain(&d->obj_); }
-void sl_device_release(sl_dev_t *d) { sl_obj_release(&d->obj_); };
+static void device_obj_shutdown(void *o) {
+    device_shutdown(o);
+}
 
-static const sl_obj_vtable_t device_vtab = {
-    .type = SL_OBJ_TYPE_DEVICE,
-    .shutdown = device_obj_shutdown,
+void sl_device_retain(sl_dev_t *d) {
+    assert(d->magic == DEV_MAGIC);
+    sl_obj_retain(d->op_);
+}
+
+void sl_device_release(sl_dev_t *d) {
+    assert(d->magic == DEV_MAGIC);
+    sl_obj_release(d->op_);
 };
 
-static void device_init_common(sl_dev_t *d, u4 type, const sl_dev_ops_t *ops) {
+void device_init(sl_dev_t *d, u4 type, const char *name, const sl_dev_ops_t *ops) {
+    d->op_ = NULL;
+    d->magic = DEV_MAGIC;
     d->type = type;
+    d->name = name;
     d->irq_ep.assert = device_accept_irq;
     lock_init(&d->lock);
     d->map_ep.io = device_mapper_ep_io;
@@ -116,15 +124,12 @@ static void device_init_common(sl_dev_t *d, u4 type, const sl_dev_ops_t *ops) {
     if (d->ops.release == NULL) d->ops.release = dev_dummy_release;
 }
 
-void device_embedded_init(sl_dev_t *d, u4 type, const char *name, const sl_dev_ops_t *ops) {
-    sl_obj_embedded_init(&d->obj_, name, &device_vtab);
-    device_init_common(d, type, ops);
-}
-
 int sl_device_allocate(u4 type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
-    sl_dev_t *d = sl_obj_allocate(sizeof(*d), name, &device_vtab);
-    if (d == NULL) return SL_ERR_MEM;
+    sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_dev_t), device_obj_shutdown);
+    if (o == NULL) return SL_ERR_MEM;
+    sl_dev_t *d = sl_obj_get_item(o);
     *dev_out = d;
-    device_init_common(d, type, ops);
+    device_init(d, type, name, ops);
+    d->op_ = o;
     return 0;
 }

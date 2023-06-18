@@ -16,7 +16,9 @@
 #define SL_WORKER_MAX_EPS   64
 
 struct sl_worker {
-    sl_obj_t obj_;
+    sl_obj_t *op_;
+
+    const char *name;
 
     lock_t lock;
     cond_t has_event;
@@ -31,8 +33,8 @@ struct sl_worker {
     int thread_status;
 };
 
-void sl_worker_retain(sl_worker_t *w) { sl_obj_retain(&w->obj_); }
-void sl_worker_release(sl_worker_t *w) { sl_obj_release(&w->obj_); }
+void sl_worker_retain(sl_worker_t *w) { sl_obj_retain(w->op_); }
+void sl_worker_release(sl_worker_t *w) { sl_obj_release(w->op_); }
 
 static void queue_add(sl_worker_t *w, sl_event_t *ev) {
     lock_lock(&w->lock);
@@ -183,13 +185,12 @@ static void worker_shutdown(void *o) {
     cond_destroy(&w->has_event);
 }
 
-static const sl_obj_vtable_t worker_vtab = {
-    .type = SL_OBJ_TYPE_WORKER,
-    .shutdown = worker_shutdown,
-};
-
 int sl_worker_create(const char *name, sl_worker_t **w_out) {
-    sl_worker_t *w = sl_obj_allocate(sizeof(*w), name, &worker_vtab);
+    sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_worker_t), worker_shutdown);
+    if (o == NULL) return SL_ERR_MEM;
+    sl_worker_t *w = sl_obj_get_item(o);
+    w->op_ = o;
+    w->name = name;
     *w_out = w;
     lock_init(&w->lock);
     cond_init(&w->has_event);

@@ -30,6 +30,7 @@ typedef struct core_ops {
 } core_ops_t;
 
 struct core {
+    sl_obj_t *op_;
     sl_engine_t engine;
 
     u8 ticks;
@@ -55,7 +56,7 @@ struct core {
 // Setup functions may only be called when the core dispatch loop is not
 // running.
 
-int core_init(core_t *c, sl_core_params_t *p, sl_bus_t *b);
+int core_init(core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b);
 int core_shutdown(core_t *c);
 
 void core_config_get(core_t *c, sl_core_params_t *p);

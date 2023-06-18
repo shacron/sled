@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include <core/common.h>
+#include <core/obj.h>
 #include <core/riscv.h>
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
@@ -112,7 +113,7 @@ static void riscv_core_next_pc(rv_core_t *c) {
 // Synchronous irq handler - invokes an exception before the next instruction is dispatched.
 static int riscv_interrupt(sl_engine_t *e) {
     sl_irq_ep_t *ep = &e->irq_ep;
-    rv_core_t *rc = (rv_core_t *)e;
+    rv_core_t *rc = containerof(e, rv_core_t, core.engine);
 
     static const u1 irq_pri[] = {
         RV_INT_EXTERNAL_M, RV_INT_TIMER_M, RV_INT_SW_M, RV_INT_EXTERNAL_S, RV_INT_TIMER_S, RV_INT_SW_S
@@ -129,7 +130,7 @@ static int riscv_interrupt(sl_engine_t *e) {
 
 static int riscv_core_step(sl_engine_t *e) {
     int err = 0;
-    rv_core_t *rc = (rv_core_t *)e;
+    rv_core_t *rc = containerof(e, rv_core_t, core.engine);
     u4 inst;
     if ((err = rv_load_pc(rc, &inst)))
         return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);
@@ -146,18 +147,14 @@ static void rv_core_shutdown(void *o) {
     if (rc->ext.destroy != NULL) rc->ext.destroy(rc->ext_private);
 }
 
-static const sl_obj_vtable_t rvcore_vtab = {
-    .type = SL_OBJ_TYPE_CORE,
-    .shutdown = rv_core_shutdown,
-};
-
 int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, core_t **core_out) {
     int err;
-    rv_core_t *rc = sl_obj_allocate(sizeof(*rc), p->name, &rvcore_vtab);
-    if (rc == NULL) return SL_ERR_MEM;
+    sl_obj_t *o = sl_allocate_as_obj(sizeof(rv_core_t), rv_core_shutdown);
+    if (o == NULL) return SL_ERR_MEM;
+    rv_core_t *rc = sl_obj_get_item(o);
 
-    if ((err = core_init(&rc->core, p, bus))) {
-        free(rc);
+    if ((err = core_init(&rc->core, p, o, bus))) {
+        sl_obj_release(o);
         return err;
     }
 

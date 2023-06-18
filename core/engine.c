@@ -38,8 +38,8 @@ static int engine_irq_transition_async(sl_irq_ep_t *ep, u4 num, bool high) {
     return 0;
 }
 
-void sl_engine_retain(sl_engine_t *e) { sl_obj_retain(&e->obj_); }
-void sl_engine_release(sl_engine_t *e) { sl_obj_release(&e->obj_); }
+void sl_engine_retain(sl_engine_t *e) { sl_obj_retain(e->op_); }
+void sl_engine_release(sl_engine_t *e) { sl_obj_release(e->op_); }
 
 static void engine_set_wfi(sl_engine_t *e, bool enable) {
     if (enable) e->state |= (1u << SL_CORE_STATE_WFI);
@@ -148,31 +148,28 @@ int sl_engine_run(sl_engine_t *e) {
     return sl_worker_run(e->worker);
 }
 
-int sl_engine_init(sl_engine_t *e, sl_bus_t *b) {
+int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o, sl_bus_t *b) {
+    e->op_ = o;
     int err = sl_worker_create("eng_worker", &e->worker);
     if (err) return err;
-    sl_worker_add_engine(e->worker, e, &e->epid);
+    e->name = name;
     e->bus = b;
+    sl_worker_add_engine(e->worker, e, &e->epid);
     e->irq_ep.assert = engine_irq_transition_async;
     e->event_ep.handle = engine_event_handle;
     return 0;
 }
 
-static const sl_obj_vtable_t engine_vtab = {
-    .type = SL_OBJ_TYPE_ENGINE,
-    .shutdown = engine_shutdown,
-};
-
 int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t **e_out) {
-    sl_engine_t *e = sl_obj_allocate(sizeof(*e), name, &engine_vtab);
-    if (e == NULL) return SL_ERR_MEM;
+    sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_engine_t), engine_shutdown);
+    if (o == NULL) return SL_ERR_MEM;
+    sl_engine_t *e = sl_obj_get_item(o);
 
-    int err = sl_engine_init(e, NULL);
+    int err = sl_engine_init(e, name, o, NULL);
     if (err) {
-        free(e);
+        sl_obj_release(o);
         return err;
     }
-
     *e_out = e;
     return 0;
 }

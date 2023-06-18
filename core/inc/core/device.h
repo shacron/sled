@@ -17,11 +17,13 @@
 #define DEV_FLAG_EMBEDDED   (1u << 0)
 
 struct sl_dev {
-    sl_obj_t obj_;
+    sl_obj_t *op_;
     sl_list_node_t node;
 
+    u4 magic;
     u2 type;
     u8 base;
+    const char *name;
 
     lock_t lock;
     sl_irq_ep_t irq_ep;
@@ -39,5 +41,5 @@ static inline void dev_lock(sl_dev_t *d) { lock_lock(&d->lock); }
 static inline void dev_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 
 // internal device calls
-void device_embedded_init(sl_dev_t *d, u4 type, const char *name, const sl_dev_ops_t *ops);
-void device_embedded_shutdown(sl_dev_t *d);
+void device_init(sl_dev_t *d, u4 type, const char *name, const sl_dev_ops_t *ops);
+void device_shutdown(sl_dev_t *d);

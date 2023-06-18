@@ -91,7 +91,7 @@ sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
     sl_list_node_t *n = sl_list_peek_head(&b->dev_list);
     for ( ; n != NULL; n = n->next) {
         sl_dev_t *d = containerof(n, sl_dev_t, node);
-        if (!strcmp(name, d->obj_.name)) return d;
+        if (!strcmp(name, d->name)) return d;
     }
     return NULL;
 }
@@ -103,7 +103,7 @@ void bus_destroy(sl_bus_t *bus) {
         sl_device_release(containerof(c, sl_dev_t, node));
     while ((c = sl_list_remove_head(&bus->mem_list)) != NULL)
         mem_region_destroy((mem_region_t *)c);
-    device_embedded_shutdown(&bus->dev);
+    device_shutdown(&bus->dev);
     free(bus);
 }
 
@@ -116,7 +116,7 @@ int bus_create(const char *name, sl_bus_t **bus_out) {
     sl_bus_t *b = calloc(1, sizeof(*b));
     if (b == NULL) return SL_ERR_MEM;
 
-    device_embedded_init(&b->dev, SL_DEV_BUS, name, &bus_ops);
+    device_init(&b->dev, SL_DEV_BUS, name, &bus_ops);
     mapper_init(&b->mapper);
     sl_mapper_set_mode(&b->mapper, SL_MAP_OP_MODE_TRANSLATE);
     sl_device_set_context(&b->dev, b);
