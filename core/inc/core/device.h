@@ -17,7 +17,7 @@
 #define DEV_FLAG_EMBEDDED   (1u << 0)
 
 struct sl_dev {
-    sl_obj_t *op_;
+    sl_obj_t *obj_;
     sl_list_node_t node;
 
     u4 magic;

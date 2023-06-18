@@ -9,7 +9,7 @@
 #include <sled/engine.h>
 
 struct sl_engine {
-    sl_obj_t *op_;
+    sl_obj_t *obj_;
 
     const char *name;
     u4 state;         // current running state

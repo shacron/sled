@@ -101,16 +101,16 @@ static void device_obj_shutdown(void *o) {
 
 void sl_device_retain(sl_dev_t *d) {
     assert(d->magic == DEV_MAGIC);
-    sl_obj_retain(d->op_);
+    sl_obj_retain(d->obj_);
 }
 
 void sl_device_release(sl_dev_t *d) {
     assert(d->magic == DEV_MAGIC);
-    sl_obj_release(d->op_);
+    sl_obj_release(d->obj_);
 };
 
 void device_init(sl_dev_t *d, u4 type, const char *name, const sl_dev_ops_t *ops) {
-    d->op_ = NULL;
+    d->obj_ = NULL;
     d->magic = DEV_MAGIC;
     d->type = type;
     d->name = name;
@@ -130,6 +130,6 @@ int sl_device_allocate(u4 type, const char *name, const sl_dev_ops_t *ops, sl_de
     sl_dev_t *d = sl_obj_get_item(o);
     *dev_out = d;
     device_init(d, type, name, ops);
-    d->op_ = o;
+    d->obj_ = o;
     return 0;
 }

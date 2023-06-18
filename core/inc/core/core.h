@@ -30,7 +30,7 @@ typedef struct core_ops {
 } core_ops_t;
 
 struct core {
-    sl_obj_t *op_;
+    sl_obj_t *obj_;
     sl_engine_t engine;
 
     u8 ticks;

@@ -13,8 +13,8 @@
 #include <sled/io.h>
 
 
-void sl_core_retain(core_t *c) { sl_obj_retain(c->op_); }
-void sl_core_release(core_t *c) { sl_obj_release(c->op_); }
+void sl_core_retain(core_t *c) { sl_obj_retain(c->obj_); }
+void sl_core_release(core_t *c) { sl_obj_release(c->obj_); }
 
 int sl_core_async_command(core_t *c, u4 cmd, bool wait) {
     return sl_engine_async_command(&c->engine, cmd, wait);
@@ -196,7 +196,7 @@ sym_entry_t *core_get_sym_for_addr(core_t *c, u8 addr) {
 #endif
 
 int core_init(core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
-    c->op_ = o;
+    c->obj_ = o;
     int err = sl_engine_init(&c->engine, p->name, o, b);
     if (err) return err;
     config_set_internal(c, p);

@@ -38,8 +38,8 @@ static int engine_irq_transition_async(sl_irq_ep_t *ep, u4 num, bool high) {
     return 0;
 }
 
-void sl_engine_retain(sl_engine_t *e) { sl_obj_retain(e->op_); }
-void sl_engine_release(sl_engine_t *e) { sl_obj_release(e->op_); }
+void sl_engine_retain(sl_engine_t *e) { sl_obj_retain(e->obj_); }
+void sl_engine_release(sl_engine_t *e) { sl_obj_release(e->obj_); }
 
 static void engine_set_wfi(sl_engine_t *e, bool enable) {
     if (enable) e->state |= (1u << SL_CORE_STATE_WFI);
@@ -149,7 +149,7 @@ int sl_engine_run(sl_engine_t *e) {
 }
 
 int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o, sl_bus_t *b) {
-    e->op_ = o;
+    e->obj_ = o;
     int err = sl_worker_create("eng_worker", &e->worker);
     if (err) return err;
     e->name = name;
