@@ -3,6 +3,7 @@
 
 #include <errno.h>
 #include <stdatomic.h>
+#include <stdlib.h>
 
 #include <core/core.h>
 #include <core/lock.h>
