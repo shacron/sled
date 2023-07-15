@@ -28,6 +28,9 @@
 #define MONITOR_ARMED32 1
 #define MONITOR_ARMED64 2
 
+int rv_fp32_exec_fp(rv_core_t *c, rv_inst_t inst);
+int rv_fp64_exec_fp(rv_core_t *c, rv_inst_t inst);
+
 #if RV_TRACE
 static void rv_fence_op_name(u1 op, char *s) {
     if (op & FENCE_I) *s++ = 'i';
@@ -304,260 +307,22 @@ undef:
 }
 
 int rv_exec_fp(rv_core_t *c, rv_inst_t inst) {
-    rv_fp_reg_t result = {};
-    fexcept_t flags;
     const u1 fmt = inst.r.funct7 & 3;
-    const u1 rd = inst.r.rd;
-    const u1 set_result = (1 << 0);
-    const u1 set_flags = (1 << 1);
-    const u1 set_result_and_flags = set_result | set_flags;
 
-    u1 set_opts = set_result_and_flags;
-
-    feclearexcept(FE_ALL_EXCEPT);
-
-    if (fmt == 0) { // 32-bit single-precision
+    switch(fmt) {
+    case 0b00:  // 32-bit single-precision
         if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        return rv_fp32_exec_fp(c, inst);
 
-        u8 uval;
-        switch (inst.r.funct7 >> 2) {
-        // 0000000 rs2     rs1  rm   rd  1010011  FADD.S
-        case 0b00000:
-            result.f = c->f[inst.r.rs1].f + c->f[inst.r.rs2].f;
-            RV_TRACE_PRINT(c, "fadd.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-            break;
+    case 0b01:
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+        return rv_fp64_exec_fp(c, inst);
 
-        // 0000100 rs2     rs1  rm   rd  1010011  FSUB.S
-        case 0b00001:
-            result.f = c->f[inst.r.rs1].f - c->f[inst.r.rs2].f;
-            RV_TRACE_PRINT(c, "fsub.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-            break;
-
-        // 0001000 rs2     rs1  rm   rd  1010011  FMUL.S
-        case 0b00010:
-            result.f = c->f[inst.r.rs1].f * c->f[inst.r.rs2].f;
-            RV_TRACE_PRINT(c, "fmul.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-            break;
-
-        // 0001100 rs2     rs1  rm   rd  1010011  FDIV.S
-        case 0b00011:
-            result.f = c->f[inst.r.rs1].f / c->f[inst.r.rs2].f;
-            RV_TRACE_PRINT(c, "fdiv.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-            break;
-
-        // 01011 size 00000   rs1  rm   rd  1010011  FSQRT.S
-        case 0b01011:
-            result.f = sqrtf(c->f[inst.r.rs1].f);
-            RV_TRACE_PRINT(c, "fsqrt.s f%u, f%u", rd, inst.r.rs1);
-            break;
-
-        // 00100 size rs2     rs1  000  rd  1010011  FSGNJ.S
-        // 00100 size rs2     rs1  001  rd  1010011  FSGNJN.S
-        // 00100 size rs2     rs1  010  rd  1010011  FSGNJX.S
-        case 0b00100:
-            set_opts = set_result;
-            result.u4 = c->f[inst.r.rs1].u4 & 0x7fffffff;
-            switch (inst.r.funct3) {
-            case 0b000:
-                result.u4 |= (c->f[inst.r.rs2].u4 & 0x80000000);
-                RV_TRACE_PRINT(c, "fsgnj.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-                break;
-
-            case 0b001:
-                result.u4 |= ((~c->f[inst.r.rs2].u4) & 0x80000000);
-                RV_TRACE_PRINT(c, "fsgnjn.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-                break;
-
-            case 0b010:
-                result.u4 |= ((c->f[inst.r.rs1].u4 ^ c->f[inst.r.rs2].u4) & 0x80000000);
-                RV_TRACE_PRINT(c, "fsgnjx.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-                break;
-
-            default:    goto undef;
-            }
-            break;
-
-        // 00101 size rs2     rs1  000  rd  1010011  FMIN.S
-        // 00101 size rs2     rs1  001  rd  1010011  FMAX.S
-        case 0b00101:
-            switch (inst.r.funct3) {
-            case 0b000:
-                result.f = fminf(c->f[inst.r.rs1].f, c->f[inst.r.rs2].f);
-                RV_TRACE_PRINT(c, "fmin.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-                break;
-
-            case 0b001:
-                result.f = fmaxf(c->f[inst.r.rs1].f, c->f[inst.r.rs2].f);
-                RV_TRACE_PRINT(c, "fmaxf.s f%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-                break;
-
-            default:    goto undef;
-            }
-            break;
-
-        case 0b11000:
-            set_opts = set_flags;
-            // todo: set correct rounding mode
-            switch (inst.r.funct3) {
-            // 11000 size 00000   rs1  rm   rd  1010011  FCVT.W.S
-            case 0b00000:
-                uval = (u4)(i4)c->f[inst.r.rs1].f;
-                RV_TRACE_PRINT(c, "fcvt.w.s x%u, f%u", rd, inst.r.rs1);
-                break;
-
-            // 11000 size 00001   rs1  rm   rd  1010011  FCVT.WU.S
-            case 0b00001:
-                uval = (u4)c->f[inst.r.rs1].f;
-                RV_TRACE_PRINT(c, "fcvt.wu.s x%u, f%u", rd, inst.r.rs1);
-                break;
-
-            // 11000 size 00010   rs1  rm   rd  1010011  FCVT.L.S
-            case 0b00010:
-                if (c->mode != RV_MODE_RV64) goto undef;
-                uval = (u8)(i8)c->f[inst.r.rs1].f;
-                RV_TRACE_PRINT(c, "fcvt.l.s x%u, f%u", rd, inst.r.rs1);
-                break;
-
-            // 11000 size 00011   rs1  rm   rd  1010011  FCVT.LU.S
-            case 0b11000:
-                if (c->mode != RV_MODE_RV64) goto undef;
-                uval = (u8)c->f[inst.r.rs1].f;
-                RV_TRACE_PRINT(c, "fcvt.lu.s x%u, f%u", rd, inst.r.rs1);
-                break;
-
-            default:    goto undef;
-            }
-            if (rd != RV_ZERO) {
-                c->r[rd] = uval;
-                RV_TRACE_RD(c, rd, c->r[rd]);
-            }
-            break;
-
-        // 10100 size rs2     rs1  010  rd  1010011  FEQ.S
-        // 10100 size rs2     rs1  001  rd  1010011  FLT.S
-        // 10100 size rs2     rs1  000  rd  1010011  FLE.S
-        case 0b10100:
-            switch (inst.r.funct3) {
-            case 0b010:
-                uval = c->f[inst.r.rs1].f == c->f[inst.r.rs2].f;
-                RV_TRACE_PRINT(c, "feq.s x%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-                break;
-
-            case 0b001:
-                uval = isless(c->f[inst.r.rs1].f, c->f[inst.r.rs2].f);
-                RV_TRACE_PRINT(c, "flt.s x%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-                break;
-
-            case 0b000:
-                uval = islessequal(c->f[inst.r.rs1].f, c->f[inst.r.rs2].f);
-                RV_TRACE_PRINT(c, "fle.s x%u, f%u, f%u", rd, inst.r.rs1, inst.r.rs2);
-                break;
-
-            default:    goto undef;
-            }
-            if (rd != RV_ZERO) {
-                c->r[rd] = uval ? 1 : 0;
-                RV_TRACE_RD(c, rd, c->r[rd]);
-            }
-            set_opts = set_flags;
-            break;
-
-        // 11100 size 00000   rs1  000  rd  1010011  FMV.X.W
-        // 11100 size 00000   rs1  001  rd  1010011  FCLASS.S
-        case 0b11100:
-            set_opts = 0;
-            switch (inst.r.funct3) {
-            case 0b000: {
-                RV_TRACE_PRINT(c, "fmv.x.w x%u, f%u", rd, inst.r.rs1);
-                if (rd == RV_ZERO) break;
-                if (c->mode == RV_MODE_RV32) c->r[rd] = c->f[inst.r.rs1].u4;
-                else                         c->r[rd] = (i8)(i4)c->f[inst.r.rs1].u4;
-                RV_TRACE_RD(c, rd, c->r[rd]);
-                break;
-            }
-            case 0b001: {
-                RV_TRACE_PRINT(c, "fclass.s x%u, f%u", rd, inst.r.rs1);
-                if (rd == RV_ZERO) break;
-                u1 type = 0;
-                int cl = fpclassify(c->f[inst.r.rs1].f);
-                switch (cl) {
-                case FP_INFINITE:   type = 0;   break;
-                case FP_NORMAL:     type = 1;   break;
-                case FP_SUBNORMAL:  type = 2;   break;
-                case FP_ZERO:       type = 3;   break;
-                case FP_NAN:        type = (c->f[inst.r.rs1].f == NAN) ? 9 : 8;   break;
-                }
-                if ((type < 8) && (signbit(c->f[inst.r.rs1].f) == 0)) type = 7 - type;
-                c->r[rd] = (1u << type);
-                RV_TRACE_RD(c, rd, c->r[rd]);
-                break;
-            }
-            default:    goto undef;
-            }
-            break;
-
-        case 0b11010:
-            switch (inst.r.rs2) {
-            // 11010 size 00000   rs1  rm   rd  1010011  FCVT.S.W
-            case 0b00000:
-                result.f = (float)(i4)c->r[inst.r.rs1];
-                RV_TRACE_PRINT(c, "fcvt.s.w f%u, x%u", rd, inst.r.rs1);
-                break;
-
-            // 11010 size 00001   rs1  rm   rd  1010011  FCVT.S.WU
-            case 0b00001:
-                result.f = (float)(u4)c->r[inst.r.rs1];
-                RV_TRACE_PRINT(c, "fcvt.s.wu f%u, x%u", rd, inst.r.rs1);
-                break;
-
-            // 11010 size 00010   rs1  rm   rd  1010011  FCVT.S.L
-            case 0b00010:
-                if (c->mode != RV_MODE_RV64) goto undef;
-                result.f = (float)(i8)c->r[inst.r.rs1];
-                RV_TRACE_PRINT(c, "fcvt.s.l f%u, x%u", rd, inst.r.rs1);
-                break;
-
-            // 11010 size 00011   rs1  rm   rd  1010011  FCVT.S.LU
-            case 0b00011:
-                if (c->mode != RV_MODE_RV64) goto undef;
-                result.f = (float)c->r[inst.r.rs1];
-                RV_TRACE_PRINT(c, "fcvt.s.lu f%u, x%u", rd, inst.r.rs1);
-                break;
-
-            default:    goto undef;
-            }
-            break;
-
-        // 11110 size 00000   rs1  000  rd  1010011  FMV.W.X
-        case 0b11110:
-            if (inst.r.funct3 != 000) goto undef;
-            result.u4 = (u4)c->r[inst.r.rs1];
-            RV_TRACE_PRINT(c, "fmv.w.x f%u, x%u", rd, inst.r.rs1);
-            set_opts = set_result;
-            break;
-
-        default: goto undef;
-        }
-    } else {
-        // todo: implement
+    case 0b10: // 16-bit half-precision
+    case 0b11: // 128-bit quad-precision
+    default:
         goto undef;
-        // if (fmt == 1) { // 64-bit double-precision
-        //     if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-        //     goto undef;
-        // }
-        // if (fmt == 2) // 16-bit half-precision
-        // if (fmt == 3) // 128-bit quad-precision
     }
-
-    if (set_opts & set_flags) {
-        fegetexceptflag(&flags, FE_ALL_EXCEPT);
-        c->fcsr |= flags;
-    }
-    if (set_opts & set_result) {
-        c->f[rd].u8 = result.u8;
-        RV_TRACE_RDF(c, rd, c->f[rd].f);
-    }
-    return 0;
 
 undef:
     return rv_undef(c, inst);
@@ -567,7 +332,7 @@ int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     fexcept_t flags;
 
-    if (inst.r4.fmt == 2) {
+    if (inst.r4.fmt == 0b10) {
         if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
 
         const float rs1 = c->f[inst.r4.rs1].f;
@@ -609,6 +374,50 @@ int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
         c->fcsr |= flags;
         c->f[inst.r4.rd].f = result;
         RV_TRACE_RDF(c, inst.r4.rd, result);
+        RV_TRACE_PRINT(c, "%s f%u, f%u, f%u, f%u", opstr, inst.r4.rd, inst.r4.rs1, inst.r4.rs2, inst.r4.funct5);
+        return 0;
+    } else if (inst.r4.fmt == 0b01) {
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+
+        const double rs1 = c->f[inst.r4.rs1].d;
+        const double rs2 = c->f[inst.r4.rs2].d;
+        const double rs3 = c->f[inst.r4.funct5].d;
+        double result;
+
+        feclearexcept(FE_ALL_EXCEPT);
+
+        switch (inst.r4.opcode) {
+        // rs3 00 rs2 rs1 rm rd 1000011 FMADD.D
+        case 0b1000011:
+            RV_TRACE_OPSTR("fmadd.d");
+            result = (rs1 * rs2) + rs3;
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1000111 FMSUB.D
+        case 0b1000111:
+            RV_TRACE_OPSTR("fmsub.d");
+            result = (rs1 * rs2) - rs3;
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1001011 FNMSUB.D
+        case 0b1001011:
+            RV_TRACE_OPSTR("fnmsub.d");
+            result = -(rs1 * rs2) + rs3; // yes, fnmsub adds and fnmadd subtracts
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1001111 FNMADD.D
+        case 0b1001111:
+            RV_TRACE_OPSTR("fnmadd.d");
+            result = -(rs1 * rs2) - rs3;
+            break;
+
+        default:    goto undef;
+        }
+
+        fegetexceptflag(&flags, FE_ALL_EXCEPT);
+        c->fcsr |= flags;
+        c->f[inst.r4.rd].d = result;
+        RV_TRACE_RDD(c, inst.r4.rd, result);
         RV_TRACE_PRINT(c, "%s f%u, f%u, f%u, f%u", opstr, inst.r4.rd, inst.r4.rs1, inst.r4.rs2, inst.r4.funct5);
         return 0;
     }

@@ -19,6 +19,8 @@ LIB_CSOURCES += \
 	$(SRCDIR)/ringbuffer.c \
 	$(SRCDIR)/riscv/csr.c \
 	$(SRCDIR)/riscv/dispatch.c \
+	$(SRCDIR)/riscv/dispatch_fp32.c \
+	$(SRCDIR)/riscv/dispatch_fp64.c \
 	$(SRCDIR)/riscv/dispatch_rv32.c \
 	$(SRCDIR)/riscv/dispatch_rv64.c \
 	$(SRCDIR)/riscv/ex.c \
