@@ -318,7 +318,7 @@ int FLEN_PREFIX(exec_fp)(rv_core_t *c, rv_inst_t inst) {
 
     if (set_opts & set_flags) {
         fegetexceptflag(&flags, FE_ALL_EXCEPT);
-        c->fcsr |= flags;
+        c->fexc |= flags;
     }
     if (set_opts & set_result) {
         c->f[rd].u8 = result.u8;

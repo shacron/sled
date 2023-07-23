@@ -145,6 +145,9 @@
 
 
 // fcsr - floating point control and status register
+#define RV_CSR_FFLAGS           0x001
+#define RV_CSR_FRM              0x002
+#define RV_CSR_FCSR             0x003
 
 // rounding modes
 #define RV_FCSR_RM_RNE 0b000 // Round to Nearest, ties to Even

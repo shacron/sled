@@ -59,8 +59,8 @@ struct rv_core {
     u8 r[32];
 
     u8 status;
-    u4 fcsr;
     fexcept_t fexc; // host cumulative fp exception flags
+    u1 frm;         // floating point rounding mode
 
     rv_fp_reg_t f[32];
 

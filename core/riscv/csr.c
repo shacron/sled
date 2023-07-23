@@ -7,6 +7,7 @@
 #include <core/core.h>
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
+#include <sled/arch.h>
 #include <sled/error.h>
 #include <sled/riscv/csr.h>
 
@@ -168,6 +169,131 @@ static result64_t rv_csr_pmpcfg(rv_core_t *c, int op, u4 index, u8 value) {
         c->pmpcfg[index + 1] = (u4)(cfg >> 32);
     }
     c->pmpcfg[index] = (u4)cfg;
+    return result;
+}
+
+static u4 rv_fflags_from_host_fexc(u4 fexc) {
+    int set = fetestexcept(fexc);
+    u4 flags = 0;
+    if (set & FE_INEXACT)   flags |= RV_FCSR_NX;
+    if (set & FE_UNDERFLOW) flags |= RV_FCSR_UF;
+    if (set & FE_OVERFLOW)  flags |= RV_FCSR_OF;
+    if (set & FE_DIVBYZERO) flags |= RV_FCSR_DZ;
+    if (set & FE_INVALID)   flags |= RV_FCSR_NV;
+    return flags;
+}
+
+static u4 rv_host_fexc_from_fflags(u4 flags) {
+    u4 fexc = 0;
+    if (flags & RV_FCSR_NX) fexc |= FE_INEXACT;
+    if (flags & RV_FCSR_UF) fexc |= FE_UNDERFLOW;
+    if (flags & RV_FCSR_OF) fexc |= FE_OVERFLOW;
+    if (flags & RV_FCSR_DZ) fexc |= FE_DIVBYZERO;
+    if (flags & RV_FCSR_NV) fexc |= FE_INVALID;
+    return fexc;
+}
+
+static void rv_set_fcsr(rv_core_t *c, u4 value) {
+    c->frm = (value >> 5) & 7;
+    c->fexc = rv_host_fexc_from_fflags(value);
+}
+
+static result64_t rv_csr_fflags(rv_core_t *c, int op, u8 value) {
+    result64_t result = {};
+
+    if (op == RV_CSR_OP_WRITE) {
+        c->fexc = rv_host_fexc_from_fflags(value);
+        return result;
+    }
+
+    u4 flags = rv_fflags_from_host_fexc(c->fexc);
+    result.value = flags;
+    switch (op) {
+    case RV_CSR_OP_READ: break;
+    case RV_CSR_OP_SWAP:
+        c->fexc = rv_host_fexc_from_fflags(value);
+        break;
+
+    case RV_CSR_OP_READ_SET:
+        flags |= value;
+        c->fexc = rv_host_fexc_from_fflags(flags);
+         break;
+
+   case RV_CSR_OP_READ_CLEAR:
+        flags &= ~value;
+        c->fexc = rv_host_fexc_from_fflags(flags);
+        break;
+
+    default:
+        result.err = SL_ERR_UNDEF;
+        break;
+    }
+    return result;
+}
+
+static result64_t rv_csr_frm(rv_core_t *c, int op, u8 value) {
+    result64_t result = {};
+
+    u1 v = value & 7;
+    if (op == RV_CSR_OP_WRITE) {
+        c->frm = v;
+        return result;
+    }
+
+    result.value = c->frm;
+    switch (op) {
+    case RV_CSR_OP_READ: break;
+    case RV_CSR_OP_SWAP:
+        c->frm = v;
+        break;
+
+    case RV_CSR_OP_READ_SET:
+        c->frm |= v;
+         break;
+
+   case RV_CSR_OP_READ_CLEAR:
+        c->frm &= ~v;
+        break;
+
+    default:
+        result.err = SL_ERR_UNDEF;
+        break;
+    }
+    return result;
+}
+
+
+static result64_t rv_csr_fcsr(rv_core_t *c, int op, u8 value) {
+    result64_t result = {};
+
+    if (op == RV_CSR_OP_WRITE) {
+        rv_set_fcsr(c, value);
+        return result;
+    }
+
+    // synthesize current fcsr
+    u4 fcsr = (c->frm << 5) | rv_fflags_from_host_fexc(c->fexc);
+    result.value = fcsr;
+    switch (op) {
+    case RV_CSR_OP_READ: break;
+    case RV_CSR_OP_SWAP:
+        rv_set_fcsr(c, value);
+        break;
+
+    case RV_CSR_OP_READ_SET:
+        fcsr |= (value & 0xff);
+        rv_set_fcsr(c, fcsr);
+        break;
+
+    case RV_CSR_OP_READ_CLEAR:
+        fcsr &= ~value;
+        rv_set_fcsr(c, fcsr);
+        break;
+
+    default:
+        result.err = SL_ERR_UNDEF;
+        break;
+    }
     return result;
 }
 
@@ -368,10 +494,19 @@ result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
     // user level
     switch (addr.raw) {
     // Unprivileged Floating-Point CSRs (URW)
-    case 0x001: // fflags
-    case 0x002: // frm
-    case 0x003: // fcsr
-        result.err = SL_ERR_UNIMPLEMENTED;
+    case RV_CSR_FFLAGS: // fflags
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        result = rv_csr_fflags(c, op, value);
+        goto out;
+
+    case RV_CSR_FRM:    // frm
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        result = rv_csr_frm(c, op, value);
+        goto out;
+
+    case RV_CSR_FCSR: // fcsr
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        result = rv_csr_fcsr(c, op, value);
         goto out;
 
     // Unprivileged Counter/Timers (URO)
