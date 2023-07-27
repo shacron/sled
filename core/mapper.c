@@ -227,6 +227,7 @@ void mapper_print_mappings(sl_mapper_t *m) {
 
     case SL_MAP_OP_MODE_TRANSLATE:
         for (u4 i = 0; i < m->num_ents; i++) {
+            sl_dev_t *d;
             map_ent_t *ent = m->list[i];
             printf("  %#20" PRIx64 " %#20" PRIx64 " %#20" PRIx64 "", ent->pa_base, ent->va_base, ent->va_end - 
             ent->va_base);
@@ -237,7 +238,8 @@ void mapper_print_mappings(sl_mapper_t *m) {
                 break;
 
             case SL_MAP_TYPE_DEVICE:
-                printf(" device: %s\n", device_get_name_for_ep(ent->ep));
+                d = device_get_for_ep(ent->ep);
+                printf(" device: %s\n", d->name);
                 break;
 
             case SL_MAP_TYPE_MAPPER:

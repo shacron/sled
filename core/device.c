@@ -51,9 +51,8 @@ sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d) { return &d->irq_ep; }
 sl_mapper_t * sl_device_get_mapper(sl_dev_t *d) { return d->mapper; }
 void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m) { d->mapper = m; }
 
-const char *device_get_name_for_ep(sl_map_ep_t *ep) {
-    sl_dev_t *d = containerof(ep, sl_dev_t, map_ep);
-    return d->name;
+sl_dev_t * device_get_for_ep(sl_map_ep_t *ep) {
+    return containerof(ep, sl_dev_t, map_ep);
 }
 
 void sl_device_set_worker(sl_dev_t *d, sl_worker_t *w, u4 epid) {
