@@ -176,7 +176,6 @@ static const sl_dev_ops_t mpu_ops = {
     .read = mpu_read,
     .write = mpu_write,
     .release = mpu_release,
-    .aperture = MPU_APERTURE_LENGTH,
 };
 
 int sled_mpu_create(const char *name, sl_dev_t **dev_out) {
@@ -185,7 +184,7 @@ int sled_mpu_create(const char *name, sl_dev_t **dev_out) {
     sled_mpu_t *m = calloc(1, sizeof(sled_mpu_t));
     if (m == NULL) return SL_ERR_MEM;
 
-    if ((err = sl_device_allocate(SL_DEV_MPU, name, &mpu_ops, &m->dev))) goto out_err;
+    if ((err = sl_device_allocate(SL_DEV_MPU, name, MPU_APERTURE_LENGTH, &mpu_ops, &m->dev))) goto out_err;
     if ((err = sl_mapper_create(&m->mapper))) goto out_err;
 
     *dev_out = m->dev;

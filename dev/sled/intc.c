@@ -70,12 +70,11 @@ static int intc_write(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
 static const sl_dev_ops_t intc_ops = {
     .read = intc_read,
     .write = intc_write,
-    .aperture = INTC_APERTURE_LENGTH,
 };
 
 int sled_intc_create(const char *name, sl_dev_t **dev_out) {
     sl_dev_t *d;
-    int err = sl_device_allocate(SL_DEV_INTC, name, &intc_ops, &d);
+    int err = sl_device_allocate(SL_DEV_INTC, name, INTC_APERTURE_LENGTH, &intc_ops, &d);
     if (err) return err;
     *dev_out = d;
     sl_device_set_context(d, d);

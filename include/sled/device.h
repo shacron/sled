@@ -29,10 +29,9 @@ struct sl_dev_ops {
     int (*read)(void *ctx, u8 addr, u4 size, u4 count, void *buf);
     int (*write)(void *ctx, u8 addr, u4 size, u4 count, void *buf);
     void (*release)(void *ctx);
-    u4 aperture;
 };
 
-int sl_device_allocate(u4 type, const char *name, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
+int sl_device_allocate(u4 type, const char *name, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
 void sl_device_retain(sl_dev_t *d);
 void sl_device_release(sl_dev_t *d);
 

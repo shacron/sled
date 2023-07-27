@@ -29,6 +29,7 @@ struct sl_dev {
     sl_irq_ep_t irq_ep;
     sl_map_ep_t map_ep;     // incoming io from external mapper
     void *context;          // context of owner object
+    u4 aperture;
     sl_dev_ops_t ops;
     sl_event_ep_t event_ep; // async event endpoint
     sl_mapper_t *mapper;    // held for owner object, todo: remove
@@ -41,5 +42,5 @@ static inline void dev_lock(sl_dev_t *d) { lock_lock(&d->lock); }
 static inline void dev_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 
 // internal device calls
-void device_init(sl_dev_t *d, u4 type, const char *name, const sl_dev_ops_t *ops);
+void device_init(sl_dev_t *d, u4 type, const char *name, u4 aperture, const sl_dev_ops_t *ops);
 void device_shutdown(sl_dev_t *d);

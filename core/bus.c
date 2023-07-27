@@ -75,7 +75,7 @@ int bus_add_device(sl_bus_t *b, sl_dev_t *dev, u8 base) {
     dev->base = base;
     sl_mapping_t m = {};
     m.input_base = dev->base;
-    m.length = dev->ops.aperture;
+    m.length = dev->aperture;
     m.output_base = 0;
     m.ep = &dev->map_ep;
     int err = sl_mappper_add_mapping(&b->mapper, &m);
@@ -116,7 +116,7 @@ int bus_create(const char *name, sl_bus_t **bus_out) {
     sl_bus_t *b = calloc(1, sizeof(*b));
     if (b == NULL) return SL_ERR_MEM;
 
-    device_init(&b->dev, SL_DEV_BUS, name, &bus_ops);
+    device_init(&b->dev, SL_DEV_BUS, name, 0, &bus_ops);
     mapper_init(&b->mapper);
     sl_mapper_set_mode(&b->mapper, SL_MAP_OP_MODE_TRANSLATE);
     sl_device_set_context(&b->dev, b);
