@@ -64,6 +64,7 @@ int bus_add_mem_region(sl_bus_t *b, mem_region_t *r) {
     m.input_base = r->base;
     m.length = r->length;
     m.output_base = 0;
+    m.type = SL_MAP_TYPE_MEMORY;
     m.ep = &r->ep;
     int err = sl_mappper_add_mapping(&b->mapper, &m);
     if (err) return err;
@@ -77,6 +78,7 @@ int bus_add_device(sl_bus_t *b, sl_dev_t *dev, u8 base) {
     m.input_base = dev->base;
     m.length = dev->aperture;
     m.output_base = 0;
+    m.type = SL_MAP_TYPE_DEVICE;
     m.ep = &dev->map_ep;
     int err = sl_mappper_add_mapping(&b->mapper, &m);
     if (err) return err;

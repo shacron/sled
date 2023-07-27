@@ -50,6 +50,7 @@ typedef struct {
     bool cons_on_start;
     bool cons_on_err;
     bool trap;
+    bool top;
 
     int uart_fd_in;
     int uart_fd_out;
@@ -66,6 +67,7 @@ static const struct option longopts[] = {
     { "raw",       required_argument,  NULL,   'r' },
     { "serial",    required_argument,  NULL,   1   },
     { "step",      required_argument,  NULL,   's' },
+    { "top",       no_argument,        NULL,   2 },
     { "trap",      required_argument,  NULL,   't' },
     { "verbose",   no_argument,        NULL,   'v' },
     { NULL,        0,                  NULL,   0 }
@@ -112,6 +114,9 @@ static void usage(void) {
     "         'file' direct output to file 'serial.txt'\n"
     "         'port:num' direct io to TCP network port. Execution will wait until a client\n"
     "            connects to this port.\n"
+    "\n"
+    "  --top\n"
+    "       Print the bus topology at exit.\n"
     "\n"
     "  -h, --help\n"
     "       Print this help text and exit.\n"
@@ -189,7 +194,6 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
             break;
         }
 
-
         case 1:
             if (!strcmp(optarg, "-")) {
                 sm->uart_io = UART_IO_CONS;
@@ -210,6 +214,10 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
             }
             fprintf(stderr, "unrecognized serial option: %s\n", optarg);
             return -1;
+
+        case 2:
+            sm->top = true;
+            break;
 
         default:
             fprintf(stderr, "invalid argument\n"); // which argument?
@@ -436,6 +444,8 @@ int simple_machine(sm_t *sm) {
 out:
     printf("%" PRIu64 " instructions dispatched\n", sl_core_get_cycles(c));
     err = 0;
+
+    if (sm->top) sl_core_print_bus_topology(c);
 
 out_err_machine:
     sl_machine_destroy(m);

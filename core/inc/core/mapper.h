@@ -20,3 +20,5 @@ void mapper_init(sl_mapper_t *m);
 void mapper_shutdown(sl_mapper_t *m);
 
 int mapper_update(sl_mapper_t *m, sl_event_t *ev);
+
+void mapper_print_mappings(sl_mapper_t *m);

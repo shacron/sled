@@ -44,3 +44,5 @@ static inline void dev_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 // internal device calls
 void device_init(sl_dev_t *d, u4 type, const char *name, u4 aperture, const sl_dev_ops_t *ops);
 void device_shutdown(sl_dev_t *d);
+
+const char *device_get_name_for_ep(sl_map_ep_t *ep);

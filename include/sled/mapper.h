@@ -30,6 +30,11 @@ must be used. The map driver must not block the mapping client from completing i
 #define SL_MAP_OP_MODE_TRANSLATE    (2u)
 #define SL_MAP_OP_MODE_MASK         (3u)
 
+#define SL_MAP_TYPE_UNKNOWN         0
+#define SL_MAP_TYPE_MEMORY          1
+#define SL_MAP_TYPE_DEVICE          2
+#define SL_MAP_TYPE_MAPPER          3
+
 #define SL_MAP_OP_REPLACE           (1u << 2)
 
 struct sl_mapping {
@@ -38,6 +43,7 @@ struct sl_mapping {
     u8 output_base;
     u4 domain;
     u2 permissions;
+    u1 type;
     sl_map_ep_t *ep;
 };
 

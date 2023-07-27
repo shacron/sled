@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2023 Shac Ron and The Sled Project
 
+#include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <core/common.h>
+#include <core/device.h>
 #include <core/event.h>
 #include <core/mapper.h>
 #include <sled/error.h>
@@ -18,6 +21,7 @@ struct map_ent {
     u8 pa_base;
     u4 domain;
     u2 permissions;
+    u1 type;
     sl_map_ep_t *ep;
 };
 
@@ -37,6 +41,7 @@ static map_ent_t * create_map_ent(sl_mapping_t *m) {
     n->pa_base = m->output_base;
     n->domain = m->domain;
     n->permissions = m->permissions;
+    n->type = m->type;
     n->ep = m->ep;
     return n;
 }
@@ -207,3 +212,50 @@ void sl_mapper_destroy(sl_mapper_t *m) {
     free(m);
 }
 
+void mapper_print_mappings(sl_mapper_t *m) {
+    printf("mapper\n");
+    bool has_next = false;
+    switch (m->mode) {
+    case SL_MAP_OP_MODE_PASSTHROUGH:
+        printf("  passthrough\n");
+        has_next = true;
+        break;
+
+    case SL_MAP_OP_MODE_BLOCK:
+        printf("  blocked\n");
+        break;
+
+    case SL_MAP_OP_MODE_TRANSLATE:
+        for (u4 i = 0; i < m->num_ents; i++) {
+            map_ent_t *ent = m->list[i];
+            printf("  %#20" PRIx64 " %#20" PRIx64 " %#20" PRIx64 "", ent->pa_base, ent->va_base, ent->va_end - 
+            ent->va_base);
+
+            switch (ent->type) {
+            case SL_MAP_TYPE_MEMORY:
+                printf(" memory\n");
+                break;
+
+            case SL_MAP_TYPE_DEVICE:
+                printf(" device: %s\n", device_get_name_for_ep(ent->ep));
+                break;
+
+            case SL_MAP_TYPE_MAPPER:
+                printf(" mapper\n");
+                has_next = true;
+                break;
+
+            default:
+                printf(" <unknown>\n");
+                break;
+            }
+        }
+        break;
+
+    default:
+        printf("  unhandled mode\n");
+        break;
+    }
+
+    if (has_next) mapper_print_mappings(m->next);
+}

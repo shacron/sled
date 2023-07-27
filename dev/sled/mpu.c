@@ -96,6 +96,7 @@ static int update_config(sled_mpu_t *m, u4 val) {
             ent->input_base = m->va_base[i];
             ent->length = m->map_len[i];
             ent->output_base = m->pa_base[i];
+            ent->type = SL_MAP_TYPE_MAPPER;
             ent->ep = sl_mapper_get_ep(next);
             ent_count++;
         }

@@ -204,3 +204,7 @@ int core_init(core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;
 }
+
+void sl_core_print_bus_topology(core_t *c) {
+    mapper_print_mappings(c->mapper);
+}

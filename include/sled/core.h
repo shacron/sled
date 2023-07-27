@@ -104,6 +104,9 @@ int sl_core_async_command(core_t *c, u4 cmd, bool wait);
 u1 sl_core_get_arch(core_t *c);
 u4 sl_core_get_reg_count(core_t *c, int type);
 
+// debug feature: print the bus topology as seen by this core
+// using the current translation regime.
+void sl_core_print_bus_topology(core_t *c);
 
 #ifdef __cplusplus
 }
