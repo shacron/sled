@@ -23,6 +23,10 @@ changes from the map driver to the mapper, the mapping client's async command qu
 must be used. The map driver must not block the mapping client from completing its work.
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SL_MAP_EV_TYPE_UPDATE       0x1000
 
 #define SL_MAP_OP_MODE_BLOCK        (0u)
@@ -61,3 +65,7 @@ int sl_mappper_add_mapping(sl_mapper_t *m, sl_mapping_t *ent);
 int sl_mapper_io(void *ctx, sl_io_op_t *op);
 sl_mapper_t * sl_mapper_get_next(sl_mapper_t *m);
 sl_map_ep_t * sl_mapper_get_ep(sl_mapper_t *m);
+
+#ifdef __cplusplus
+}
+#endif
