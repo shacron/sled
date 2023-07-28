@@ -423,21 +423,21 @@ int simple_machine(sm_t *sm) {
     if (err == SL_OK) goto out;
     if (err != SL_ERR_SYSCALL) {
         printf("unexpected run status: %s\n", st_err(err));
-        goto out_err_machine;
+        goto out_err_runtime;
     }
 
     a0 = sl_core_get_reg(c, SL_CORE_REG_ARG0);
     if (a0 != 0x666) {
         printf("unexpected exit syscall %#" PRIx64 "\n", a0);
         err = SL_ERR;
-        goto out_err_machine;
+        goto out_err_runtime;
     }
 
     a1 = sl_core_get_reg(c, SL_CORE_REG_ARG1);
     if (a1 != 0) {
         printf("executable exit status: %" PRId64 "\n", a1);
         err = SL_ERR;
-        goto out_err_machine;
+        goto out_err_runtime;
     }
 
     // printf("success\n");
@@ -445,6 +445,7 @@ out:
     printf("%" PRIu64 " instructions dispatched\n", sl_core_get_cycles(c));
     err = 0;
 
+out_err_runtime:
     if (sm->top) sl_core_print_bus_topology(c);
 
 out_err_machine:
