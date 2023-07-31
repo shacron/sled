@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2023 Shac Ron and The Sled Project
 
+#include <assert.h>
 #include <errno.h>
 #include <stdatomic.h>
 #include <stdlib.h>
@@ -127,6 +128,7 @@ int sl_worker_step(sl_worker_t *w, u8 num) {
 }
 
 int sl_worker_run(sl_worker_t *w) {
+    assert(!w->thread_running);
     for ( ; ; ) {
         int err = single_step(w);
         if (err) return err;
@@ -140,15 +142,23 @@ static void * workloop_thread(void *arg) {
 }
 
 int sl_worker_thread_run(sl_worker_t *w) {
+    assert(!w->thread_running);
+    w->thread_running = true;
     int err = pthread_create(&w->thread, NULL, workloop_thread, w);
-    if (err) return SL_ERR_STATE;
+    if (err) {
+        w->thread_running = false;
+        return SL_ERR_STATE;
+    }
     return 0;
 }
 
 int sl_worker_thread_join(sl_worker_t *w) {
+    assert(w->thread_running);
     int err = pthread_join(w->thread, NULL);
     switch (err) {
-    case 0:     return 0;
+    case 0:
+        w->thread_running = false;
+        return 0;
 
     case EINVAL:
     case ESRCH:
@@ -164,6 +174,7 @@ static void worker_shutdown(void *o) {
 }
 
 void sl_worker_shutdown(sl_worker_t *w) {
+    assert(!w->thread_running);
     if (w->engine) sl_engine_release(w->engine);
     lock_destroy(&w->lock);
     cond_destroy(&w->has_event);
@@ -172,6 +183,7 @@ void sl_worker_shutdown(sl_worker_t *w) {
 int sl_worker_init(sl_worker_t *w, const char *name, sl_obj_t *o) {
     w->obj_ = o;
     w->name = name;
+    w->thread_running = false;
     lock_init(&w->lock);
     cond_init(&w->has_event);
     return 0;

@@ -23,6 +23,7 @@ struct sl_worker {
 
     pthread_t thread;
     int thread_status;
+    bool thread_running;
 };
 
 int sl_worker_init(sl_worker_t *w, const char *name, sl_obj_t *o);
