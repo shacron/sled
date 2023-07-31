@@ -27,7 +27,7 @@ int sled_mpu_create(const char *name, sl_dev_t **dev_out);
 struct sl_machine {
     sl_bus_t *bus;
     sl_dev_t *intc;
-    core_t *core_list[MACHINE_MAX_CORES];
+    sl_core_t *core_list[MACHINE_MAX_CORES];
 };
 
 static int machine_create_device(u4 type, const char *name, sl_dev_t **dev_out) {
@@ -107,7 +107,7 @@ int sl_machine_add_device_prefab(sl_machine_t *m, u8 base, sl_dev_t *d) {
 }
 
 int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
-    core_t *c;
+    sl_core_t *c;
     int err;
 
     switch (opts->arch) {
@@ -139,7 +139,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     return err;
 }
 
-core_t * sl_machine_get_core(sl_machine_t *m, u4 id) {
+sl_core_t * sl_machine_get_core(sl_machine_t *m, u4 id) {
     if (id >= MACHINE_MAX_CORES) return NULL;
     return m->core_list[id];
 }
@@ -155,7 +155,7 @@ int sl_machine_set_interrupt(sl_machine_t *m, u4 irq, bool high) {
 
 void sl_machine_destroy(sl_machine_t *m) {
     for (int i = 0; i < MACHINE_MAX_CORES; i++) {
-        core_t *c = m->core_list[i];
+        sl_core_t *c = m->core_list[i];
         if (c != NULL) sl_core_release(c);
     }
     bus_destroy(m->bus);
@@ -163,7 +163,7 @@ void sl_machine_destroy(sl_machine_t *m) {
 }
 
 int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure) {
-    core_t *c = sl_machine_get_core(m, id);
+    sl_core_t *c = sl_machine_get_core(m, id);
     if (c == NULL) {
         fprintf(stderr, "invalid core id: %u\n", id);
         return SL_ERR_ARG;
@@ -265,7 +265,7 @@ out_err:
 }
 
 int sl_machine_load_core_raw(sl_machine_t *m, u4 id, u8 addr, void *buf, u8 size) {
-    core_t *c = sl_machine_get_core(m, id);
+    sl_core_t *c = sl_machine_get_core(m, id);
     if (c == NULL) {
         fprintf(stderr, "invalid core id: %u\n", id);
         return SL_ERR_ARG;

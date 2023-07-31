@@ -20,7 +20,7 @@
 
 typedef struct {
     sl_machine_t *machine;
-    core_t *core;
+    sl_core_t *core;
 
     u4 len;
     char *line;

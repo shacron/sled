@@ -230,7 +230,7 @@ static int parse_opts(int argc, char *argv[], sm_t *sm) {
 void *core_runner(void *arg) {
     int err = 0;
     sm_t *sm = arg;
-    core_t *c = sl_machine_get_core(sm->m, sm->core_id);
+    sl_core_t *c = sl_machine_get_core(sm->m, sm->core_id);
 
     if (sm->cons_on_start) {
         err = console_enter(sm->m);
@@ -371,7 +371,7 @@ int simple_machine(sm_t *sm) {
         goto out_err_machine;
     }
 
-    core_t *c = sl_machine_get_core(m, sm->core_id);
+    sl_core_t *c = sl_machine_get_core(m, sm->core_id);
     d = sl_machine_get_device_for_name(m, "mpu0");
     sl_core_set_mapper(c, d);
 

@@ -21,7 +21,7 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *obj, bool configu
 int sl_machine_load_core_raw(sl_machine_t *m, u4 id, u8 addr, void *buf, u8 size);
 
 sl_dev_t * sl_machine_get_device_for_name(sl_machine_t *m, const char *name);
-core_t * sl_machine_get_core(sl_machine_t *m, u4 id);
+sl_core_t * sl_machine_get_core(sl_machine_t *m, u4 id);
 int sl_machine_set_interrupt(sl_machine_t *m, u4 irq, bool high);
 
 void sl_machine_destroy(sl_machine_t *m);

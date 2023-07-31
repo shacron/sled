@@ -22,7 +22,7 @@ static int rv_load_pc(rv_core_t *c, u4 *inst) {
     return sl_core_mem_read(&c->core, c->pc, 4, 1, inst);
 }
 
-static void riscv_set_reg(core_t *c, u4 reg, u8 value) {
+static void riscv_set_reg(sl_core_t *c, u4 reg, u8 value) {
     rv_core_t *rc = (rv_core_t *)c;
 
     if (reg == 0) return;  // always zero
@@ -50,7 +50,7 @@ static void riscv_set_reg(core_t *c, u4 reg, u8 value) {
     }
 }
 
-static u8 riscv_get_reg(core_t *c, u4 reg) {
+static u8 riscv_get_reg(sl_core_t *c, u4 reg) {
     rv_core_t *rc = (rv_core_t *)c;
 
     if (reg == 0) return 0;  // always zero
@@ -69,7 +69,7 @@ static u8 riscv_get_reg(core_t *c, u4 reg) {
     }
 }
 
-static int riscv_core_set_state(core_t *c, u4 state, bool enabled) {
+static int riscv_core_set_state(sl_core_t *c, u4 state, bool enabled) {
     rv_core_t *rc = (rv_core_t *)c;
 
     const u4 bit = (1u << state);
@@ -147,7 +147,7 @@ static void rv_core_shutdown(void *o) {
     if (rc->ext.destroy != NULL) rc->ext.destroy(rc->ext_private);
 }
 
-int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, core_t **core_out) {
+int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out) {
     int err;
     sl_obj_t *o = sl_allocate_as_obj(sizeof(rv_core_t), rv_core_shutdown);
     if (o == NULL) return SL_ERR_MEM;

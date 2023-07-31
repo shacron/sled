@@ -30,7 +30,7 @@ typedef intptr_t iptr;
 typedef uintptr_t uptr;
 
 typedef struct sl_bus sl_bus_t;
-typedef struct core core_t;
+typedef struct sl_core sl_core_t;
 typedef struct sl_core_params sl_core_params_t;
 typedef struct sl_dev sl_dev_t;
 typedef struct sl_dev_ops sl_dev_ops_t;

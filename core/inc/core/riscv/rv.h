@@ -49,7 +49,7 @@ typedef union {
 } rv_fp_reg_t;
 
 struct rv_core {
-    core_t core;
+    sl_core_t core;
     u1 mode;
     u1 pl;     // privilege level
     u1 jump_taken;

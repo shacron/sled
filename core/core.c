@@ -13,18 +13,18 @@
 #include <sled/io.h>
 
 
-void sl_core_retain(core_t *c) { sl_obj_retain(c->obj_); }
-void sl_core_release(core_t *c) { sl_obj_release(c->obj_); }
+void sl_core_retain(sl_core_t *c) { sl_obj_retain(c->obj_); }
+void sl_core_release(sl_core_t *c) { sl_obj_release(c->obj_); }
 
-int sl_core_async_command(core_t *c, u4 cmd, bool wait) {
+int sl_core_async_command(sl_core_t *c, u4 cmd, bool wait) {
     return sl_engine_async_command(&c->engine, cmd, wait);
 }
 
-u1 sl_core_get_arch(core_t *c) {
+u1 sl_core_get_arch(sl_core_t *c) {
     return c->arch;
 }
 
-void core_config_get(core_t *c, sl_core_params_t *p) {
+void core_config_get(sl_core_t *c, sl_core_params_t *p) {
     p->arch = c->arch;
     p->subarch = c->subarch;
     p->id = c->id;
@@ -32,7 +32,7 @@ void core_config_get(core_t *c, sl_core_params_t *p) {
     p->arch_options = c->arch_options;
 }
 
-static void config_set_internal(core_t *c, sl_core_params_t *p) {
+static void config_set_internal(sl_core_t *c, sl_core_params_t *p) {
     c->arch = p->arch;
     c->subarch = p->subarch;
     c->id = p->id;
@@ -40,13 +40,13 @@ static void config_set_internal(core_t *c, sl_core_params_t *p) {
     c->arch_options = p->arch_options;
 }
 
-int core_config_set(core_t *c, sl_core_params_t *p) {
+int core_config_set(sl_core_t *c, sl_core_params_t *p) {
     if (c->arch != p->arch) return SL_ERR_ARG;
     config_set_internal(c, p);
     return 0;
 }
 
-int core_shutdown(core_t *c) {
+int core_shutdown(sl_core_t *c) {
 #if WITH_SYMBOLS
     sym_list_t *n = NULL;
     for (sym_list_t *s = c->symbols; s != NULL; s = n) {
@@ -58,27 +58,27 @@ int core_shutdown(core_t *c) {
     return 0;
 }
 
-const core_ops_t * core_get_ops(core_t *c) {
+const core_ops_t * core_get_ops(sl_core_t *c) {
     return &c->ops;
 }
 
-u8 sl_core_get_cycles(core_t *c) {
+u8 sl_core_get_cycles(sl_core_t *c) {
     return c->ticks;
 }
 
-void core_interrupt_set(core_t *c, bool enable) {
+void core_interrupt_set(sl_core_t *c, bool enable) {
     sl_engine_interrupt_set(&c->engine, enable);
 }
 
-int core_endian_set(core_t *c, bool big) {
+int core_endian_set(sl_core_t *c, bool big) {
     return c->ops.set_state(c, SL_CORE_STATE_ENDIAN_BIG, big);
 }
 
-void core_instruction_barrier(core_t *c) {
+void core_instruction_barrier(sl_core_t *c) {
     atomic_thread_fence(memory_order_acquire);
 }
 
-void core_memory_barrier(core_t *c, u4 type) {
+void core_memory_barrier(sl_core_t *c, u4 type) {
     // currently ignoring system and sync
     type &= (BARRIER_LOAD | BARRIER_STORE);
     switch (type) {
@@ -95,7 +95,7 @@ void core_memory_barrier(core_t *c, u4 type) {
     }
 }
 
-int sl_core_mem_read(core_t *c, u8 addr, u4 size, u4 count, void *buf) {
+int sl_core_mem_read(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf) {
     sl_io_op_t op;
     op.addr = addr;
     op.count = count;
@@ -107,7 +107,7 @@ int sl_core_mem_read(core_t *c, u8 addr, u4 size, u4 count, void *buf) {
     return sl_mapper_io(c->mapper, &op);
 }
 
-int sl_core_mem_write(core_t *c, u8 addr, u4 size, u4 count, void *buf) {
+int sl_core_mem_write(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf) {
     sl_io_op_t op;
     op.addr = addr;
     op.count = count;
@@ -119,7 +119,7 @@ int sl_core_mem_write(core_t *c, u8 addr, u4 size, u4 count, void *buf) {
     return sl_mapper_io(c->mapper, &op);
 }
 
-int sl_core_mem_atomic(core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1, u8 *result, u1 ord, u1 ord_fail) {
+int sl_core_mem_atomic(sl_core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1, u8 *result, u1 ord, u1 ord_fail) {
     sl_io_op_t op;
     op.addr = addr;
     op.size = size;
@@ -136,15 +136,15 @@ int sl_core_mem_atomic(core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1, u8
     return 0;
 }
 
-void sl_core_set_reg(core_t *c, u4 reg, u8 value) {
+void sl_core_set_reg(sl_core_t *c, u4 reg, u8 value) {
     c->ops.set_reg(c, reg, value);
 }
 
-u8 sl_core_get_reg(core_t *c, u4 reg) {
+u8 sl_core_get_reg(sl_core_t *c, u4 reg) {
     return c->ops.get_reg(c, reg);
 }
 
-int sl_core_set_mapper(core_t *c, sl_dev_t *d) {
+int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d) {
     sl_mapper_t *m = sl_device_get_mapper(d);
     m->next = c->mapper;
     c->mapper = m;
@@ -156,29 +156,29 @@ int sl_core_set_mapper(core_t *c, sl_dev_t *d) {
     return id;
 }
 
-int sl_core_step(core_t *c, u8 num) {
+int sl_core_step(sl_core_t *c, u8 num) {
     return sl_engine_step(&c->engine, num);
 }
 
-int sl_core_run(core_t *c) {
+int sl_core_run(sl_core_t *c) {
     return sl_engine_run(&c->engine);
 }
 
-int sl_core_set_state(core_t *c, u4 state, bool enabled) {
+int sl_core_set_state(sl_core_t *c, u4 state, bool enabled) {
     return c->ops.set_state(c, state, enabled);
 }
 
-u4 sl_core_get_reg_count(core_t *c, int type) {
+u4 sl_core_get_reg_count(sl_core_t *c, int type) {
     return sl_arch_get_reg_count(c->arch, c->subarch, type);
 }
 
 #if WITH_SYMBOLS
-void core_add_symbols(core_t *c, sym_list_t *list) {
+void core_add_symbols(sl_core_t *c, sym_list_t *list) {
     list->next = c->symbols;
     c->symbols = list;
 }
 
-sym_entry_t *core_get_sym_for_addr(core_t *c, u8 addr) {
+sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr) {
     sym_entry_t *nearest = NULL;
     u8 distance = ~0;
     for (sym_list_t *list = c->symbols; list != NULL; list = list->next) {
@@ -195,7 +195,7 @@ sym_entry_t *core_get_sym_for_addr(core_t *c, u8 addr) {
 }
 #endif
 
-int core_init(core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
+int core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
     c->obj_ = o;
     int err = sl_engine_init(&c->engine, p->name, o);
     if (err) return err;
@@ -205,6 +205,6 @@ int core_init(core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
     return 0;
 }
 
-void sl_core_print_bus_topology(core_t *c) {
+void sl_core_print_bus_topology(sl_core_t *c) {
     mapper_print_mappings(c->mapper);
 }

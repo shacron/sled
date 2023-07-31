@@ -58,7 +58,7 @@ struct sl_core_params {
 There are two ways to run a core
 Synchronous execution - this is accomplished by iterated calls to
 sl_core_step(). Between steps, all core accessor functions are safe to call.
-Note that these functions are NOT generally thread safe and thus core_t must
+Note that these functions are NOT generally thread safe and thus sl_core_t must
 be protected by an external lock if accessed from multiple threads.
 
 Asynchronous execution - the involves a call to sl_core_dispatch_loop(). The
@@ -68,26 +68,26 @@ functions may be called unless specified while the dispatch loop is running.
 */
 
 // Execute a number of instructions on current thread
-int sl_core_step(core_t *c, u8 num);
+int sl_core_step(sl_core_t *c, u8 num);
 
 // Run dispatch loop on current thread - enter async execution mode
-int sl_core_run(core_t *c);
+int sl_core_run(sl_core_t *c);
 
 // ----------------------------------------------------------------------------
 // Synchronous accessor functions
 // ----------------------------------------------------------------------------
 
-void sl_core_retain(core_t *c);
-void sl_core_release(core_t *c);
+void sl_core_retain(sl_core_t *c);
+void sl_core_release(sl_core_t *c);
 
-void sl_core_set_reg(core_t *c, u4 reg, u8 value);
-u8 sl_core_get_reg(core_t *c, u4 reg);
-int sl_core_set_state(core_t *c, u4 state, bool enabled);
-int sl_core_mem_read(core_t *c, u8 addr, u4 size, u4 count, void *buf);
-int sl_core_mem_write(core_t *c, u8 addr, u4 size, u4 count, void *buf);
-int sl_core_mem_atomic(core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1, u8 *result, u1 ord, u1 ord_fail);
-u8 sl_core_get_cycles(core_t *c);
-int sl_core_set_mapper(core_t *c, sl_dev_t *d);
+void sl_core_set_reg(sl_core_t *c, u4 reg, u8 value);
+u8 sl_core_get_reg(sl_core_t *c, u4 reg);
+int sl_core_set_state(sl_core_t *c, u4 state, bool enabled);
+int sl_core_mem_read(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf);
+int sl_core_mem_write(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf);
+int sl_core_mem_atomic(sl_core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1, u8 *result, u1 ord, u1 ord_fail);
+u8 sl_core_get_cycles(sl_core_t *c);
+int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d);
 
 // ----------------------------------------------------------------------------
 // Async control functions
@@ -96,17 +96,17 @@ int sl_core_set_mapper(core_t *c, sl_dev_t *d);
 #define SL_CORE_CMD_HALT    1
 #define SL_CORE_CMD_EXIT    2
 
-int sl_core_async_command(core_t *c, u4 cmd, bool wait);
+int sl_core_async_command(sl_core_t *c, u4 cmd, bool wait);
 
 // ----------------------------------------------------------------------------
 // Always safe to call on a valid core
 // ----------------------------------------------------------------------------
-u1 sl_core_get_arch(core_t *c);
-u4 sl_core_get_reg_count(core_t *c, int type);
+u1 sl_core_get_arch(sl_core_t *c);
+u4 sl_core_get_reg_count(sl_core_t *c, int type);
 
 // debug feature: print the bus topology as seen by this core
 // using the current translation regime.
-void sl_core_print_bus_topology(core_t *c);
+void sl_core_print_bus_topology(sl_core_t *c);
 
 #ifdef __cplusplus
 }

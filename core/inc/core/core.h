@@ -24,12 +24,12 @@
 #define CORE_EV_RUNMODE 2
 
 typedef struct core_ops {
-    void (*set_reg)(core_t *c, u4 reg, u8 value);
-    u8 (*get_reg)(core_t *c, u4 reg);
-    int (*set_state)(core_t *c, u4 state, bool enabled);
+    void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
+    u8 (*get_reg)(sl_core_t *c, u4 reg);
+    int (*set_state)(sl_core_t *c, u4 state, bool enabled);
 } core_ops_t;
 
-struct core {
+struct sl_core {
     sl_obj_t *obj_;
     sl_engine_t engine;
 
@@ -56,13 +56,13 @@ struct core {
 // Setup functions may only be called when the core dispatch loop is not
 // running.
 
-int core_init(core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b);
-int core_shutdown(core_t *c);
+int core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b);
+int core_shutdown(sl_core_t *c);
 
-void core_config_get(core_t *c, sl_core_params_t *p);
-int core_config_set(core_t *c, sl_core_params_t *p);
+void core_config_get(sl_core_t *c, sl_core_params_t *p);
+int core_config_set(sl_core_t *c, sl_core_params_t *p);
 
-void core_add_symbols(core_t *c, sym_list_t *list);
+void core_add_symbols(sl_core_t *c, sym_list_t *list);
 
 // ----------------------------------------------------------------------------
 // async functions
@@ -73,7 +73,7 @@ void core_add_symbols(core_t *c, sym_list_t *list);
 // Events can be interrupts or other changes initiated from outside the
 // dispatch loop. Events will be handled before the next instruction is
 // dispatched.
-int core_event_send_async(core_t *c, sl_event_t *ev);
+int core_event_send_async(sl_core_t *c, sl_event_t *ev);
 
 // ----------------------------------------------------------------------------
 // dispatch functions
@@ -81,14 +81,14 @@ int core_event_send_async(core_t *c, sl_event_t *ev);
 
 // These functions may only be invoked by the core dispatch loop
 
-void core_interrupt_set(core_t *c, bool enable);
-int core_endian_set(core_t *c, bool big);
-void core_instruction_barrier(core_t *c);
-void core_memory_barrier(core_t *c, u4 type);
+void core_interrupt_set(sl_core_t *c, bool enable);
+int core_endian_set(sl_core_t *c, bool big);
+void core_instruction_barrier(sl_core_t *c);
+void core_memory_barrier(sl_core_t *c, u4 type);
 
 // ----------------------------------------------------------------------------
 // Misc
 // ----------------------------------------------------------------------------
 
 // safe to call in any context as long as the core is not shut down.
-sym_entry_t *core_get_sym_for_addr(core_t *c, u8 addr);
+sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr);
