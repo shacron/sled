@@ -16,9 +16,11 @@ extern "C" {
 // are enqueued.
 
 
+// ----------------------------------------------------------------------------
 // Synchronous functions
-// These functions must only be called when the work loop is not running.
-// -------------------------------------------------
+// ----------------------------------------------------------------------------
+
+// Synchronous functions must only be called when the work loop is not running.
 
 int sl_worker_create(const char *name, sl_worker_t **w_out);
 
@@ -48,9 +50,11 @@ int sl_worker_thread_run(sl_worker_t *w);
 void sl_worker_set_engine_runnable(sl_worker_t *w, bool runnable);
 
 
+// ----------------------------------------------------------------------------
 // Synchronizing functions
-// The following must only be called when the workloop thread is running.
-// -------------------------------------------------
+// ----------------------------------------------------------------------------
+
+// Synchronizing functions must only be called when the workloop thread is running.
 
 // Join the thread created by sl_worker_thread_run().
 // This call does not command the work loop to exit. The worker must be notified that it needs
@@ -58,8 +62,9 @@ void sl_worker_set_engine_runnable(sl_worker_t *w, bool runnable);
 int sl_worker_thread_join(sl_worker_t *w);
 
 
+// ----------------------------------------------------------------------------
 // Async functions
-// -------------------------------------------------
+// ----------------------------------------------------------------------------
 
 // Send an aynchronous event to the work queue. The call returns after the event has been enqueued.
 // The event will only be processed if the work loop thread is running.
