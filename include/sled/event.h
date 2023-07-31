@@ -20,7 +20,7 @@ struct sl_event_ep {
 };
 
 struct sl_event {
-    sl_list_node_t node;        // internal, should be zero
+    sl_list_node_t node;  // internal, should be zero
     u4 epid;              // endpoint id
     u4 type;              // user-defined
     u4 flags;             // combination of zero or more S_EV_FLAGs

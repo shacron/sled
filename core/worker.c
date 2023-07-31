@@ -9,30 +9,10 @@
 #include <core/lock.h>
 #include <core/obj.h>
 #include <core/sem.h>
+#include <core/worker.h>
 #include <sled/error.h>
-#include <sled/worker.h>
 
 #define SL_WORKER_STATE_ENGINE_RUNNABLE   (1u << 0)
-
-#define SL_WORKER_MAX_EPS   64
-
-struct sl_worker {
-    sl_obj_t *obj_;
-
-    const char *name;
-
-    lock_t lock;
-    cond_t has_event;
-    sl_list_t ev_list;
-
-    u4 state;
-    sl_engine_t *engine;
-
-    sl_event_ep_t *endpoint[SL_WORKER_MAX_EPS];
-
-    pthread_t thread;
-    int thread_status;
-};
 
 void sl_worker_retain(sl_worker_t *w) { sl_obj_retain(w->obj_); }
 void sl_worker_release(sl_worker_t *w) { sl_obj_release(w->obj_); }
@@ -180,20 +160,28 @@ int sl_worker_thread_join(sl_worker_t *w) {
 }
 
 static void worker_shutdown(void *o) {
-    sl_worker_t *w = o;
+    sl_worker_shutdown(o);
+}
+
+void sl_worker_shutdown(sl_worker_t *w) {
     if (w->engine) sl_engine_release(w->engine);
     lock_destroy(&w->lock);
     cond_destroy(&w->has_event);
+}
+
+int sl_worker_init(sl_worker_t *w, const char *name, sl_obj_t *o) {
+    w->obj_ = o;
+    w->name = name;
+    lock_init(&w->lock);
+    cond_init(&w->has_event);
+    return 0;
 }
 
 int sl_worker_create(const char *name, sl_worker_t **w_out) {
     sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_worker_t), worker_shutdown);
     if (o == NULL) return SL_ERR_MEM;
     sl_worker_t *w = sl_obj_get_item(o);
-    w->obj_ = o;
-    w->name = name;
     *w_out = w;
-    lock_init(&w->lock);
-    cond_init(&w->has_event);
+    sl_worker_init(w, name, o);
     return 0;
 }
