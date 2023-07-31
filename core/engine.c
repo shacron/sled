@@ -148,12 +148,11 @@ int sl_engine_run(sl_engine_t *e) {
     return sl_worker_run(e->worker);
 }
 
-int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o, sl_bus_t *b) {
+int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o) {
     e->obj_ = o;
     int err = sl_worker_create("eng_worker", &e->worker);
     if (err) return err;
     e->name = name;
-    e->bus = b;
     sl_worker_add_engine(e->worker, e, &e->epid);
     e->irq_ep.assert = engine_irq_transition_async;
     e->event_ep.handle = engine_event_handle;
@@ -165,7 +164,7 @@ int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t
     if (o == NULL) return SL_ERR_MEM;
     sl_engine_t *e = sl_obj_get_item(o);
 
-    int err = sl_engine_init(e, name, o, NULL);
+    int err = sl_engine_init(e, name, o);
     if (err) {
         sl_obj_release(o);
         return err;

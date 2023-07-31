@@ -197,7 +197,7 @@ sym_entry_t *core_get_sym_for_addr(core_t *c, u8 addr) {
 
 int core_init(core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
     c->obj_ = o;
-    int err = sl_engine_init(&c->engine, p->name, o, b);
+    int err = sl_engine_init(&c->engine, p->name, o);
     if (err) return err;
     config_set_internal(c, p);
     c->mapper = bus_get_mapper(b);

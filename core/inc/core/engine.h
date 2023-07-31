@@ -13,7 +13,6 @@ struct sl_engine {
 
     const char *name;
     u4 state;         // current running state
-    sl_bus_t *bus;
     sl_irq_ep_t irq_ep;
     sl_worker_t *worker;
     u4 epid;
@@ -22,7 +21,7 @@ struct sl_engine {
     void *context;
 };
 
-int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o, sl_bus_t *b);
+int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o);
 void sl_engine_shutdown(sl_engine_t *e);
 int sl_engine_handle_interrupts(sl_engine_t *e);
 int sl_engine_wait_for_interrupt(sl_engine_t *e);
