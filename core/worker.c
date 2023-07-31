@@ -66,9 +66,9 @@ int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, u4 *id_out) {
     int err = sl_worker_add_event_endpoint(w, &e->event_ep, id_out);
     if (err) return err;
 
+    sl_engine_retain(e);
     if (w->engine) sl_engine_release(w->engine);
     w->engine = e;
-    sl_engine_retain(e);
     return 0;
 }
 
