@@ -21,7 +21,7 @@ u4 sl_elf_arch_options(sl_elf_obj_t *obj);
 bool sl_elf_is_64bit(sl_elf_obj_t *obj);
 u8 sl_elf_get_entry(sl_elf_obj_t *obj);
 ssize_t sl_elf_symbol_length(sl_elf_obj_t *obj, const char *name);
-ssize_t sl_elf_read_symbol(sl_elf_obj_t *obj, const char *name, void *buf, size_t buflen);
+ssize_t sl_elf_read_symbol(sl_elf_obj_t *obj, const char *name, void *buf, usize buflen);
 void *sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index);
 void *sl_elf_pointer_for_offset(sl_elf_obj_t *obj, u8 offset);
 void sl_elf_close(sl_elf_obj_t *obj);

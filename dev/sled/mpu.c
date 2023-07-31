@@ -70,7 +70,7 @@ out:
 }
 
 static void clear_entries(sled_mpu_t *m) {
-    const size_t size = (sizeof(u8) * 2 * MPU_MAX_MAPPINGS) + (sizeof(u4) * MPU_MAX_MAPPINGS);
+    const usize size = (sizeof(u8) * 2 * MPU_MAX_MAPPINGS) + (sizeof(u4) * MPU_MAX_MAPPINGS);
     memset(m->map_len, 0, size);
 }
 

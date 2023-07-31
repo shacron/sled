@@ -18,7 +18,7 @@ struct sl_obj {
 // Allocates an obj wrapper around item of size `size`.
 // Allocated objects are retained. Calling sl_obj_release() will invoke the `shutdown`
 // function and then free the memory.
-sl_obj_t * sl_allocate_as_obj(size_t size, void (*shutdown)(void *o));
+sl_obj_t * sl_allocate_as_obj(usize size, void (*shutdown)(void *o));
 // Get pointer to the allocated item of the object
 void * sl_obj_get_item(sl_obj_t *o);
 

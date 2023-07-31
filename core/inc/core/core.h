@@ -45,7 +45,7 @@ struct sl_core {
     u4 options;
     u4 arch_options;
 #if WITH_SYMBOLS
-    sym_list_t *symbols;
+    sl_sym_list_t *symbols;
 #endif
 };
 
@@ -62,7 +62,7 @@ int core_shutdown(sl_core_t *c);
 void core_config_get(sl_core_t *c, sl_core_params_t *p);
 int core_config_set(sl_core_t *c, sl_core_params_t *p);
 
-void core_add_symbols(sl_core_t *c, sym_list_t *list);
+void core_add_symbols(sl_core_t *c, sl_sym_list_t *list);
 
 // ----------------------------------------------------------------------------
 // async functions
@@ -91,4 +91,4 @@ void core_memory_barrier(sl_core_t *c, u4 type);
 // ----------------------------------------------------------------------------
 
 // safe to call in any context as long as the core is not shut down.
-sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr);
+sl_sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr);

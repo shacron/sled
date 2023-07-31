@@ -48,8 +48,8 @@ int core_config_set(sl_core_t *c, sl_core_params_t *p) {
 
 int core_shutdown(sl_core_t *c) {
 #if WITH_SYMBOLS
-    sym_list_t *n = NULL;
-    for (sym_list_t *s = c->symbols; s != NULL; s = n) {
+    sl_sym_list_t *n = NULL;
+    for (sl_sym_list_t *s = c->symbols; s != NULL; s = n) {
         n = s->next;
         sym_free(s);
     }
@@ -173,15 +173,15 @@ u4 sl_core_get_reg_count(sl_core_t *c, int type) {
 }
 
 #if WITH_SYMBOLS
-void core_add_symbols(sl_core_t *c, sym_list_t *list) {
+void core_add_symbols(sl_core_t *c, sl_sym_list_t *list) {
     list->next = c->symbols;
     c->symbols = list;
 }
 
-sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr) {
-    sym_entry_t *nearest = NULL;
+sl_sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr) {
+    sl_sym_entry_t *nearest = NULL;
     u8 distance = ~0;
-    for (sym_list_t *list = c->symbols; list != NULL; list = list->next) {
+    for (sl_sym_list_t *list = c->symbols; list != NULL; list = list->next) {
         for (u8 i = 0; i < list->num; i++) {
             if (list->ent[i].addr > addr) continue;
             if (list->ent[i].addr == addr) return &list->ent[i];

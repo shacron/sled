@@ -731,7 +731,7 @@ trace_done:
         puts(buf);
 #if WITH_SYMBOLS
         if (c->jump_taken) {
-            sym_entry_t *e = core_get_sym_for_addr(&c->core, c->pc);
+            sl_sym_entry_t *e = core_get_sym_for_addr(&c->core, c->pc);
             if (e != NULL) {
                 u8 dist = c->pc - e->addr;
                 printf("<%s+%#"PRIx64">:\n", e->name, dist);

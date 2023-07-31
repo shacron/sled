@@ -7,7 +7,7 @@
 
 static atomic_uint_least32_t g_obj_id = 0;
 
-sl_obj_t * sl_allocate_as_obj(size_t size, void (*shutdown)(void *o)) {
+sl_obj_t * sl_allocate_as_obj(usize size, void (*shutdown)(void *o)) {
     size += sizeof(sl_obj_t);
     sl_obj_t *o = calloc(1, size);
     if (o == NULL) return NULL;

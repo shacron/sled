@@ -172,7 +172,7 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
     int err;
     const bool is64 = sl_elf_is_64bit(o);
 #if WITH_SYMBOLS
-    sym_list_t *sl = NULL;
+    sl_sym_list_t *sl = NULL;
 #endif
 
     for (u4 i = 0; ; i++) {

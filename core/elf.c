@@ -381,7 +381,7 @@ void *sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index) {
     return obj->image + phoff + (index * phentsize);
 }
 
-int elf_read_symbols(sl_elf_obj_t *obj, sym_list_t *list) {
+int elf_read_symbols(sl_elf_obj_t *obj, sl_sym_list_t *list) {
     Elf64_Off offset;
     Elf64_Xword size, entsize;
 
@@ -404,7 +404,7 @@ int elf_read_symbols(sl_elf_obj_t *obj, sym_list_t *list) {
     list->ent = NULL;
     if (num_symbols == 0) return 0;
 
-    sym_entry_t *syms = malloc(num_symbols * sizeof(sym_entry_t));
+    sl_sym_entry_t *syms = malloc(num_symbols * sizeof(sl_sym_entry_t));
     if (syms == NULL) {
         perror("malloc");
         return -1;

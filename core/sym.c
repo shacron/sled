@@ -2,7 +2,7 @@
 
 #include <core/sym.h>
 
-void sym_free(sym_list_t *list) {
+void sym_free(sl_sym_list_t *list) {
     if (list == NULL) return;
     if (list->name) free(list->name);
     if (list->ent != NULL) {

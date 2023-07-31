@@ -27,9 +27,9 @@ static inline void store_explicit32(u4 *p, u4 value, memory_order order) {
     atomic_store_explicit((_Atomic u4 *)p, value, order);
 }
 
-size_t sl_ringbuf_get_header_size(void) { return sizeof(rb_header_t); }
+usize sl_ringbuf_get_header_size(void) { return sizeof(rb_header_t); }
 
-int sl_ringbuf_init(void *base, size_t len) {
+int sl_ringbuf_init(void *base, usize len) {
     if (base == NULL) return SL_ERR_ARG;
     if (len <= (sizeof(rb_header_t) + 4)) return SL_ERR_ARG;
     rb_header_t *q = base;
@@ -66,7 +66,7 @@ u4 sl_ringbuf_num_free(sl_ringbuf_client_t *c) {
     return c->length - sl_ringbuf_num_bytes(c) - 1;
 }
 
-ssize_t sl_ringbuf_read(sl_ringbuf_client_t *c, void *buf, size_t len) {
+ssize_t sl_ringbuf_read(sl_ringbuf_client_t *c, void *buf, usize len) {
     if (!IS_READER(c)) return SL_ERR_ARG;
     if (len == 0) return 0;
 
@@ -99,7 +99,7 @@ ssize_t sl_ringbuf_read(sl_ringbuf_client_t *c, void *buf, size_t len) {
     return num_read;
 }
 
-ssize_t sl_ringbuf_write(sl_ringbuf_client_t *c, const void *buf, size_t len) {
+ssize_t sl_ringbuf_write(sl_ringbuf_client_t *c, const void *buf, usize len) {
     if (!IS_WRITER(c)) return SL_ERR_ARG;
     if (len == 0) return 0;
 
