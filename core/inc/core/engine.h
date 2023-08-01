@@ -23,5 +23,6 @@ struct sl_engine {
 
 int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o);
 void sl_engine_shutdown(sl_engine_t *e);
+
 int sl_engine_handle_interrupts(sl_engine_t *e);
 int sl_engine_wait_for_interrupt(sl_engine_t *e);

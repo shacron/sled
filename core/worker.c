@@ -69,6 +69,8 @@ int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, u4 *id_out) {
     sl_engine_retain(e);
     if (w->engine) sl_engine_release(w->engine);
     w->engine = e;
+    // engine does not retain worker to avoid a retain loop
+    e->worker = w;
     return 0;
 }
 

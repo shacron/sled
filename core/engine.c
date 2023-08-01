@@ -55,15 +55,12 @@ static int engine_handle_irq_event(sl_engine_t *e, sl_event_t *ev) {
     return err;
 }
 
-static void engine_shutdown(void *o) {
-    sl_engine_t *e = o;
-    sl_worker_release(e->worker);
-}
 
 void sl_engine_set_context(sl_engine_t *e, void *ctx) { e->context = ctx; }
 void * sl_engine_get_context(sl_engine_t *e) { return e->context; }
 
 int sl_engine_async_command(sl_engine_t *e, u4 cmd, bool wait) {
+    if (e->worker == NULL) return SL_ERR_STATE;
     sl_event_t *ev = calloc(1, sizeof(*ev));
     if (ev == NULL) return SL_ERR_MEM;
     ev->epid = e->epid;
@@ -82,9 +79,8 @@ int sl_engine_wait_for_interrupt(sl_engine_t *e) {
     return 0;
 }
 
-void sl_engine_shutdown(sl_engine_t *e) {
-    sl_worker_release(e->worker);
-}
+static void engine_shutdown(void *o) {}
+void sl_engine_shutdown(sl_engine_t *e) {}
 
 const sl_engine_ops_t * engine_get_ops(sl_engine_t *e) {
     return &e->ops;
@@ -150,10 +146,8 @@ int sl_engine_run(sl_engine_t *e) {
 
 int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o) {
     e->obj_ = o;
-    int err = sl_worker_create("eng_worker", &e->worker);
-    if (err) return err;
     e->name = name;
-    sl_worker_add_engine(e->worker, e, &e->epid);
+    e->worker = NULL;
     e->irq_ep.assert = engine_irq_transition_async;
     e->event_ep.handle = engine_event_handle;
     return 0;
@@ -163,12 +157,7 @@ int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t
     sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_engine_t), engine_shutdown);
     if (o == NULL) return SL_ERR_MEM;
     sl_engine_t *e = sl_obj_get_item(o);
-
-    int err = sl_engine_init(e, name, o);
-    if (err) {
-        sl_obj_release(o);
-        return err;
-    }
+    sl_engine_init(e, name, o);
     *e_out = e;
     return 0;
 }

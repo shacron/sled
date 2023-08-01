@@ -24,10 +24,18 @@ int sled_rtc_create(const char *name, sl_dev_t **dev_out);
 int sled_uart_create(const char *name, sl_dev_t **dev_out);
 int sled_mpu_create(const char *name, sl_dev_t **dev_out);
 
+typedef struct {
+    sl_core_t *core;
+    sl_worker_t *worker;
+    u4 epid;
+    // sl_mapper_t *mapper;
+} machine_core_t;
+
 struct sl_machine {
     sl_bus_t *bus;
     sl_dev_t *intc;
-    sl_core_t *core_list[MACHINE_MAX_CORES];
+    u4 core_count;
+    machine_core_t mc[MACHINE_MAX_CORES];
 };
 
 static int machine_create_device(u4 type, const char *name, sl_dev_t **dev_out) {
@@ -107,41 +115,55 @@ int sl_machine_add_device_prefab(sl_machine_t *m, u8 base, sl_dev_t *d) {
 }
 
 int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
-    sl_core_t *c;
+    if (m->core_count >= MACHINE_MAX_CORES) return SL_ERR_FULL;
+
+    machine_core_t *mc = &m->mc[m->core_count];
+    // mc->mapper = bus_get_mapper(m->bus);
+    mc->core = NULL;
+    mc->worker = NULL;
+
     int err;
+    if ((err = sl_worker_create("core_worker", &mc->worker))) {
+        fprintf(stderr, "sl_worker_create failed: %s\n", st_err(err));
+        return err;
+    }
 
     switch (opts->arch) {
     case SL_ARCH_RISCV:
-        err = riscv_core_create(opts, m->bus, &c);
+        err = riscv_core_create(opts, m->bus, &mc->core);
         break;
 
     default:
         fprintf(stderr, "sl_machine_add_core: unsupported architecture\n");
-        return SL_ERR_ARG;
+        err = SL_ERR_ARG;
+        goto out_err;
     }
 
     if (err) {
         fprintf(stderr, "core create failed: %s\n", st_err(err));
-        return err;
+        goto out_err;
     }
 
-    for (int i = 0; i < MACHINE_MAX_CORES; i++) {
-        if (m->core_list[i] == NULL) {
-            m->core_list[i] = c;
-            opts->id = i;
-            if (m->intc != NULL)
-                sl_irq_endpoint_set_client(&m->intc->irq_ep, &c->engine.irq_ep, 11); // todo: get proper irq number
-            return 0;
-        }
+    if ((err = sl_worker_add_engine(mc->worker, &mc->core->engine, &mc->epid))) {
+        fprintf(stderr, "sl_worker_add_engine failed: %s\n", st_err(err));
+        goto out_err;
     }
-    err = SL_ERR_FULL;
-    sl_core_release(c);
+
+    opts->id = m->core_count;
+    if (m->intc != NULL)
+        sl_irq_endpoint_set_client(&m->intc->irq_ep, &mc->core->engine.irq_ep, 11); // todo: get proper irq number
+    m->core_count++;
+    return 0;
+
+out_err:
+    if (mc->worker) sl_worker_release(mc->worker);
+    if (mc->core) sl_core_release(mc->core);
     return err;
 }
 
 sl_core_t * sl_machine_get_core(sl_machine_t *m, u4 id) {
-    if (id >= MACHINE_MAX_CORES) return NULL;
-    return m->core_list[id];
+    if (id >= m->core_count) return NULL;
+    return m->mc[id].core;
 }
 
 sl_dev_t * sl_machine_get_device_for_name(sl_machine_t *m, const char *name) {
@@ -154,9 +176,8 @@ int sl_machine_set_interrupt(sl_machine_t *m, u4 irq, bool high) {
 }
 
 void sl_machine_destroy(sl_machine_t *m) {
-    for (int i = 0; i < MACHINE_MAX_CORES; i++) {
-        sl_core_t *c = m->core_list[i];
-        if (c != NULL) sl_core_release(c);
+    for (int i = 0; i < m->core_count; i++) {
+        sl_core_release(m->mc[i].core);
     }
     bus_destroy(m->bus);
     free(m);
