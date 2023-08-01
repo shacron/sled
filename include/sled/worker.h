@@ -24,6 +24,9 @@ extern "C" {
 
 int sl_worker_create(const char *name, sl_worker_t **w_out);
 
+// It is technically safe to retain and release a worker while it is running.
+// However, it is not safe to release the final reference to the worker, causing
+// it to be deallocated until the thread has been shut down.
 void sl_worker_retain(sl_worker_t *w);
 void sl_worker_release(sl_worker_t *w);
 
