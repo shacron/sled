@@ -56,7 +56,7 @@ struct sl_core {
 // Setup functions may only be called when the core dispatch loop is not
 // running.
 
-int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b);
+int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_mapper_t *m);
 void sl_core_shutdown(sl_core_t *c);
 
 void sl_core_config_get(sl_core_t *c, sl_core_params_t *p);

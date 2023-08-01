@@ -3,7 +3,6 @@
 
 #include <stdatomic.h>
 
-#include <core/bus.h>
 #include <core/device.h>
 #include <core/core.h>
 #include <core/mapper.h>
@@ -194,12 +193,12 @@ sl_sym_entry_t *sl_core_get_sym_for_addr(sl_core_t *c, u8 addr) {
 }
 #endif
 
-int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
+int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_mapper_t *m) {
     c->obj_ = o;
     int err = sl_engine_init(&c->engine, p->name, o);
     if (err) return err;
+    c->mapper = m;
     config_set_internal(c, p);
-    c->mapper = bus_get_mapper(b);
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;
 }
