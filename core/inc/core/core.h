@@ -56,13 +56,13 @@ struct sl_core {
 // Setup functions may only be called when the core dispatch loop is not
 // running.
 
-int core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b);
-int core_shutdown(sl_core_t *c);
+int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b);
+void sl_core_shutdown(sl_core_t *c);
 
-void core_config_get(sl_core_t *c, sl_core_params_t *p);
-int core_config_set(sl_core_t *c, sl_core_params_t *p);
+void sl_core_config_get(sl_core_t *c, sl_core_params_t *p);
+int sl_core_config_set(sl_core_t *c, sl_core_params_t *p);
 
-void core_add_symbols(sl_core_t *c, sl_sym_list_t *list);
+void sl_core_add_symbols(sl_core_t *c, sl_sym_list_t *list);
 
 // ----------------------------------------------------------------------------
 // async functions
@@ -73,7 +73,8 @@ void core_add_symbols(sl_core_t *c, sl_sym_list_t *list);
 // Events can be interrupts or other changes initiated from outside the
 // dispatch loop. Events will be handled before the next instruction is
 // dispatched.
-int core_event_send_async(sl_core_t *c, sl_event_t *ev);
+
+// int sl_core_event_send_async(sl_core_t *c, sl_event_t *ev);
 
 // ----------------------------------------------------------------------------
 // dispatch functions
@@ -81,14 +82,14 @@ int core_event_send_async(sl_core_t *c, sl_event_t *ev);
 
 // These functions may only be invoked by the core dispatch loop
 
-void core_interrupt_set(sl_core_t *c, bool enable);
-int core_endian_set(sl_core_t *c, bool big);
-void core_instruction_barrier(sl_core_t *c);
-void core_memory_barrier(sl_core_t *c, u4 type);
+void sl_core_interrupt_set(sl_core_t *c, bool enable);
+int sl_core_endian_set(sl_core_t *c, bool big);
+void sl_core_instruction_barrier(sl_core_t *c);
+void sl_core_memory_barrier(sl_core_t *c, u4 type);
 
 // ----------------------------------------------------------------------------
 // Misc
 // ----------------------------------------------------------------------------
 
 // safe to call in any context as long as the core is not shut down.
-sl_sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr);
+sl_sym_entry_t *sl_core_get_sym_for_addr(sl_core_t *c, u8 addr);

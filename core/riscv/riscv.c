@@ -143,7 +143,7 @@ static int riscv_core_step(sl_engine_t *e) {
 
 static void rv_core_shutdown(void *o) {
     rv_core_t *rc = o;
-    core_shutdown(&rc->core);
+    sl_core_shutdown(&rc->core);
     if (rc->ext.destroy != NULL) rc->ext.destroy(rc->ext_private);
 }
 
@@ -153,7 +153,7 @@ int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out) 
     if (o == NULL) return SL_ERR_MEM;
     rv_core_t *rc = sl_obj_get_item(o);
 
-    if ((err = core_init(&rc->core, p, o, bus))) {
+    if ((err = sl_core_init(&rc->core, p, o, bus))) {
         sl_obj_release(o);
         return err;
     }

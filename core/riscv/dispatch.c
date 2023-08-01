@@ -52,7 +52,7 @@ int rv_exec_mem(rv_core_t *c, rv_inst_t inst) {
         if (pred & (FENCE_W | FENCE_O)) bar |= BARRIER_STORE;
         if (succ & (FENCE_R | FENCE_I)) bar |= BARRIER_LOAD;
         if ((pred & (FENCE_I | FENCE_O)) || (succ & (FENCE_I | FENCE_O))) bar |= BARRIER_SYSTEM;
-        core_memory_barrier(&c->core, bar);
+        sl_core_memory_barrier(&c->core, bar);
 #if RV_TRACE
         char p[5], s[5];
         rv_fence_op_name(pred, p);
@@ -64,7 +64,7 @@ int rv_exec_mem(rv_core_t *c, rv_inst_t inst) {
 
     case 0b001:
         if (inst.i.imm != 0) goto undef;
-        core_instruction_barrier(&c->core);
+        sl_core_instruction_barrier(&c->core);
         RV_TRACE_PRINT(c, "fence.i");
         return 0;
 
@@ -731,7 +731,7 @@ trace_done:
         puts(buf);
 #if WITH_SYMBOLS
         if (c->jump_taken) {
-            sl_sym_entry_t *e = core_get_sym_for_addr(&c->core, c->pc);
+            sl_sym_entry_t *e = sl_core_get_sym_for_addr(&c->core, c->pc);
             if (e != NULL) {
                 u8 dist = c->pc - e->addr;
                 printf("<%s+%#"PRIx64">:\n", e->name, dist);

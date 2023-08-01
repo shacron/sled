@@ -49,7 +49,7 @@ int rv_exception_enter(rv_core_t *c, u8 cause, u8 addr) {
     }
     c->pc = tvec;
     c->jump_taken = 1;
-    core_interrupt_set(&c->core, false);
+    sl_core_interrupt_set(&c->core, false);
     return 0;
 }
 
@@ -82,7 +82,7 @@ int rv_exception_return(rv_core_t *c, u1 op) {
     c->pl = dest_pl;
     c->jump_taken = 1;
 
-    core_interrupt_set(&c->core, int_enabled);
+    sl_core_interrupt_set(&c->core, int_enabled);
     return 0;
 }
 

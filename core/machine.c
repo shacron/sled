@@ -221,14 +221,14 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
         goto out_err;
     }
 
-    core_add_symbols(c, sl);
+    sl_core_add_symbols(c, sl);
 #endif
 
     err = 0;
     if (!configure) goto out_err;
 
     sl_core_params_t params = {};
-    core_config_get(c, &params);
+    sl_core_config_get(c, &params);
 
     if (params.arch != sl_elf_arch(o)) {
         fprintf(stderr, "elf architecture does not match core\n");
@@ -238,8 +238,8 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
     params.subarch = sl_elf_subarch(o);
     params.arch_options = sl_elf_arch_options(o);
 
-    if ((err = core_config_set(c, &params))) {
-        fprintf(stderr, "core_config_set failed: %s\n", st_err(err));
+    if ((err = sl_core_config_set(c, &params))) {
+        fprintf(stderr, "sl_core_config_set failed: %s\n", st_err(err));
         goto out_err;
     }
 

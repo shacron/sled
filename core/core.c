@@ -24,7 +24,7 @@ u1 sl_core_get_arch(sl_core_t *c) {
     return c->arch;
 }
 
-void core_config_get(sl_core_t *c, sl_core_params_t *p) {
+void sl_core_config_get(sl_core_t *c, sl_core_params_t *p) {
     p->arch = c->arch;
     p->subarch = c->subarch;
     p->id = c->id;
@@ -40,13 +40,13 @@ static void config_set_internal(sl_core_t *c, sl_core_params_t *p) {
     c->arch_options = p->arch_options;
 }
 
-int core_config_set(sl_core_t *c, sl_core_params_t *p) {
+int sl_core_config_set(sl_core_t *c, sl_core_params_t *p) {
     if (c->arch != p->arch) return SL_ERR_ARG;
     config_set_internal(c, p);
     return 0;
 }
 
-int core_shutdown(sl_core_t *c) {
+void sl_core_shutdown(sl_core_t *c) {
 #if WITH_SYMBOLS
     sl_sym_list_t *n = NULL;
     for (sl_sym_list_t *s = c->symbols; s != NULL; s = n) {
@@ -55,7 +55,6 @@ int core_shutdown(sl_core_t *c) {
     }
 #endif
     sl_engine_shutdown(&c->engine);
-    return 0;
 }
 
 const core_ops_t * core_get_ops(sl_core_t *c) {
@@ -66,19 +65,19 @@ u8 sl_core_get_cycles(sl_core_t *c) {
     return c->ticks;
 }
 
-void core_interrupt_set(sl_core_t *c, bool enable) {
+void sl_core_interrupt_set(sl_core_t *c, bool enable) {
     sl_engine_interrupt_set(&c->engine, enable);
 }
 
-int core_endian_set(sl_core_t *c, bool big) {
+int sl_core_endian_set(sl_core_t *c, bool big) {
     return c->ops.set_state(c, SL_CORE_STATE_ENDIAN_BIG, big);
 }
 
-void core_instruction_barrier(sl_core_t *c) {
+void sl_core_instruction_barrier(sl_core_t *c) {
     atomic_thread_fence(memory_order_acquire);
 }
 
-void core_memory_barrier(sl_core_t *c, u4 type) {
+void sl_core_memory_barrier(sl_core_t *c, u4 type) {
     // currently ignoring system and sync
     type &= (BARRIER_LOAD | BARRIER_STORE);
     switch (type) {
@@ -173,12 +172,12 @@ u4 sl_core_get_reg_count(sl_core_t *c, int type) {
 }
 
 #if WITH_SYMBOLS
-void core_add_symbols(sl_core_t *c, sl_sym_list_t *list) {
+void sl_core_add_symbols(sl_core_t *c, sl_sym_list_t *list) {
     list->next = c->symbols;
     c->symbols = list;
 }
 
-sl_sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr) {
+sl_sym_entry_t *sl_core_get_sym_for_addr(sl_core_t *c, u8 addr) {
     sl_sym_entry_t *nearest = NULL;
     u8 distance = ~0;
     for (sl_sym_list_t *list = c->symbols; list != NULL; list = list->next) {
@@ -195,7 +194,7 @@ sl_sym_entry_t *core_get_sym_for_addr(sl_core_t *c, u8 addr) {
 }
 #endif
 
-int core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
+int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_bus_t *b) {
     c->obj_ = o;
     int err = sl_engine_init(&c->engine, p->name, o);
     if (err) return err;
