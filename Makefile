@@ -33,9 +33,9 @@ BLD_HOST_AR ?= ar
 BLD_HOST_ARFLAGS ?= -c -q
 endif
 
-LDFLAGS :=
 CFLAGS  := -Wall -MMD
 DEFINES :=
+LDFLAGS :=
 
 ##############################################################################
 # build type
@@ -66,7 +66,7 @@ endif
 
 ifeq ($(BLD_HOST_LTO),1)
 CFLAGS += -flto=thin
-LDFLAGS := -flto=thin
+LDFLAGS += -flto=thin
 endif
 
 CXXFLAGS := $(CFLAGS) -std=c++17
@@ -176,7 +176,7 @@ $(1)_DEVICE_LIBS := $$($$($(1)_PLATFORM)_DEVICES:%=$(BLD_HOST_LIBDIR)/dev/%.a)
 
 $(1): $(BLD_HOST_BINDIR)/$(1)
 
-$(BLD_HOST_BINDIR)/$(1): $($(1)_OBJS) $(BLD_HOST_LIBDIR)/libsled.a $$($(1)_DEVICE_LIBS)
+$(BLD_HOST_BINDIR)/$(1): $($(1)_OBJS) $(BLD_HOST_LIBDIR)/libsled.a $(BLD_HOST_OBJDIR)/app/$(1)/dyn_dev_list.o $$($(1)_DEVICE_LIBS)
 	$(SILENT) mkdir -p $$(dir $$@)
 	@echo " [ld]" $$(notdir $$@)
 	$(SILENT) $(BLD_HOST_LD) $(CFLAGS) $(LDFLAGS) -o $$@ $$^
@@ -190,6 +190,18 @@ $(BLD_HOST_OBJDIR)/app/%.cpp.o: app/%.cpp
 	$(SILENT) mkdir -p $$(dir $$@)
 	@echo " [c++]" $$<
 	$(SILENT) $(BLD_HOST_CXX) $(CXXFLAGS) $$($(1)_INCLUDES) $($(1)_DEFINES) -c -o $$@ $$<
+
+# device dynamic list generation
+$(BLD_HOST_OBJDIR)/app/$(1)/dyn_dev_list.o: $(BLD_HOST_OBJDIR)/app/$(1)/dyn_dev_list.c
+	@echo " [cc]" $$<
+	$(SILENT) $(BLD_HOST_CC) $(CFLAGS) $$($(1)_INCLUDES) $($(1)_DEFINES) -c -o $$@ $$<
+
+$(BLD_HOST_OBJDIR)/app/$(1)/dyn_dev_list.c: $$($(1)_DEVICE_LIBS)
+	@echo " [dyndev]" $$@
+	@nm --defined-only $$^ | sed -n 's/.* [_]*\(_sl_device_dyn_ops_.*\)/extern const void * \1;/p' > $$@
+	@echo "const void * dyn_dev_ops_list[] = {" >> $$@
+	@nm --defined-only $$^ | sed -n 's/.* [_]*\(_sl_device_dyn_ops_.*\)/\&\1,/p' >> $$@
+	@echo "(void *)0 };" >> $$@
 
 endef
 

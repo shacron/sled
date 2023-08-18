@@ -28,6 +28,8 @@ typedef struct {
     u8 pa_base[MPU_MAX_MAPPINGS];
 } sled_mpu_t;
 
+int sled_mpu_create(const char *name, sl_dev_t **dev_out);
+
 static int mpu_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
@@ -174,8 +176,10 @@ static void mpu_release(void *ctx) {
 }
 
 static const sl_dev_ops_t mpu_ops = {
+    .type = SL_DEV_MPU,
     .read = mpu_read,
     .write = mpu_write,
+    .create = sled_mpu_create,
     .release = mpu_release,
 };
 
@@ -199,3 +203,5 @@ out_err:
     free(m);
     return err;
 }
+
+DECLARE_DEVICE(sled_mpu, SL_DEV_MPU, &mpu_ops);

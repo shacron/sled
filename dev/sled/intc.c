@@ -15,6 +15,8 @@
 
 #define INTC_NUM_SUPPORTED  32
 
+int sled_intc_create(const char *name, sl_dev_t **dev_out);
+
 static int intc_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     sl_dev_t *d = ctx;
 
@@ -68,8 +70,10 @@ static int intc_write(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
 }
 
 static const sl_dev_ops_t intc_ops = {
+    .type = SL_DEV_INTC,
     .read = intc_read,
     .write = intc_write,
+    .create = sled_intc_create,
 };
 
 int sled_intc_create(const char *name, sl_dev_t **dev_out) {
@@ -80,3 +84,5 @@ int sled_intc_create(const char *name, sl_dev_t **dev_out) {
     sl_device_set_context(d, d);
     return 0;
 }
+
+DECLARE_DEVICE(sled_intc, SL_DEV_INTC, &intc_ops);

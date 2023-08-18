@@ -19,11 +19,6 @@
 
 #define MACHINE_MAX_CORES   4
 
-int sled_intc_create(const char *name, sl_dev_t **dev_out);
-int sled_rtc_create(const char *name, sl_dev_t **dev_out);
-int sled_uart_create(const char *name, sl_dev_t **dev_out);
-int sled_mpu_create(const char *name, sl_dev_t **dev_out);
-
 typedef struct {
     sl_core_t *core;
     sl_worker_t *worker;
@@ -38,21 +33,28 @@ struct sl_machine {
     machine_core_t mc[MACHINE_MAX_CORES];
 };
 
-static int machine_create_device(u4 type, const char *name, sl_dev_t **dev_out) {
-    int err;
-    sl_dev_t *d;
+extern const void * dyn_dev_ops_list[];
 
-    switch (type) {
-    case SL_DEV_UART: err = sled_uart_create(name, &d); break;
-    case SL_DEV_INTC: err = sled_intc_create(name, &d); break;
-    case SL_DEV_RTC:  err = sled_rtc_create(name, &d);  break;
-    case SL_DEV_MPU:  err = sled_mpu_create(name, &d);  break;
-    default:
+static const sl_dev_ops_t * get_ops_for_device(u4 type) {
+    for (int i = 0; dyn_dev_ops_list[i] != NULL; i++) {
+        const sl_dev_ops_t * const *p = dyn_dev_ops_list[i];
+        const sl_dev_ops_t *ops = *p;
+        if (ops->type == type) return ops;
+    }
+    return NULL;
+}
+
+static int machine_create_device(u4 type, const char *name, sl_dev_t **dev_out) {
+    const sl_dev_ops_t *ops = get_ops_for_device(type);
+    if (ops == NULL) {
+        fprintf(stderr, "failed to locate device type %u (%s)\n", type, name);
         return SL_ERR_ARG;
     }
-    if (err) return err;
-    *dev_out = d;
-    return 0;
+
+    sl_dev_t *d;
+    int err = ops->create(name, &d);
+    if (!err) *dev_out = d;
+    return err;
 }
 
 int sl_machine_create(sl_machine_t **m_out) {
@@ -92,7 +94,7 @@ int sl_machine_add_device(sl_machine_t *m, u4 type, u8 base, const char *name) {
 
     if ((err = machine_create_device(type, name, &d))) {
         fprintf(stderr, "device_create failed: %s\n", st_err(err));
-        goto out_err;
+        return err;
     }
 
     if ((err = bus_add_device(m->bus, d, base))) {

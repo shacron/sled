@@ -28,6 +28,8 @@ typedef struct {
     u1 buf[BUFLEN + 1];
 } sled_uart_t;
 
+int sled_uart_create(const char *name, sl_dev_t **dev_out);
+
 static void uart_flush(sled_uart_t *u) {
     u->buf[u->buf_pos] = '\0';
     if (u->fd_out >= 0) dprintf(u->fd_out, "%s", u->buf);
@@ -121,8 +123,10 @@ static void uart_release(void *ctx) {
 }
 
 static const sl_dev_ops_t uart_ops = {
+    .type = SL_DEV_UART,
     .read = uart_read,
     .write = uart_write,
+    .create = sled_uart_create,
     .release = uart_release,
 };
 
@@ -142,4 +146,4 @@ int sled_uart_create(const char *name, sl_dev_t **dev_out) {
     return 0;
 }
 
-
+DECLARE_DEVICE(sled_uart, SL_DEV_UART, &uart_ops);

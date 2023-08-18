@@ -11,6 +11,8 @@
 #define RTC_TYPE 'time'
 #define RTC_VERSION 0
 
+int sled_rtc_create(const char *name, sl_dev_t **dev_out);
+
 static int rtc_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     if (count != 1) return SL_ERR_IO_COUNT;
 
@@ -56,9 +58,13 @@ static int rtc_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
 }
 
 static const sl_dev_ops_t rtc_ops = {
+    .type = SL_DEV_RTC,
     .read = rtc_read,
+    .create = sled_rtc_create,
 };
 
 int sled_rtc_create(const char *name, sl_dev_t **dev_out) {
     return sl_device_allocate(SL_DEV_RTC, name, RTC_APERTURE_LENGTH, &rtc_ops, dev_out);
 }
+
+DECLARE_DEVICE(sled_rtc, SL_DEV_RTC, &rtc_ops);

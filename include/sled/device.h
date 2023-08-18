@@ -10,11 +10,12 @@ extern "C" {
 #endif
 
 // sled core devices
-#define SL_DEV_BUS          0
-#define SL_DEV_CORE         1
-#define SL_DEV_MEM          2
-#define SL_DEV_ROM          3
-#define SL_DEV_INTC         4
+#define SL_DEV_NONE         0
+#define SL_DEV_BUS          1
+#define SL_DEV_CORE         2
+#define SL_DEV_MEM          3
+#define SL_DEV_ROM          4
+#define SL_DEV_INTC         5
 
 // sled devices
 #define SL_DEV_UART         128
@@ -25,9 +26,14 @@ extern "C" {
 // user-defined devices
 #define SL_DEV_RESERVED     1024
 
+#define DECLARE_DEVICE(_name, _type, _ops) \
+    const void * const _sl_device_dyn_ops_##_name = _ops;
+
 struct sl_dev_ops {
+    u4 type;
     int (*read)(void *ctx, u8 addr, u4 size, u4 count, void *buf);
     int (*write)(void *ctx, u8 addr, u4 size, u4 count, void *buf);
+    int (*create)(const char *name, sl_dev_t **dev_out);
     void (*release)(void *ctx);
 };
 
