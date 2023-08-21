@@ -44,7 +44,7 @@ static const sl_dev_ops_t * get_ops_for_device(u4 type) {
     return NULL;
 }
 
-static int machine_create_device(u4 type, const char *name, sl_dev_t **dev_out) {
+static int machine_create_device(sl_machine_t *m, u4 type, const char *name, sl_dev_t **dev_out) {
     const sl_dev_ops_t *ops = get_ops_for_device(type);
     if (ops == NULL) {
         fprintf(stderr, "failed to locate device type %u (%s)\n", type, name);
@@ -52,7 +52,9 @@ static int machine_create_device(u4 type, const char *name, sl_dev_t **dev_out) 
     }
 
     sl_dev_t *d;
-    int err = ops->create(name, &d);
+    sl_dev_config_t cfg;
+    cfg.machine = m;
+    int err = ops->create(name, &cfg, &d);
     if (!err) *dev_out = d;
     return err;
 }
@@ -92,7 +94,7 @@ int sl_machine_add_device(sl_machine_t *m, u4 type, u8 base, const char *name) {
     sl_dev_t *d;
     int err;
 
-    if ((err = machine_create_device(type, name, &d))) {
+    if ((err = machine_create_device(m, type, name, &d))) {
         fprintf(stderr, "device_create failed: %s\n", st_err(err));
         return err;
     }

@@ -33,6 +33,7 @@ typedef struct sl_bus sl_bus_t;
 typedef struct sl_core sl_core_t;
 typedef struct sl_core_params sl_core_params_t;
 typedef struct sl_dev sl_dev_t;
+typedef struct sl_dev_config sl_dev_config_t;
 typedef struct sl_dev_ops sl_dev_ops_t;
 typedef struct sl_elf_obj sl_elf_obj_t;
 typedef struct sl_engine sl_engine_t;

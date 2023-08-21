@@ -28,7 +28,7 @@ typedef struct {
     u1 buf[BUFLEN + 1];
 } sled_uart_t;
 
-int sled_uart_create(const char *name, sl_dev_t **dev_out);
+int sled_uart_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
 
 static void uart_flush(sled_uart_t *u) {
     u->buf[u->buf_pos] = '\0';
@@ -130,7 +130,7 @@ static const sl_dev_ops_t uart_ops = {
     .release = uart_release,
 };
 
-int sled_uart_create(const char *name, sl_dev_t **dev_out) {
+int sled_uart_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) {
     sled_uart_t *u = calloc(1, sizeof(sled_uart_t));
     if (u == NULL) return SL_ERR_MEM;
 

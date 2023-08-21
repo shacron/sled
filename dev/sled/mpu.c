@@ -28,7 +28,7 @@ typedef struct {
     u8 pa_base[MPU_MAX_MAPPINGS];
 } sled_mpu_t;
 
-int sled_mpu_create(const char *name, sl_dev_t **dev_out);
+int sled_mpu_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
 
 static int mpu_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
@@ -183,7 +183,7 @@ static const sl_dev_ops_t mpu_ops = {
     .release = mpu_release,
 };
 
-int sled_mpu_create(const char *name, sl_dev_t **dev_out) {
+int sled_mpu_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) {
     int err = 0;
 
     sled_mpu_t *m = calloc(1, sizeof(sled_mpu_t));

@@ -29,11 +29,20 @@ extern "C" {
 #define DECLARE_DEVICE(_name, _type, _ops) \
     const void * const _sl_device_dyn_ops_##_name = _ops;
 
+struct sl_dev_config {
+    sl_machine_t *machine;
+    // todo:
+    // power domains
+    // clock domains
+    // interrupt ep?
+    // device-specific config
+};
+
 struct sl_dev_ops {
     u4 type;
     int (*read)(void *ctx, u8 addr, u4 size, u4 count, void *buf);
     int (*write)(void *ctx, u8 addr, u4 size, u4 count, void *buf);
-    int (*create)(const char *name, sl_dev_t **dev_out);
+    int (*create)(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
     void (*release)(void *ctx);
 };
 
