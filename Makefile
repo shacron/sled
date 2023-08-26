@@ -193,11 +193,11 @@ $(BLD_HOST_OBJDIR)/app/%.cpp.o: app/%.cpp
 
 # device dynamic list generation
 $(BLD_HOST_OBJDIR)/app/$(1)/dyn_dev_list.o: $(BLD_HOST_OBJDIR)/app/$(1)/dyn_dev_list.c
-	@echo " [cc]" $$<
+	@echo " [cc]" $$(notdir $$<)
 	$(SILENT) $(BLD_HOST_CC) $(CFLAGS) $$($(1)_INCLUDES) $($(1)_DEFINES) -c -o $$@ $$<
 
 $(BLD_HOST_OBJDIR)/app/$(1)/dyn_dev_list.c: $$($(1)_DEVICE_LIBS)
-	@echo " [dyndev]" $$@
+	@echo " [dyndev]" $$(notdir $$@)
 	@nm --defined-only $$^ | sed -n 's/.* [_]*\(_sl_device_dyn_ops_.*\)/extern const void * \1;/p' > $$@
 	@echo "const void * dyn_dev_ops_list[] = {" >> $$@
 	@nm --defined-only $$^ | sed -n 's/.* [_]*\(_sl_device_dyn_ops_.*\)/\&\1,/p' >> $$@
