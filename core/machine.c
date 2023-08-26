@@ -16,6 +16,7 @@
 #include <sled/elf.h>
 #include <sled/error.h>
 #include <sled/machine.h>
+#include <sled/chrono.h>
 
 #define MACHINE_MAX_CORES   4
 
@@ -29,11 +30,14 @@ typedef struct {
 struct sl_machine {
     sl_bus_t *bus;
     sl_dev_t *intc;
+    sl_chrono_t *chrono;
     u4 core_count;
     machine_core_t mc[MACHINE_MAX_CORES];
 };
 
 extern const void * dyn_dev_ops_list[];
+
+sl_chrono_t * sl_machine_get_chrono(sl_machine_t *m) { return m->chrono; }
 
 static const sl_dev_ops_t * get_ops_for_device(u4 type) {
     for (int i = 0; dyn_dev_ops_list[i] != NULL; i++) {
@@ -67,12 +71,20 @@ int sl_machine_create(sl_machine_t **m_out) {
     }
 
     int err;
-    if ((err = bus_create("bus0", &m->bus))) {
-        free(m);
-        return err;
-    }
+    sl_dev_config_t cfg;
+    cfg.machine = m;
+    if ((err = bus_create("bus0", &cfg, &m->bus))) goto out_err;
+    if ((err = sl_chrono_create("tm0", &m->chrono))) goto out_err;
+    if ((err = sl_chrono_run(m->chrono))) goto out_err;
+
     *m_out = m;
     return 0;
+
+out_err:
+    if (m->chrono != NULL) sl_chrono_release(m->chrono);
+    if (m->bus != NULL) bus_destroy(m->bus);
+    free(m);
+    return err;
 }
 
 int sl_machine_add_mem(sl_machine_t *m, u8 base, u8 size) {
@@ -184,6 +196,8 @@ void sl_machine_destroy(sl_machine_t *m) {
         sl_core_release(m->mc[i].core);
     }
     bus_destroy(m->bus);
+    sl_chrono_stop(m->chrono);
+    sl_chrono_release(m->chrono);
     free(m);
 }
 

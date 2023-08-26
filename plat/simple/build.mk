@@ -7,4 +7,5 @@ $(PLAT)_DEVICES := \
 	sled_rtc \
 	sled_intc \
 	sled_mpu \
+	sled_timer \
 

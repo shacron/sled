@@ -3,6 +3,7 @@ SRCDIR := core
 LIB_CSOURCES += \
 	$(SRCDIR)/arch.c \
 	$(SRCDIR)/bus.c \
+	$(SRCDIR)/chrono.c \
 	$(SRCDIR)/core.c \
 	$(SRCDIR)/device.c \
 	$(SRCDIR)/elf.c \

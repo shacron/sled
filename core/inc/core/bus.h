@@ -7,7 +7,7 @@
 #include <core/mem.h>
 #include <core/types.h>
 
-int bus_create(const char *name, sl_bus_t **bus_out);
+int bus_create(const char *name, sl_dev_config_t *cfg, sl_bus_t **bus_out);
 void bus_destroy(sl_bus_t *bus);
 
 int bus_add_mem_region(sl_bus_t *b, mem_region_t *r);

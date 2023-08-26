@@ -4,6 +4,7 @@
 #pragma once
 
 #include <core/event.h>
+#include <core/irq.h>
 #include <core/obj.h>
 #include <core/types.h>
 #include <sled/engine.h>

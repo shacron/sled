@@ -50,6 +50,7 @@ typedef struct sl_mapper sl_mapper_t;
 typedef struct sl_mapping sl_mapping_t;
 typedef struct sl_sym_entry sl_sym_entry_t;
 typedef struct sl_sym_list sl_sym_list_t;
+typedef struct sl_chrono sl_chrono_t;
 typedef struct sl_worker sl_worker_t;
 
 typedef struct {

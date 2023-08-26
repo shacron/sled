@@ -22,6 +22,7 @@ void lock_destroy(lock_t *l);
 
 void cond_init(cond_t *c);
 void cond_wait(cond_t *c, lock_t *l);
+int cond_timed_wait_abs(cond_t *c, lock_t *l, u8 utime);
 void cond_signal_one(cond_t *c);
 void cond_signal_all(cond_t *c);
 void cond_destroy(cond_t *c);

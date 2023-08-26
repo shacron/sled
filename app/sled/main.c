@@ -349,6 +349,11 @@ int simple_machine(sm_t *sm) {
         goto out_err_machine;
     }
 
+    if ((err = sl_machine_add_device(m, SL_DEV_TIMER, PLAT_TIMER_BASE, "timer0"))) {
+        fprintf(stderr, "add timer failed: %s\n", st_err(err));
+        goto out_err_machine;
+    }
+
     sl_dev_t *d = sl_machine_get_device_for_name(m, "uart0");
     sled_uart_set_channel(d, sm->uart_io, sm->uart_fd_in, sm->uart_fd_out);
 

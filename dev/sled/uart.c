@@ -134,7 +134,7 @@ int sled_uart_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out)
     sled_uart_t *u = calloc(1, sizeof(sled_uart_t));
     if (u == NULL) return SL_ERR_MEM;
 
-    int err = sl_device_allocate(SL_DEV_UART, name, UART_APERTURE_LENGTH, &uart_ops, dev_out);
+    int err = sl_device_allocate(name, cfg, UART_APERTURE_LENGTH, &uart_ops, dev_out);
     if (err) {
         free(u);
         return err;

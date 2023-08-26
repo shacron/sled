@@ -34,7 +34,8 @@ struct sl_dev {
     sl_event_ep_t event_ep; // async event endpoint
     sl_mapper_t *mapper;    // held for owner object, todo: remove
     sl_worker_t *worker;    // worker thread and event loop
-    u4 worker_epid;        // id to use for event loop direct events
+    u4 worker_epid;         // id to use for event loop direct events
+    sl_dev_config_t cfg;    // copy of device configuration
 };
 
 // device API
@@ -42,7 +43,7 @@ static inline void dev_lock(sl_dev_t *d) { lock_lock(&d->lock); }
 static inline void dev_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 
 // internal device calls
-void device_init(sl_dev_t *d, u4 type, const char *name, u4 aperture, const sl_dev_ops_t *ops);
+void device_init(sl_dev_t *d, const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops);
 void device_shutdown(sl_dev_t *d);
 
 sl_dev_t * device_get_for_ep(sl_map_ep_t *ep);

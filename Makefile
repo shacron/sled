@@ -33,7 +33,7 @@ BLD_HOST_AR ?= ar
 BLD_HOST_ARFLAGS ?= -c -q
 endif
 
-CFLAGS  := -Wall -MMD
+CFLAGS  := -Wall -MMD -Wint-conversion -Wincompatible-pointer-types
 DEFINES :=
 LDFLAGS :=
 

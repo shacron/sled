@@ -22,6 +22,9 @@ extern "C" {
 #define SL_ERR_BUSY          -10 // busy
 #define SL_ERR_EXITED        -11 // exited cleanly
 #define SL_ERR_NEXT          -12 // go to next handler
+#define SL_ERR_NOT_FOUND     -13 // entry not found
+#define SL_ERR_SYSTEM        -14 // non-specific system error
+#define SL_ERR_RESTART       -15 // restart operation
 
 // instruction execution errors
 #define SL_ERR_UNDEF        -16 // undefined (illegal) instruction
@@ -41,6 +44,7 @@ extern "C" {
 #define SL_ERR_IO_INVALID   -40 // invalid io operation
 #define SL_ERR_IO_NOMAP     -41 // no valid mapping
 #define SL_ERR_IO_NOATOMIC  -42 // atomic ops not supported
+
 
 const char *st_err(int err);
 

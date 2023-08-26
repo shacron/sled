@@ -8,7 +8,7 @@
 #include <sled/device.h>
 #include <sled/error.h>
 
-#define RTC_TYPE 'time'
+#define RTC_TYPE 'rtcs'
 #define RTC_VERSION 0
 
 int sled_rtc_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
@@ -64,7 +64,7 @@ static const sl_dev_ops_t rtc_ops = {
 };
 
 int sled_rtc_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) {
-    return sl_device_allocate(SL_DEV_RTC, name, RTC_APERTURE_LENGTH, &rtc_ops, dev_out);
+    return sl_device_allocate(name, cfg, RTC_APERTURE_LENGTH, &rtc_ops, dev_out);
 }
 
 DECLARE_DEVICE(sled_rtc, SL_DEV_RTC, &rtc_ops);

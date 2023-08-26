@@ -45,6 +45,8 @@ int device_mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
 
 void sl_device_set_context(sl_dev_t *d, void *ctx) { d->context = ctx; }
 void * sl_device_get_context(sl_dev_t *d) { return d->context; }
+sl_dev_config_t * sl_device_get_config(sl_dev_t *d) { return &d->cfg; }
+
 void sl_device_lock(sl_dev_t *d) { lock_lock(&d->lock); }
 void sl_device_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d) { return &d->irq_ep; }
@@ -113,13 +115,14 @@ void sl_device_release(sl_dev_t *d) {
     sl_obj_release(d->obj_);
 };
 
-void device_init(sl_dev_t *d, u4 type, const char *name, u4 aperture, const sl_dev_ops_t *ops) {
+void device_init(sl_dev_t *d, const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops) {
     d->obj_ = NULL;
     d->magic = DEV_MAGIC;
-    d->type = type;
+    d->type = ops->type;
     d->name = name;
     d->aperture = aperture;
     d->irq_ep.assert = device_accept_irq;
+    d->cfg = *cfg;
     lock_init(&d->lock);
     d->map_ep.io = device_mapper_ep_io;
     d->event_ep.handle = device_ep_handle_event;
@@ -129,12 +132,12 @@ void device_init(sl_dev_t *d, u4 type, const char *name, u4 aperture, const sl_d
     if (d->ops.release == NULL) d->ops.release = dev_dummy_release;
 }
 
-int sl_device_allocate(u4 type, const char *name, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
+int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
     sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_dev_t), device_obj_shutdown);
     if (o == NULL) return SL_ERR_MEM;
     sl_dev_t *d = sl_obj_get_item(o);
     *dev_out = d;
-    device_init(d, type, name, aperture, ops);
+    device_init(d, name, cfg, aperture, ops);
     d->obj_ = o;
     return 0;
 }

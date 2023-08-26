@@ -20,6 +20,9 @@ static const char *err_str[] = {
     ESTR(SL_ERR_BUSY),
     ESTR(SL_ERR_EXITED),
     ESTR(SL_ERR_NEXT),
+    ESTR(SL_ERR_NOT_FOUND),
+    ESTR(SL_ERR_SYSTEM),
+    ESTR(SL_ERR_RESTART),
 
     ESTR(SL_ERR_UNDEF),
     ESTR(SL_ERR_ABORT),

@@ -78,7 +78,7 @@ static const sl_dev_ops_t intc_ops = {
 
 int sled_intc_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) {
     sl_dev_t *d;
-    int err = sl_device_allocate(SL_DEV_INTC, name, INTC_APERTURE_LENGTH, &intc_ops, &d);
+    int err = sl_device_allocate(name, cfg, INTC_APERTURE_LENGTH, &intc_ops, &d);
     if (err) return err;
     *dev_out = d;
     sl_device_set_context(d, d);

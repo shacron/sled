@@ -110,15 +110,16 @@ void bus_destroy(sl_bus_t *bus) {
 }
 
 static const sl_dev_ops_t bus_ops = {
+    .type = SL_DEV_BUS,
     .read = bus_op_read,
     .write = bus_op_write,
 };
 
-int bus_create(const char *name, sl_bus_t **bus_out) {
+int bus_create(const char *name, sl_dev_config_t *cfg, sl_bus_t **bus_out) {
     sl_bus_t *b = calloc(1, sizeof(*b));
     if (b == NULL) return SL_ERR_MEM;
 
-    device_init(&b->dev, SL_DEV_BUS, name, 0, &bus_ops);
+    device_init(&b->dev, name, cfg, 0, &bus_ops);
     mapper_init(&b->mapper);
     sl_mapper_set_mode(&b->mapper, SL_MAP_OP_MODE_TRANSLATE);
     sl_device_set_context(&b->dev, b);

@@ -16,6 +16,7 @@ extern "C" {
 #define SL_DEV_MEM          3
 #define SL_DEV_ROM          4
 #define SL_DEV_INTC         5
+#define SL_DEV_TIMER        6
 
 // sled devices
 #define SL_DEV_UART         128
@@ -46,12 +47,13 @@ struct sl_dev_ops {
     void (*release)(void *ctx);
 };
 
-int sl_device_allocate(u4 type, const char *name, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
+int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
 void sl_device_retain(sl_dev_t *d);
 void sl_device_release(sl_dev_t *d);
 
 void sl_device_set_context(sl_dev_t *d, void *ctx);
 void * sl_device_get_context(sl_dev_t *d);
+sl_dev_config_t * sl_device_get_config(sl_dev_t *d);
 
 void sl_device_lock(sl_dev_t *d);
 void sl_device_unlock(sl_dev_t *d);
