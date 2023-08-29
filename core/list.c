@@ -78,3 +78,48 @@ void sl_list_remove_node(sl_list_t *list, sl_list_node_t *n, sl_list_node_t *pre
     if (next == NULL) list->last = prev;
     n->next = NULL;
 }
+
+int sl_list_find_and_remove(sl_list_t *list, sl_list_node_t *n) {
+    sl_list_node_t *prev = NULL;
+
+    for (sl_list_node_t *cur = list->first; cur != NULL; cur = cur->next) {
+        if (cur == n) {
+            if (prev == NULL) list->first = n->next;
+            else prev->next = n->next;
+            if (n->next == NULL) list->last = prev;
+            return 0;
+        }
+        prev = cur;
+    }
+    return -1;
+}
+
+void sl_list_interator_begin(sl_list_iterator_t *iter, sl_list_t *list) {
+    iter->list = list;
+    iter->current = list->first;
+    iter->previous = NULL;
+}
+
+sl_list_node_t * sl_list_interator_next(sl_list_iterator_t *iter) {
+    if (iter->current == NULL) return NULL;
+    iter->previous = iter->current;
+    iter->current = iter->current->next;
+    return iter->current;
+}
+
+sl_list_node_t * sl_list_iterator_get_current(sl_list_iterator_t *iter) {
+    return iter->current;
+}
+
+void sl_list_iterator_remove_current(sl_list_iterator_t *iter) {
+    if (iter->current == NULL) return;
+    if (iter->previous == NULL) {
+        sl_list_remove_first(iter->list);
+        iter->current = iter->list->first;
+        return;
+    }
+    sl_list_node_t *next = iter->current->next;
+    iter->current = next;
+    iter->previous->next = next;
+    if (next == NULL) iter->list->last = iter->previous;
+}
