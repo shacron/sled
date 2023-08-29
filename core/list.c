@@ -12,13 +12,9 @@ void sl_list_init(sl_list_t *list) {
 
 void sl_list_add_last(sl_list_t *list, sl_list_node_t *n) {
     n->next = NULL;
-    if (list->first == NULL) {
-        list->first = n;
-        list->last = n;
-    } else {
-        list->last->next = n;
-        list->last = n;
-    }
+    if (list->last == NULL) list->first = n;
+    else list->last->next = n;
+    list->last = n;
 }
 
 void sl_list_add_first(sl_list_t *list, sl_list_node_t *n) {
@@ -28,10 +24,11 @@ void sl_list_add_first(sl_list_t *list, sl_list_node_t *n) {
 }
 
 sl_list_node_t * sl_list_remove_first(sl_list_t *list) {
-    if (list->first == NULL) return NULL;
     sl_list_node_t *n = list->first;
+    if (n == NULL) return NULL;
     list->first = n->next;
-    if(list->first == NULL) list->last = NULL;
+    if (n->next == NULL) list->last = NULL;
+    n->next = NULL;
     return n;
 }
 
@@ -81,4 +78,3 @@ void sl_list_remove_node(sl_list_t *list, sl_list_node_t *n, sl_list_node_t *pre
     if (next == NULL) list->last = prev;
     n->next = NULL;
 }
-
