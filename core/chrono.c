@@ -59,7 +59,7 @@ int sl_chrono_timer_set(sl_chrono_t *c, u8 us, int (*callback)(void *context, in
 
     chrono_lock(c);
 
-    sl_list_node_t *n = sl_list_remove_head(&c->unused_timers);
+    sl_list_node_t *n = sl_list_remove_first(&c->unused_timers);
     if (n != NULL) {
         t = FROM_NODE(n);
     } else {
@@ -92,7 +92,7 @@ int sl_chrono_timer_get_remaining(sl_chrono_t *c, u8 id, u8 *remain_out) {
 
     chrono_lock(c);
 
-    for (sl_list_node_t *n = sl_list_peek_head(&c->active_timers); n != NULL; n = n->next) {
+    for (sl_list_node_t *n = sl_list_peek_first(&c->active_timers); n != NULL; n = n->next) {
         sl_timer_t *t = FROM_NODE(n);
         if (t->id == id) {
             if (t->expiry <= now) remain = 0;
@@ -113,12 +113,12 @@ int sl_chrono_timer_cancel(sl_chrono_t *c, u8 id) {
     chrono_lock(c);
 
     sl_list_node_t *p = NULL; 
-    for (sl_list_node_t *n = sl_list_peek_head(&c->active_timers); n != NULL; n = n->next) {
+    for (sl_list_node_t *n = sl_list_peek_first(&c->active_timers); n != NULL; n = n->next) {
         sl_timer_t *t = FROM_NODE(n);
         if (t->id == id) {
-            if (p == NULL) sl_list_remove_head(&c->active_timers);
+            if (p == NULL) sl_list_remove_first(&c->active_timers);
             else p->next = n->next;
-            sl_list_add_tail(&c->unused_timers, n);
+            sl_list_add_last(&c->unused_timers, n);
             cond_signal_one(&c->cond);
             err = 0;
             break;
@@ -143,18 +143,18 @@ static void chrono_thread_running_locked(sl_chrono_t *c) {
         u8 next_exp = 0;
 
         for ( ; ; ) {
-            n = sl_list_peek_head(&c->active_timers);
+            n = sl_list_peek_first(&c->active_timers);
             if (n == NULL) break;
             sl_timer_t *t = FROM_NODE(n);
             if (t->expiry > now) {
                 next_exp = t->expiry;
                 break;
             }
-            sl_list_remove_head(&c->active_timers);
-            sl_list_add_tail(&expired_list, n);
+            sl_list_remove_first(&c->active_timers);
+            sl_list_add_last(&expired_list, n);
         }
 
-        n = sl_list_remove_head(&expired_list);
+        n = sl_list_remove_first(&expired_list);
         if (n == NULL) {
             if (next_exp == 0) cond_wait(&c->cond, &c->lock);
             else cond_timed_wait_abs(&c->cond, &c->lock, next_exp);
@@ -164,14 +164,14 @@ static void chrono_thread_running_locked(sl_chrono_t *c) {
         if (n != NULL) {
             chrono_unlock(c);
 
-            for ( ; n != NULL; n = sl_list_remove_head(&expired_list)) {
+            for ( ; n != NULL; n = sl_list_remove_first(&expired_list)) {
                 sl_timer_t *t = FROM_NODE(n);
                 err = t->callback(t->context, 0);
                 if (err == SL_ERR_RESTART) {
                     t->expiry += t->reset_value;
-                    sl_list_add_tail(&restart_list, n);
+                    sl_list_add_last(&restart_list, n);
                 } else {
-                    sl_list_add_tail(&unused_list, n);
+                    sl_list_add_last(&unused_list, n);
                 }
             }
 
@@ -180,11 +180,11 @@ static void chrono_thread_running_locked(sl_chrono_t *c) {
             chrono_lock(c);
 
             // todo: implement list merge-insert to reduce these loops
-            for (n = sl_list_remove_head(&restart_list); n != NULL; n = sl_list_remove_head(&restart_list)) {
+            for (n = sl_list_remove_first(&restart_list); n != NULL; n = sl_list_remove_first(&restart_list)) {
                 sl_list_insert_sorted(&c->active_timers, timer_compare, n);
             }
-            for (n = sl_list_remove_head(&unused_list); n != NULL; n = sl_list_remove_head(&unused_list)) {
-                sl_list_add_tail(&c->unused_timers, n);
+            for (n = sl_list_remove_first(&unused_list); n != NULL; n = sl_list_remove_first(&unused_list)) {
+                sl_list_add_last(&c->unused_timers, n);
             }
         }
     }
@@ -220,15 +220,15 @@ out:
 
     sl_list_t active_list;
     sl_list_init(&active_list);
-    sl_list_node_t *n = sl_list_peek_head(&active_list);
+    sl_list_node_t *n = sl_list_peek_first(&active_list);
     for ( ; n != NULL; n = n->next) {
         sl_timer_t *t = FROM_NODE(n);
         t->callback(t->context, SL_ERR_EXITED);
     }
 
     chrono_lock(c);
-    while ((n = sl_list_remove_head(&active_list))) {
-        sl_list_add_tail(&c->unused_timers, n);
+    while ((n = sl_list_remove_first(&active_list))) {
+        sl_list_add_last(&c->unused_timers, n);
     }
     chrono_unlock(c);
     return NULL;
@@ -316,7 +316,7 @@ void sl_chrono_shutdown(sl_chrono_t *c) {
     sl_chrono_stop(c);
 
     assert(c->state == SL_CHRONO_STATE_STOPPED);
-    while ((n = sl_list_remove_head(&c->unused_timers))) {
+    while ((n = sl_list_remove_first(&c->unused_timers))) {
         sl_timer_t *t = FROM_NODE(n);
         free(t);
     }

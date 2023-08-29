@@ -68,7 +68,7 @@ int bus_add_mem_region(sl_bus_t *b, mem_region_t *r) {
     m.ep = &r->ep;
     int err = sl_mappper_add_mapping(&b->mapper, &m);
     if (err) return err;
-    sl_list_add_tail(&b->mem_list, &r->node);
+    sl_list_add_last(&b->mem_list, &r->node);
     return 0;
 }
 
@@ -83,14 +83,14 @@ int bus_add_device(sl_bus_t *b, sl_dev_t *dev, u8 base) {
     int err = sl_mappper_add_mapping(&b->mapper, &m);
     if (err) return err;
     sl_device_retain(dev);
-    sl_list_add_tail(&b->dev_list, &dev->node);
+    sl_list_add_last(&b->dev_list, &dev->node);
     return 0;
 }
 
 sl_mapper_t * bus_get_mapper(sl_bus_t *b) { return &b->mapper; }
 
 sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
-    sl_list_node_t *n = sl_list_peek_head(&b->dev_list);
+    sl_list_node_t *n = sl_list_peek_first(&b->dev_list);
     for ( ; n != NULL; n = n->next) {
         sl_dev_t *d = containerof(n, sl_dev_t, node);
         if (!strcmp(name, d->name)) return d;
@@ -101,9 +101,9 @@ sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
 void bus_destroy(sl_bus_t *bus) {
     mapper_shutdown(&bus->mapper);
     sl_list_node_t *c;
-    while ((c = sl_list_remove_head(&bus->dev_list)) != NULL)
+    while ((c = sl_list_remove_first(&bus->dev_list)) != NULL)
         sl_device_release(containerof(c, sl_dev_t, node));
-    while ((c = sl_list_remove_head(&bus->mem_list)) != NULL)
+    while ((c = sl_list_remove_first(&bus->mem_list)) != NULL)
         mem_region_destroy((mem_region_t *)c);
     device_shutdown(&bus->dev);
     free(bus);

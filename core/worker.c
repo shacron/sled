@@ -20,7 +20,7 @@ void sl_worker_release(sl_worker_t *w) { sl_obj_release(w->obj_); }
 
 static void queue_add(sl_worker_t *w, sl_event_t *ev) {
     lock_lock(&w->lock);
-    sl_list_add_tail(&w->ev_list, &ev->node);
+    sl_list_add_last(&w->ev_list, &ev->node);
     cond_signal_all(&w->has_event);
     lock_unlock(&w->lock);
 }
@@ -28,7 +28,7 @@ static void queue_add(sl_worker_t *w, sl_event_t *ev) {
 static int handle_events(sl_worker_t *w, bool wait) {
     lock_lock(&w->lock);
     if (wait) {
-        while (sl_list_peek_head(&w->ev_list) == NULL) {
+        while (sl_list_peek_first(&w->ev_list) == NULL) {
             cond_wait(&w->has_event, &w->lock);
         }
 
@@ -108,7 +108,7 @@ static int single_step(sl_worker_t *w) {
     int err = 0;
 
     if (w->state & SL_WORKER_STATE_ENGINE_RUNNABLE) {
-        void *n = atomic_load_explicit((_Atomic(sl_list_node_t *)*)&w->ev_list.head, memory_order_relaxed);
+        void *n = atomic_load_explicit((_Atomic(sl_list_node_t *)*)&w->ev_list.first, memory_order_relaxed);
         if (n != NULL) {
             if ((err = handle_events(w, false))) return err;
         }
