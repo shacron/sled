@@ -26,18 +26,18 @@ Supported:
 
 * rv32i
 * rv64i
-* M, C, A, F, Zicsr, Zifencei extensions
+* M, C, A, F, D, Zicsr, Zifencei extensions
 * machine, system, and user modes
 * interrupts
 * most exceptions
-* floating point (fp32 only at the moment)
+* floating point, 32 and 64 bit [note: rounding modes are not yet implemented. Ops are performed using host's default rounding mode]
 
 In progress:
 * more exceptions
-* B, D extensions
+* B extension
 * most of the CSRs
-* timers
-* MMU/MPU (mapper backend implemented)
+* timers - `chrono` backend for async (wall-clock) timers implemented, see `sled_timer` device for example usage. Architectural timers are in progress.
+* MMU/MPU - `mapper` address translation backend implemented, see `sled_mpu` device for example usage. Architectural address translation support in progress.
 
 Long term:
 * SMP
