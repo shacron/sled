@@ -9,32 +9,25 @@
 #include <core/riscv/rv.h>
 #include <core/worker.h>
 
+#define CLASS_FUNC(name) \
+int name ## _obj_init(void *o, const char *name); \
+void name ## _obj_shutdown(void *o);
+
+#define CLASS_INST(type, s, name) \
+    [type] = { .size = sizeof(s), .init = name ## _obj_init, .shutdown = name ## _obj_shutdown, },
+
+CLASS_FUNC(device)
+CLASS_FUNC(engine)
+CLASS_FUNC(riscv_core)
+CLASS_FUNC(chrono)
+CLASS_FUNC(worker)
+
 static const sl_obj_class_t obj_class_list[] = {
-    [SL_OBJ_TYPE_DEVICE] = {
-        .size = sizeof(sl_dev_t),
-        .init = device_obj_init,
-        .shutdown = device_obj_shutdown,
-    },
-    [SL_OBJ_TYPE_ENGINE] = {
-        .size = sizeof(sl_engine_t),
-        .init = engine_obj_init,
-        .shutdown = engine_obj_shutdown,
-    },
-    [SL_OBJ_TYPE_RVCORE] = {
-        .size = sizeof(rv_core_t),
-        .init = riscv_core_obj_init,
-        .shutdown = riscv_core_obj_shutdown,
-    },
-    [SL_OBJ_TYPE_CHRONO] = {
-        .size = sizeof(sl_chrono_t),
-        .init = chrono_obj_init,
-        .shutdown = chrono_obj_shutdown,
-    },
-    [SL_OBJ_TYPE_WORKER] = {
-        .size = sizeof(sl_worker_t),
-        .init = worker_obj_init,
-        .shutdown = worker_obj_shutdown,
-    },
+    CLASS_INST(SL_OBJ_TYPE_DEVICE, sl_dev_t, device)
+    CLASS_INST(SL_OBJ_TYPE_ENGINE, sl_engine_t, engine)
+    CLASS_INST(SL_OBJ_TYPE_RVCORE, rv_core_t, riscv_core)
+    CLASS_INST(SL_OBJ_TYPE_CHRONO, sl_chrono_t, chrono)
+    CLASS_INST(SL_OBJ_TYPE_WORKER, sl_worker_t, worker)
 };
 
 const sl_obj_class_t * sl_obj_class_for_type(u1 type) {

@@ -46,6 +46,3 @@ static inline void dev_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 void device_config(sl_dev_t *d, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops);
 
 sl_dev_t * device_get_for_ep(sl_map_ep_t *ep);
-
-int device_obj_init(void *o, const char *name);
-void device_obj_shutdown(void *o);

@@ -20,6 +20,3 @@ struct sl_chrono {
     pthread_t thread;
     u1 state;
 };
-
-int chrono_obj_init(void *o, const char *name);
-void chrono_obj_shutdown(void *o);

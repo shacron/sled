@@ -101,6 +101,3 @@ rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u1 pl);
 
 const char *rv_name_for_reg(u4 reg);
 u4 rv_reg_for_name(const char *name);
-
-int riscv_core_obj_init(void *o, const char *name);
-void riscv_core_obj_shutdown(void *o);
