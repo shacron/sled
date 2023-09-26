@@ -27,7 +27,7 @@ void sl_obj_release(void *vo) {
         const sl_obj_class_t *c = sl_obj_class_for_type(o->type);
         // printf("obj_release shutting down %s\n", o->name);
         c->shutdown(o);
-        free(o);
+        if ((o->flags & SL_OBJ_FLAG_EMBEDDED) == 0) free(o);
     }
 }
 

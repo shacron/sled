@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2023 Shac Ron and The Sled Project
 
+#include <core/bus.h>
 #include <core/chrono.h>
 #include <core/common.h>
 #include <core/device.h>
@@ -21,6 +22,7 @@ CLASS_FUNC(engine)
 CLASS_FUNC(riscv_core)
 CLASS_FUNC(chrono)
 CLASS_FUNC(worker)
+CLASS_FUNC(bus)
 
 static const sl_obj_class_t obj_class_list[] = {
     CLASS_INST(SL_OBJ_TYPE_DEVICE, sl_dev_t, device)
@@ -28,6 +30,7 @@ static const sl_obj_class_t obj_class_list[] = {
     CLASS_INST(SL_OBJ_TYPE_RVCORE, rv_core_t, riscv_core)
     CLASS_INST(SL_OBJ_TYPE_CHRONO, sl_chrono_t, chrono)
     CLASS_INST(SL_OBJ_TYPE_WORKER, sl_worker_t, worker)
+    CLASS_INST(SL_OBJ_TYPE_BUS, sl_bus_t, bus)
 };
 
 const sl_obj_class_t * sl_obj_class_for_type(u1 type) {

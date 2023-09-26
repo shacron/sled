@@ -8,11 +8,9 @@
 
 #include <core/bus.h>
 #include <core/common.h>
-#include <core/device.h>
-#include <core/mem.h>
 #include <sled/error.h>
 #include <sled/io.h>
-#include <sled/mapper.h>
+
 
 // #define BUS_TRACE 1
 
@@ -21,13 +19,6 @@
 #else
 #define TRACE(format, ...) do {} while(0)
 #endif
-
-struct sl_bus {
-    sl_dev_t dev;
-    sl_mapper_t mapper;
-    sl_list_t mem_list;
-    sl_list_t dev_list;
-};
 
 static int bus_op_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     sl_bus_t *b = ctx;
@@ -114,22 +105,29 @@ static const sl_dev_ops_t bus_ops = {
     .write = bus_op_write,
 };
 
-int bus_create(const char *name, sl_dev_config_t *cfg, sl_bus_t **bus_out) {
-    sl_bus_t *b = calloc(1, sizeof(*b));
-    if (b == NULL) return SL_ERR_MEM;
+void bus_obj_shutdown(void *o) {
+    sl_bus_t *b = o;
+    sl_obj_release(&b->dev);
+}
 
-    cfg->ops = &bus_ops;
+int bus_obj_init(void *o, const char *name, void *cfg) {
+    sl_bus_t *b = o;
     int err = sl_obj_init(&b->dev, SL_OBJ_TYPE_DEVICE, name, cfg);
-    if (err) {
-        free(b);
-        return err;
-    }
+    if (err) return err;
     mapper_init(&b->mapper);
     sl_mapper_set_mode(&b->mapper, SL_MAP_OP_MODE_TRANSLATE);
     sl_device_set_context(&b->dev, b);
     sl_device_set_mapper(&b->dev, &b->mapper);
     sl_list_init(&b->mem_list);
     sl_list_init(&b->dev_list);
+    return 0;
+}
+
+int bus_create(const char *name, sl_dev_config_t *cfg, sl_bus_t **bus_out) {
+    cfg->ops = &bus_ops;
+    sl_bus_t *b;
+    int err = sl_obj_alloc_init(SL_OBJ_TYPE_BUS, name, cfg, (void **)&b);
+    if (err) return err;
     *bus_out = b;
     return 0;
 }

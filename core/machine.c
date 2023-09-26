@@ -82,7 +82,7 @@ int sl_machine_create(sl_machine_t **m_out) {
 
 out_err:
     if (m->chrono != NULL) sl_obj_release(m->chrono);
-    if (m->bus != NULL) bus_destroy(m->bus);
+    if (m->bus != NULL) sl_obj_release(m->bus);
     free(m);
     return err;
 }
@@ -195,9 +195,9 @@ void sl_machine_destroy(sl_machine_t *m) {
     for (int i = 0; i < m->core_count; i++) {
         sl_obj_release(m->mc[i].core);
     }
-    bus_destroy(m->bus);
     sl_chrono_stop(m->chrono);
     sl_obj_release(m->chrono);
+    sl_obj_release(m->bus);
     free(m);
 }
 
