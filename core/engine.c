@@ -38,9 +38,6 @@ static int engine_irq_transition_async(sl_irq_ep_t *ep, u4 num, bool high) {
     return 0;
 }
 
-void sl_engine_retain(sl_engine_t *e) { sl_obj_retain(e->obj_); }
-void sl_engine_release(sl_engine_t *e) { sl_obj_release(e->obj_); }
-
 static void engine_set_wfi(sl_engine_t *e, bool enable) {
     if (enable) e->state |= (1u << SL_CORE_STATE_WFI);
     else e->state &= ~(1u << SL_CORE_STATE_WFI);
@@ -78,9 +75,6 @@ int sl_engine_wait_for_interrupt(sl_engine_t *e) {
     engine_set_wfi(e, true);
     return 0;
 }
-
-static void engine_shutdown(void *o) {}
-void sl_engine_shutdown(sl_engine_t *e) {}
 
 const sl_engine_ops_t * engine_get_ops(sl_engine_t *e) {
     return &e->ops;
@@ -144,8 +138,12 @@ int sl_engine_run(sl_engine_t *e) {
     return sl_worker_run(e->worker);
 }
 
-int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o) {
-    e->obj_ = o;
+void engine_obj_shutdown(void *o) {
+    // nop
+}
+
+int engine_obj_init(void *o, const char *name) {
+    sl_engine_t *e = o;
     e->name = name;
     e->worker = NULL;
     e->irq_ep.assert = engine_irq_transition_async;
@@ -154,10 +152,10 @@ int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o) {
 }
 
 int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t **e_out) {
-    sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_engine_t), engine_shutdown);
-    if (o == NULL) return SL_ERR_MEM;
-    sl_engine_t *e = sl_obj_get_item(o);
-    sl_engine_init(e, name, o);
+    sl_engine_t *e;
+    int err = sl_obj_alloc_init(SL_OBJ_TYPE_ENGINE, name, (void **)&e);
+    if (err) return err;
+    e->ops = *ops;
     *e_out = e;
     return 0;
 }

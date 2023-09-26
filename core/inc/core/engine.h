@@ -10,7 +10,7 @@
 #include <sled/engine.h>
 
 struct sl_engine {
-    sl_obj_t *obj_;
+    sl_obj_t obj_;
 
     const char *name;
     u4 state;         // current running state
@@ -22,8 +22,8 @@ struct sl_engine {
     void *context;
 };
 
-int sl_engine_init(sl_engine_t *e, const char *name, sl_obj_t *o);
-void sl_engine_shutdown(sl_engine_t *e);
+int engine_obj_init(void *o, const char *name);
+void engine_obj_shutdown(void *o);
 
 int sl_engine_handle_interrupts(sl_engine_t *e);
 int sl_engine_wait_for_interrupt(sl_engine_t *e);

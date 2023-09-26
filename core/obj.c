@@ -4,39 +4,56 @@
 #include <stdlib.h>
 
 #include <core/obj.h>
+#include <core/types.h>
+#include <sled/error.h>
 
-static atomic_uint_least32_t g_obj_id = 0;
+const sl_obj_class_t * sl_obj_class_for_type(u1 type);
 
-sl_obj_t * sl_allocate_as_obj(usize size, void (*shutdown)(void *o)) {
-    size += sizeof(sl_obj_t);
-    sl_obj_t *o = calloc(1, size);
-    if (o == NULL) return NULL;
-    o->refcount = 1;
-    o->flags = 0;
-    o->shutdown = shutdown;
-    o->id = atomic_fetch_add_explicit(&g_obj_id, 1, memory_order_relaxed);
-    return o;
-}
+// static atomic_uint_least32_t g_obj_id = 0;
 
-void * sl_obj_get_item(sl_obj_t *o) {
-    assert(o != NULL);
-    return o+1;
-}
-
-void sl_obj_retain(sl_obj_t *o) {
+void sl_obj_retain(void *vo) {
+    sl_obj_t *o = vo;
     assert(o != NULL);
     assert(o->refcount != 0);
     atomic_fetch_add_explicit((_Atomic u2 *)&o->refcount, 1, memory_order_relaxed);
 }
 
-void sl_obj_release(sl_obj_t *o) {
-    // if (o == NULL) return;
+void sl_obj_release(void *vo) {
+    sl_obj_t *o = vo;
     assert(o != NULL);
     assert(o->refcount > 0);
     atomic_fetch_sub_explicit((_Atomic u2 *)&o->refcount, 1, memory_order_relaxed);
     if (o->refcount == 0) {
+        const sl_obj_class_t *c = sl_obj_class_for_type(o->type);
         // printf("obj_release shutting down %s\n", o->name);
-        if (o->shutdown != NULL) o->shutdown(sl_obj_get_item(o));
+        c->shutdown(o);
         free(o);
     }
+}
+
+static int obj_shared_init(sl_obj_t *o, uint8_t type, const char *name, uint8_t flags) {
+    o->type = type;
+    o->flags = flags;
+    o->refcount = 1;
+    const sl_obj_class_t *c = sl_obj_class_for_type(type);
+    int err = c->init(o, name);
+    if (err) free(o);
+    return err;
+}
+
+int sl_obj_init(void *o, uint8_t type, const char *name) {
+    return obj_shared_init(o, type, name, SL_OBJ_FLAG_EMBEDDED);
+}
+
+int sl_obj_alloc_init(uint8_t type, const char *name, void **o_out) {
+    const sl_obj_class_t *c = sl_obj_class_for_type(type);
+    sl_obj_t *o = calloc(1, c->size);
+    if (o == NULL) return SL_ERR_MEM;
+    int err = obj_shared_init(o, type, name, 0);
+    if (err) {
+        free(o);
+        return err;
+    }
+    *o_out = o;
+    return 0;
 }

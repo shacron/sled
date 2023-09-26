@@ -47,10 +47,6 @@ static int timer_compare(const sl_list_node_t *na, const sl_list_node_t *nb) {
     return -1;
 }
 
-void sl_chrono_retain(sl_chrono_t *c) { sl_obj_retain(c->obj_); }
-void sl_chrono_release(sl_chrono_t *c)  { sl_obj_release(c->obj_); }
-
-
 int sl_chrono_timer_set(sl_chrono_t *c, u8 us, int (*callback)(void *context, int err), void *context, u8 *id_out) {
     sl_timer_t *t;
     int err = 0;
@@ -234,10 +230,6 @@ out:
     return NULL;
 }
 
-static void chrono_obj_shutdown(void *o) {
-    sl_chrono_shutdown(o);
-}
-
 int sl_chrono_run(sl_chrono_t *c) {
     int err = 0;
 
@@ -310,7 +302,8 @@ int sl_chrono_stop(sl_chrono_t *c) {
     return 0;
 }
 
-void sl_chrono_shutdown(sl_chrono_t *c) {
+void chrono_obj_shutdown(void *o) {
+    sl_chrono_t *c = o;
     sl_list_node_t *n;
 
     sl_chrono_stop(c);
@@ -324,8 +317,8 @@ void sl_chrono_shutdown(sl_chrono_t *c) {
     lock_destroy(&c->lock);
 }
 
-int sl_chrono_init(sl_chrono_t *c, const char *name, sl_obj_t *o) {
-    c->obj_ = o;
+int chrono_obj_init(void *o, const char *name) {
+    sl_chrono_t *c = o;
     c->name = name;
     sl_list_init(&c->active_timers);
     sl_list_init(&c->unused_timers);
@@ -334,13 +327,3 @@ int sl_chrono_init(sl_chrono_t *c, const char *name, sl_obj_t *o) {
     c->state = SL_CHRONO_STATE_STOPPED;
     return 0;
 }
-
-int sl_chrono_create(const char *name, sl_chrono_t **c_out) {
-    sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_chrono_t), chrono_obj_shutdown);
-    if (o == NULL) return SL_ERR_MEM;
-    sl_chrono_t *c = sl_obj_get_item(o);
-    *c_out = c;
-    sl_chrono_init(c, name, o);
-    return 0;
-}
-

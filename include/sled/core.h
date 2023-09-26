@@ -77,9 +77,6 @@ int sl_core_run(sl_core_t *c);
 // Synchronous accessor functions
 // ----------------------------------------------------------------------------
 
-void sl_core_retain(sl_core_t *c);
-void sl_core_release(sl_core_t *c);
-
 void sl_core_set_reg(sl_core_t *c, u4 reg, u8 value);
 u8 sl_core_get_reg(sl_core_t *c, u4 reg);
 int sl_core_set_state(sl_core_t *c, u4 state, bool enabled);

@@ -142,38 +142,39 @@ static int riscv_core_step(sl_engine_t *e) {
     return err;
 }
 
-static void rv_core_shutdown(void *o) {
+int riscv_core_obj_init(void *o, const char *name) {
     rv_core_t *rc = o;
-    sl_core_shutdown(&rc->core);
-    if (rc->ext.destroy != NULL) rc->ext.destroy(rc->ext_private);
-}
-
-int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out) {
-    int err;
-    sl_obj_t *o = sl_allocate_as_obj(sizeof(rv_core_t), rv_core_shutdown);
-    if (o == NULL) return SL_ERR_MEM;
-    rv_core_t *rc = sl_obj_get_item(o);
-
-    if ((err = sl_core_init(&rc->core, p, o, bus_get_mapper(bus)))) {
-        sl_obj_release(o);
-        return err;
-    }
-
     rc->mode = RV_MODE_RV32;
     rc->pl = RV_PL_MACHINE;
 
-    rc->core.options |= (SL_CORE_OPT_ENDIAN_BIG | SL_CORE_OPT_ENDIAN_LITTLE);
+    rc->core.options = SL_CORE_OPT_ENDIAN_LITTLE;
 
     rc->core.engine.ops.step = riscv_core_step;
     rc->core.engine.ops.interrupt = riscv_interrupt;
     rc->core.ops.set_reg = riscv_set_reg;
     rc->core.ops.get_reg = riscv_get_reg;
     rc->core.ops.set_state = riscv_core_set_state;
-
     rc->mimpid = 'sled';
-    rc->mhartid = p->id;
     rc->ext.name_for_sysreg = rv_name_for_sysreg;
+    return 0;
+}
 
+void riscv_core_obj_shutdown(void *o) {
+    rv_core_t *rc = o;
+    sl_core_shutdown(&rc->core);
+    if (rc->ext.destroy != NULL) rc->ext.destroy(rc->ext_private);
+}
+
+int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out) {
+    rv_core_t *rc;
+    int err = sl_obj_alloc_init(SL_OBJ_TYPE_RVCORE, p->name, (void **)&rc);
+    if (err) return err;
+
+    if ((err = sl_core_init(&rc->core, p, bus_get_mapper(bus)))) {
+        sl_obj_release(rc);
+        return err;
+    }
+    rc->mhartid = p->id;
     *core_out = &rc->core;
     return 0;
 }

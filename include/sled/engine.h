@@ -16,9 +16,6 @@ struct sl_engine_ops {
 
 int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t **e_out);
 
-void sl_engine_retain(sl_engine_t *e);
-void sl_engine_release(sl_engine_t *e);
-
 void sl_engine_set_context(sl_engine_t *e, void *ctx);
 void * sl_engine_get_context(sl_engine_t *e);
 

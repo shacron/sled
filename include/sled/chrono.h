@@ -12,9 +12,7 @@ extern "C" {
 #endif
 
 // setup functions
-int sl_chrono_create(const char *name, sl_chrono_t **c_out);
-void sl_chrono_retain(sl_chrono_t *c);
-void sl_chrono_release(sl_chrono_t *c);
+// create using object type SL_OBJ_TYPE_CHRONO
 
 int sl_chrono_run(sl_chrono_t *c);
 int sl_chrono_pause(sl_chrono_t *c);

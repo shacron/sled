@@ -199,7 +199,7 @@ int sled_mpu_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) 
     return 0;
 
 out_err:
-    if (m->dev) sl_device_release(m->dev);
+    if (m->dev) sl_obj_release(m->dev);
     free(m);
     return err;
 }

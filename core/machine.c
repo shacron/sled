@@ -74,14 +74,14 @@ int sl_machine_create(sl_machine_t **m_out) {
     sl_dev_config_t cfg;
     cfg.machine = m;
     if ((err = bus_create("bus0", &cfg, &m->bus))) goto out_err;
-    if ((err = sl_chrono_create("tm0", &m->chrono))) goto out_err;
+    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_CHRONO, "tm0", (void **)&m->chrono))) goto out_err;
     if ((err = sl_chrono_run(m->chrono))) goto out_err;
 
     *m_out = m;
     return 0;
 
 out_err:
-    if (m->chrono != NULL) sl_chrono_release(m->chrono);
+    if (m->chrono != NULL) sl_obj_release(m->chrono);
     if (m->bus != NULL) bus_destroy(m->bus);
     free(m);
     return err;
@@ -118,7 +118,7 @@ int sl_machine_add_device(sl_machine_t *m, u4 type, u8 base, const char *name) {
     if (type == SL_DEV_INTC) m->intc = d;
 
 out_err:
-    sl_device_release(d);
+    sl_obj_release(d);
     return err;
 }
 
@@ -139,7 +139,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     mc->worker = NULL;
 
     int err;
-    if ((err = sl_worker_create("core_worker", &mc->worker))) {
+    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_WORKER, "core_worker", (void **)&mc->worker))) {
         fprintf(stderr, "sl_worker_create failed: %s\n", st_err(err));
         return err;
     }
@@ -172,8 +172,8 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     return 0;
 
 out_err:
-    if (mc->worker) sl_worker_release(mc->worker);
-    if (mc->core) sl_core_release(mc->core);
+    if (mc->worker) sl_obj_release(mc->worker);
+    if (mc->core) sl_obj_release(mc->core);
     return err;
 }
 
@@ -193,11 +193,11 @@ int sl_machine_set_interrupt(sl_machine_t *m, u4 irq, bool high) {
 
 void sl_machine_destroy(sl_machine_t *m) {
     for (int i = 0; i < m->core_count; i++) {
-        sl_core_release(m->mc[i].core);
+        sl_obj_release(m->mc[i].core);
     }
     bus_destroy(m->bus);
     sl_chrono_stop(m->chrono);
-    sl_chrono_release(m->chrono);
+    sl_obj_release(m->chrono);
     free(m);
 }
 

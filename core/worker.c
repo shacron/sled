@@ -15,9 +15,6 @@
 
 #define SL_WORKER_STATE_ENGINE_RUNNABLE   (1u << 0)
 
-void sl_worker_retain(sl_worker_t *w) { sl_obj_retain(w->obj_); }
-void sl_worker_release(sl_worker_t *w) { sl_obj_release(w->obj_); }
-
 static void queue_add(sl_worker_t *w, sl_event_t *ev) {
     lock_lock(&w->lock);
     sl_list_add_last(&w->ev_list, &ev->node);
@@ -66,8 +63,8 @@ int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, u4 *id_out) {
     int err = sl_worker_add_event_endpoint(w, &e->event_ep, id_out);
     if (err) return err;
 
-    sl_engine_retain(e);
-    if (w->engine) sl_engine_release(w->engine);
+    sl_obj_retain(e);
+    if (w->engine) sl_obj_release(w->engine);
     w->engine = e;
     // engine does not retain worker to avoid a retain loop
     e->worker = w;
@@ -171,31 +168,19 @@ int sl_worker_thread_join(sl_worker_t *w) {
     }
 }
 
-static void worker_shutdown(void *o) {
-    sl_worker_shutdown(o);
-}
-
-void sl_worker_shutdown(sl_worker_t *w) {
+void worker_obj_shutdown(void *o) {
+    sl_worker_t *w = o;
     assert(!w->thread_running);
-    if (w->engine) sl_engine_release(w->engine);
+    if (w->engine) sl_obj_release(w->engine);
     lock_destroy(&w->lock);
     cond_destroy(&w->has_event);
 }
 
-int sl_worker_init(sl_worker_t *w, const char *name, sl_obj_t *o) {
-    w->obj_ = o;
+int worker_obj_init(void *o, const char *name) {
+    sl_worker_t *w = o;
     w->name = name;
     w->thread_running = false;
     lock_init(&w->lock);
     cond_init(&w->has_event);
-    return 0;
-}
-
-int sl_worker_create(const char *name, sl_worker_t **w_out) {
-    sl_obj_t *o = sl_allocate_as_obj(sizeof(sl_worker_t), worker_shutdown);
-    if (o == NULL) return SL_ERR_MEM;
-    sl_worker_t *w = sl_obj_get_item(o);
-    *w_out = w;
-    sl_worker_init(w, name, o);
     return 0;
 }

@@ -17,7 +17,7 @@
 #define DEV_FLAG_EMBEDDED   (1u << 0)
 
 struct sl_dev {
-    sl_obj_t *obj_;
+    sl_obj_t obj_;
     sl_list_node_t node;
 
     u4 magic;
@@ -43,7 +43,9 @@ static inline void dev_lock(sl_dev_t *d) { lock_lock(&d->lock); }
 static inline void dev_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
 
 // internal device calls
-void device_init(sl_dev_t *d, const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops);
-void device_shutdown(sl_dev_t *d);
+void device_config(sl_dev_t *d, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops);
 
 sl_dev_t * device_get_for_ep(sl_map_ep_t *ep);
+
+int device_obj_init(void *o, const char *name);
+void device_obj_shutdown(void *o);

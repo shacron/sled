@@ -29,5 +29,6 @@ LIB_CSOURCES += \
 	$(SRCDIR)/riscv/riscv.c \
 	$(SRCDIR)/sem.c \
 	$(SRCDIR)/sym.c \
+	$(SRCDIR)/types.c \
 	$(SRCDIR)/worker.c \
 

@@ -26,6 +26,6 @@ struct sl_worker {
     bool thread_running;
 };
 
-int sl_worker_init(sl_worker_t *w, const char *name, sl_obj_t *o);
-void sl_worker_shutdown(sl_worker_t *w);
+int worker_obj_init(void *o, const char *name);
+void worker_obj_shutdown(void *o);
 

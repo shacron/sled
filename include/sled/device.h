@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <sled/obj.h>
 #include <sled/types.h>
 
 #ifdef __cplusplus
@@ -48,8 +49,6 @@ struct sl_dev_ops {
 };
 
 int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
-void sl_device_retain(sl_dev_t *d);
-void sl_device_release(sl_dev_t *d);
 
 void sl_device_set_context(sl_dev_t *d, void *ctx);
 void * sl_device_get_context(sl_dev_t *d);

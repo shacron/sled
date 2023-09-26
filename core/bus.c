@@ -82,7 +82,7 @@ int bus_add_device(sl_bus_t *b, sl_dev_t *dev, u8 base) {
     m.ep = &dev->map_ep;
     int err = sl_mappper_add_mapping(&b->mapper, &m);
     if (err) return err;
-    sl_device_retain(dev);
+    sl_obj_retain(dev);
     sl_list_add_last(&b->dev_list, &dev->node);
     return 0;
 }
@@ -102,11 +102,10 @@ void bus_destroy(sl_bus_t *bus) {
     mapper_shutdown(&bus->mapper);
     sl_list_node_t *c;
     while ((c = sl_list_remove_first(&bus->dev_list)) != NULL)
-        sl_device_release(containerof(c, sl_dev_t, node));
+        sl_obj_release(containerof(c, sl_dev_t, node));
     while ((c = sl_list_remove_first(&bus->mem_list)) != NULL)
         mem_region_destroy((mem_region_t *)c);
-    device_shutdown(&bus->dev);
-    free(bus);
+    sl_obj_release(&bus->dev);
 }
 
 static const sl_dev_ops_t bus_ops = {
@@ -119,7 +118,12 @@ int bus_create(const char *name, sl_dev_config_t *cfg, sl_bus_t **bus_out) {
     sl_bus_t *b = calloc(1, sizeof(*b));
     if (b == NULL) return SL_ERR_MEM;
 
-    device_init(&b->dev, name, cfg, 0, &bus_ops);
+    int err = sl_obj_init(&b->dev, SL_OBJ_TYPE_DEVICE, name);
+    if (err) {
+        free(b);
+        return err;
+    }
+    device_config(&b->dev, cfg, 0, &bus_ops);
     mapper_init(&b->mapper);
     sl_mapper_set_mode(&b->mapper, SL_MAP_OP_MODE_TRANSLATE);
     sl_device_set_context(&b->dev, b);

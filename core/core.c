@@ -11,10 +11,6 @@
 #include <sled/error.h>
 #include <sled/io.h>
 
-
-void sl_core_retain(sl_core_t *c) { sl_obj_retain(c->obj_); }
-void sl_core_release(sl_core_t *c) { sl_obj_release(c->obj_); }
-
 int sl_core_async_command(sl_core_t *c, u4 cmd, bool wait) {
     return sl_engine_async_command(&c->engine, cmd, wait);
 }
@@ -53,7 +49,7 @@ void sl_core_shutdown(sl_core_t *c) {
         sym_free(s);
     }
 #endif
-    sl_engine_shutdown(&c->engine);
+    sl_obj_release(&c->engine);
 }
 
 const core_ops_t * core_get_ops(sl_core_t *c) {
@@ -193,12 +189,10 @@ sl_sym_entry_t *sl_core_get_sym_for_addr(sl_core_t *c, u8 addr) {
 }
 #endif
 
-int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_obj_t *o, sl_mapper_t *m) {
-    c->obj_ = o;
-    int err = sl_engine_init(&c->engine, p->name, o);
-    if (err) return err;
+int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mapper = m;
     config_set_internal(c, p);
+    sl_obj_init(&c->engine, SL_OBJ_TYPE_ENGINE, NULL);
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;
 }
