@@ -144,18 +144,19 @@ void engine_obj_shutdown(void *o) {
 
 int engine_obj_init(void *o, const char *name, void *cfg) {
     sl_engine_t *e = o;
+    const sl_engine_ops_t *ops = cfg;
     e->name = name;
     e->worker = NULL;
     e->irq_ep.assert = engine_irq_transition_async;
     e->event_ep.handle = engine_event_handle;
+    if (ops != NULL) e->ops = *ops;
     return 0;
 }
 
 int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t **e_out) {
     sl_engine_t *e;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_ENGINE, name, NULL, (void **)&e);
+    int err = sl_obj_alloc_init(SL_OBJ_TYPE_ENGINE, name, (void *)ops, (void **)&e);
     if (err) return err;
-    e->ops = *ops;
     *e_out = e;
     return 0;
 }
