@@ -146,9 +146,6 @@ int riscv_core_obj_init(void *o, const char *name) {
     rv_core_t *rc = o;
     rc->mode = RV_MODE_RV32;
     rc->pl = RV_PL_MACHINE;
-
-    rc->core.options = SL_CORE_OPT_ENDIAN_LITTLE;
-
     rc->core.engine.ops.step = riscv_core_step;
     rc->core.engine.ops.interrupt = riscv_interrupt;
     rc->core.ops.set_reg = riscv_set_reg;
@@ -174,6 +171,7 @@ int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out) 
         sl_obj_release(rc);
         return err;
     }
+    rc->core.options |= SL_CORE_OPT_ENDIAN_LITTLE;
     rc->mhartid = p->id;
     *core_out = &rc->core;
     return 0;
