@@ -15,7 +15,7 @@ extern "C" {
 #define SL_OBJ_TYPE_CHRONO      3
 #define SL_OBJ_TYPE_RVCORE      4
 
-int sl_obj_alloc_init(u1 type, const char *name, void **o_out);
+int sl_obj_alloc_init(u1 type, const char *name, void *cfg, void **o_out);
 void sl_obj_retain(void *o);
 void sl_obj_release(void *o);
 

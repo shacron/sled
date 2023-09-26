@@ -10,7 +10,7 @@
 #include <core/worker.h>
 
 #define CLASS_FUNC(name) \
-int name ## _obj_init(void *o, const char *name); \
+int name ## _obj_init(void *o, const char *name, void *cfg); \
 void name ## _obj_shutdown(void *o);
 
 #define CLASS_INST(type, s, name) \

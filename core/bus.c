@@ -118,12 +118,12 @@ int bus_create(const char *name, sl_dev_config_t *cfg, sl_bus_t **bus_out) {
     sl_bus_t *b = calloc(1, sizeof(*b));
     if (b == NULL) return SL_ERR_MEM;
 
-    int err = sl_obj_init(&b->dev, SL_OBJ_TYPE_DEVICE, name);
+    cfg->ops = &bus_ops;
+    int err = sl_obj_init(&b->dev, SL_OBJ_TYPE_DEVICE, name, cfg);
     if (err) {
         free(b);
         return err;
     }
-    device_config(&b->dev, cfg, 0, &bus_ops);
     mapper_init(&b->mapper);
     sl_mapper_set_mode(&b->mapper, SL_MAP_OP_MODE_TRANSLATE);
     sl_device_set_context(&b->dev, b);

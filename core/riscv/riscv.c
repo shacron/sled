@@ -142,8 +142,18 @@ static int riscv_core_step(sl_engine_t *e) {
     return err;
 }
 
-int riscv_core_obj_init(void *o, const char *name) {
+int riscv_core_obj_init(void *o, const char *name, void *cfg) {
     rv_core_t *rc = o;
+    sl_core_params_t *p = cfg;
+
+    int err = sl_core_init(&rc->core, p, bus_get_mapper(p->bus));
+    if (err) {
+        sl_obj_release(rc);
+        return err;
+    }
+    rc->core.options |= SL_CORE_OPT_ENDIAN_LITTLE;
+    rc->mhartid = p->id;
+
     rc->mode = RV_MODE_RV32;
     rc->pl = RV_PL_MACHINE;
     rc->core.engine.ops.step = riscv_core_step;
@@ -163,16 +173,10 @@ void riscv_core_obj_shutdown(void *o) {
 }
 
 int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out) {
+    p->bus = bus;
     rv_core_t *rc;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_RVCORE, p->name, (void **)&rc);
+    int err = sl_obj_alloc_init(SL_OBJ_TYPE_RVCORE, p->name, p, (void **)&rc);
     if (err) return err;
-
-    if ((err = sl_core_init(&rc->core, p, bus_get_mapper(bus)))) {
-        sl_obj_release(rc);
-        return err;
-    }
-    rc->core.options |= SL_CORE_OPT_ENDIAN_LITTLE;
-    rc->mhartid = p->id;
     *core_out = &rc->core;
     return 0;
 }

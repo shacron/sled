@@ -31,25 +31,25 @@ void sl_obj_release(void *vo) {
     }
 }
 
-static int obj_shared_init(sl_obj_t *o, uint8_t type, const char *name, uint8_t flags) {
+static int obj_shared_init(sl_obj_t *o, uint8_t type, const char *name, void *cfg, uint8_t flags) {
     o->type = type;
     o->flags = flags;
     o->refcount = 1;
     const sl_obj_class_t *c = sl_obj_class_for_type(type);
-    int err = c->init(o, name);
+    int err = c->init(o, name, cfg);
     if (err) free(o);
     return err;
 }
 
-int sl_obj_init(void *o, uint8_t type, const char *name) {
-    return obj_shared_init(o, type, name, SL_OBJ_FLAG_EMBEDDED);
+int sl_obj_init(void *o, uint8_t type, const char *name, void *cfg) {
+    return obj_shared_init(o, type, name, cfg, SL_OBJ_FLAG_EMBEDDED);
 }
 
-int sl_obj_alloc_init(uint8_t type, const char *name, void **o_out) {
+int sl_obj_alloc_init(uint8_t type, const char *name, void *cfg, void **o_out) {
     const sl_obj_class_t *c = sl_obj_class_for_type(type);
     sl_obj_t *o = calloc(1, c->size);
     if (o == NULL) return SL_ERR_MEM;
-    int err = obj_shared_init(o, type, name, 0);
+    int err = obj_shared_init(o, type, name, cfg, 0);
     if (err) {
         free(o);
         return err;

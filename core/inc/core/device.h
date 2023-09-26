@@ -35,7 +35,6 @@ struct sl_dev {
     sl_mapper_t *mapper;    // held for owner object, todo: remove
     sl_worker_t *worker;    // worker thread and event loop
     u4 worker_epid;         // id to use for event loop direct events
-    sl_dev_config_t cfg;    // copy of device configuration
 };
 
 // device API

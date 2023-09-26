@@ -16,9 +16,9 @@ struct sl_obj {
 
 struct sl_obj_class {
     u4 size;
-    int (*init)(void *o, const char *name);
+    int (*init)(void *o, const char *name, void *cfg);
     void (*shutdown)(void *o);
 };
 
-int sl_obj_init(void *o, u1 type, const char *name);
+int sl_obj_init(void *o, u1 type, const char *name, void *cfg);
 

@@ -26,6 +26,7 @@ struct sl_core_params {
     u4 options;
     u4 arch_options;
     const char *name;
+    sl_bus_t *bus;
 };
 
 // Special register defines to pass to set/get_reg()

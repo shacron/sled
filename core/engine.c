@@ -142,7 +142,7 @@ void engine_obj_shutdown(void *o) {
     // nop
 }
 
-int engine_obj_init(void *o, const char *name) {
+int engine_obj_init(void *o, const char *name, void *cfg) {
     sl_engine_t *e = o;
     e->name = name;
     e->worker = NULL;
@@ -153,7 +153,7 @@ int engine_obj_init(void *o, const char *name) {
 
 int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t **e_out) {
     sl_engine_t *e;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_ENGINE, name, (void **)&e);
+    int err = sl_obj_alloc_init(SL_OBJ_TYPE_ENGINE, name, NULL, (void **)&e);
     if (err) return err;
     e->ops = *ops;
     *e_out = e;

@@ -45,7 +45,6 @@ int device_mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
 
 void sl_device_set_context(sl_dev_t *d, void *ctx) { d->context = ctx; }
 void * sl_device_get_context(sl_dev_t *d) { return d->context; }
-sl_dev_config_t * sl_device_get_config(sl_dev_t *d) { return &d->cfg; }
 
 void sl_device_lock(sl_dev_t *d) { lock_lock(&d->lock); }
 void sl_device_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
@@ -102,35 +101,32 @@ void device_obj_shutdown(void *o) {
     lock_destroy(&d->lock);
 }
 
-int device_obj_init(void *o, const char *name) {
+int device_obj_init(void *o, const char *name, void *vcfg) {
     sl_dev_t *d = o;
+    sl_dev_config_t *cfg = vcfg;
     d->magic = DEV_MAGIC;
+    d->type = cfg->ops->type;
     d->name = name;
-    d->irq_ep.assert = device_accept_irq;
-    lock_init(&d->lock);
-    d->map_ep.io = device_mapper_ep_io;
-    d->event_ep.handle = device_ep_handle_event;
-    d->ops.read = dev_dummy_read;
-    d->ops.write = dev_dummy_write;
-    d->ops.release = dev_dummy_release;
-    return 0;
-}
+    d->aperture = cfg->aperture;
 
-void device_config(sl_dev_t *d, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops) {
-    d->type = ops->type;
-    d->aperture = aperture;
-    d->cfg = *cfg;
-    memcpy(&d->ops, ops, sizeof(*ops));
+    memcpy(&d->ops, cfg->ops, sizeof(sl_dev_ops_t));
     if (d->ops.read == NULL) d->ops.read = dev_dummy_read;
     if (d->ops.write == NULL) d->ops.write = dev_dummy_write;
     if (d->ops.release == NULL) d->ops.release = dev_dummy_release;
+
+    d->irq_ep.assert = device_accept_irq;
+    d->map_ep.io = device_mapper_ep_io;
+    d->event_ep.handle = device_ep_handle_event;
+    lock_init(&d->lock);
+    return 0;
 }
 
 int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
+    cfg->aperture = aperture;
+    cfg->ops = ops;
     sl_dev_t *d;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_DEVICE, name, (void **)&d);
+    int err = sl_obj_alloc_init(SL_OBJ_TYPE_DEVICE, name, cfg, (void **)&d);
     if (err) return err;
     *dev_out = d;
-    device_config(d, cfg, aperture, ops);
     return 0;
 }

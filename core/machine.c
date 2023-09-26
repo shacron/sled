@@ -74,7 +74,7 @@ int sl_machine_create(sl_machine_t **m_out) {
     sl_dev_config_t cfg;
     cfg.machine = m;
     if ((err = bus_create("bus0", &cfg, &m->bus))) goto out_err;
-    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_CHRONO, "tm0", (void **)&m->chrono))) goto out_err;
+    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_CHRONO, "tm0", NULL, (void **)&m->chrono))) goto out_err;
     if ((err = sl_chrono_run(m->chrono))) goto out_err;
 
     *m_out = m;
@@ -139,7 +139,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     mc->worker = NULL;
 
     int err;
-    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_WORKER, "core_worker", (void **)&mc->worker))) {
+    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_WORKER, "core_worker", NULL, (void **)&mc->worker))) {
         fprintf(stderr, "sl_worker_create failed: %s\n", st_err(err));
         return err;
     }

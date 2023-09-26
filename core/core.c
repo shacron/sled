@@ -192,7 +192,7 @@ sl_sym_entry_t *sl_core_get_sym_for_addr(sl_core_t *c, u8 addr) {
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mapper = m;
     config_set_internal(c, p);
-    sl_obj_init(&c->engine, SL_OBJ_TYPE_ENGINE, NULL);
+    sl_obj_init(&c->engine, SL_OBJ_TYPE_ENGINE, NULL, NULL);
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;
 }

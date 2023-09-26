@@ -32,6 +32,9 @@ extern "C" {
     const void * const _sl_device_dyn_ops_##_name = _ops;
 
 struct sl_dev_config {
+    const sl_dev_ops_t *ops;
+    u4 aperture;
+
     sl_machine_t *machine;
     // todo:
     // power domains
@@ -52,7 +55,6 @@ int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, cons
 
 void sl_device_set_context(sl_dev_t *d, void *ctx);
 void * sl_device_get_context(sl_dev_t *d);
-sl_dev_config_t * sl_device_get_config(sl_dev_t *d);
 
 void sl_device_lock(sl_dev_t *d);
 void sl_device_unlock(sl_dev_t *d);
