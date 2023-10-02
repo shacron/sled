@@ -46,8 +46,8 @@ int device_mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
 void sl_device_set_context(sl_dev_t *d, void *ctx) { d->context = ctx; }
 void * sl_device_get_context(sl_dev_t *d) { return d->context; }
 
-void sl_device_lock(sl_dev_t *d) { lock_lock(&d->lock); }
-void sl_device_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
+void sl_device_lock(sl_dev_t *d) { sl_lock_lock(&d->lock); }
+void sl_device_unlock(sl_dev_t *d) { sl_lock_unlock(&d->lock); }
 sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d) { return &d->irq_ep; }
 sl_mapper_t * sl_device_get_mapper(sl_dev_t *d) { return d->mapper; }
 void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m) { d->mapper = m; }
@@ -98,7 +98,7 @@ void device_obj_shutdown(void *o) {
     assert(d->magic == DEV_MAGIC);
     d->ops.release(d->context);
     d->context = NULL;
-    lock_destroy(&d->lock);
+    sl_lock_destroy(&d->lock);
 }
 
 int device_obj_init(void *o, const char *name, void *vcfg) {
@@ -117,7 +117,7 @@ int device_obj_init(void *o, const char *name, void *vcfg) {
     d->irq_ep.assert = device_accept_irq;
     d->map_ep.io = device_mapper_ep_io;
     d->event_ep.handle = device_ep_handle_event;
-    lock_init(&d->lock);
+    sl_lock_init(&d->lock);
     return 0;
 }
 

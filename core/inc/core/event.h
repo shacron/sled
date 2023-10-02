@@ -10,8 +10,8 @@
 typedef struct sl_event_queue sl_event_queue_t;
 
 struct sl_event_queue {
-    lock_t lock;
-    cond_t available;
+    sl_lock_t lock;
+    sl_cond_t available;
     sl_list_t list;
 };
 

@@ -25,7 +25,7 @@ struct sl_dev {
     u8 base;
     const char *name;
 
-    lock_t lock;
+    sl_lock_t lock;
     sl_irq_ep_t irq_ep;
     sl_map_ep_t map_ep;     // incoming io from external mapper
     void *context;          // context of owner object
@@ -38,8 +38,8 @@ struct sl_dev {
 };
 
 // device API
-static inline void dev_lock(sl_dev_t *d) { lock_lock(&d->lock); }
-static inline void dev_unlock(sl_dev_t *d) { lock_unlock(&d->lock); }
+static inline void dev_lock(sl_dev_t *d) { sl_lock_lock(&d->lock); }
+static inline void dev_unlock(sl_dev_t *d) { sl_lock_unlock(&d->lock); }
 
 // internal device calls
 void device_config(sl_dev_t *d, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops);

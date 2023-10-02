@@ -13,8 +13,8 @@ struct sl_chrono {
     sl_obj_t obj_;
     const char *name;
     u8 next_id;
-    lock_t lock;
-    cond_t cond;
+    sl_lock_t lock;
+    sl_cond_t cond;
     sl_list_t active_timers;
     sl_list_t unused_timers;
     pthread_t thread;

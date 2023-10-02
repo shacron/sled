@@ -12,8 +12,8 @@ struct sl_worker {
 
     const char *name;
 
-    lock_t lock;
-    cond_t has_event;
+    sl_lock_t lock;
+    sl_cond_t has_event;
     sl_list_t ev_list;
 
     u4 state;

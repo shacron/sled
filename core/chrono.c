@@ -30,8 +30,8 @@ typedef struct {
     void *context;
 } sl_timer_t;
 
-static inline void chrono_lock(sl_chrono_t *c) { lock_lock(&c->lock); }
-static inline void chrono_unlock(sl_chrono_t *c) { lock_unlock(&c->lock); }
+static inline void chrono_lock(sl_chrono_t *c) { sl_lock_lock(&c->lock); }
+static inline void chrono_unlock(sl_chrono_t *c) { sl_lock_unlock(&c->lock); }
 
 static u8 get_time_us(void) {
     struct timeval tv;
@@ -73,7 +73,7 @@ int sl_chrono_timer_set(sl_chrono_t *c, u8 us, int (*callback)(void *context, in
     t->context = context;
     *id_out = t->id;
     sl_list_insert_sorted(&c->active_timers, timer_compare, &t->node);
-    cond_signal_one(&c->cond);
+    sl_cond_signal_one(&c->cond);
 
 out:
     chrono_unlock(c);
@@ -115,7 +115,7 @@ int sl_chrono_timer_cancel(sl_chrono_t *c, u8 id) {
             if (p == NULL) sl_list_remove_first(&c->active_timers);
             else p->next = n->next;
             sl_list_add_last(&c->unused_timers, n);
-            cond_signal_one(&c->cond);
+            sl_cond_signal_one(&c->cond);
             err = 0;
             break;
         }
@@ -152,8 +152,8 @@ static void chrono_thread_running_locked(sl_chrono_t *c) {
 
         n = sl_list_remove_first(&expired_list);
         if (n == NULL) {
-            if (next_exp == 0) cond_wait(&c->cond, &c->lock);
-            else cond_timed_wait_abs(&c->cond, &c->lock, next_exp);
+            if (next_exp == 0) sl_cond_wait(&c->cond, &c->lock);
+            else sl_cond_timed_wait_abs(&c->cond, &c->lock, next_exp);
             continue;
         }
 
@@ -198,7 +198,7 @@ static void * chrono_thread(void *arg) {
             break;
 
         case SL_CHRONO_STATE_PAUSED:
-            cond_wait(&c->cond, &c->lock);
+            sl_cond_wait(&c->cond, &c->lock);
             break;
 
         case SL_CHRONO_STATE_EXITING:
@@ -237,7 +237,7 @@ int sl_chrono_run(sl_chrono_t *c) {
 
     if (c->state == SL_CHRONO_STATE_PAUSED) {
         c->state = SL_CHRONO_STATE_RUNNING;
-        cond_signal_one(&c->cond);
+        sl_cond_signal_one(&c->cond);
         goto out;
     }
 
@@ -269,7 +269,7 @@ int sl_chrono_pause(sl_chrono_t *c) {
     }
 
     c->state = SL_CHRONO_STATE_PAUSED;
-    cond_signal_one(&c->cond);
+    sl_cond_signal_one(&c->cond);
 
 out:
     chrono_unlock(c);
@@ -286,7 +286,7 @@ int sl_chrono_stop(sl_chrono_t *c) {
     case SL_CHRONO_STATE_PAUSED:
     case SL_CHRONO_STATE_EXITING:
         c->state = SL_CHRONO_STATE_EXITING;
-        cond_signal_one(&c->cond);
+        sl_cond_signal_one(&c->cond);
         break;
 
     default:
@@ -313,8 +313,8 @@ void chrono_obj_shutdown(void *o) {
         sl_timer_t *t = FROM_NODE(n);
         free(t);
     }
-    cond_destroy(&c->cond);
-    lock_destroy(&c->lock);
+    sl_cond_destroy(&c->cond);
+    sl_lock_destroy(&c->lock);
 }
 
 int chrono_obj_init(void *o, const char *name) {
@@ -322,8 +322,8 @@ int chrono_obj_init(void *o, const char *name) {
     c->name = name;
     sl_list_init(&c->active_timers);
     sl_list_init(&c->unused_timers);
-    lock_init(&c->lock);
-    cond_init(&c->cond);
+    sl_lock_init(&c->lock);
+    sl_cond_init(&c->cond);
     c->state = SL_CHRONO_STATE_STOPPED;
     return 0;
 }

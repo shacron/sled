@@ -16,22 +16,22 @@
 #define SL_WORKER_STATE_ENGINE_RUNNABLE   (1u << 0)
 
 static void queue_add(sl_worker_t *w, sl_event_t *ev) {
-    lock_lock(&w->lock);
+    sl_lock_lock(&w->lock);
     sl_list_add_last(&w->ev_list, &ev->node);
-    cond_signal_all(&w->has_event);
-    lock_unlock(&w->lock);
+    sl_cond_signal_all(&w->has_event);
+    sl_lock_unlock(&w->lock);
 }
 
 static int handle_events(sl_worker_t *w, bool wait) {
-    lock_lock(&w->lock);
+    sl_lock_lock(&w->lock);
     if (wait) {
         while (sl_list_peek_first(&w->ev_list) == NULL) {
-            cond_wait(&w->has_event, &w->lock);
+            sl_cond_wait(&w->has_event, &w->lock);
         }
 
     }
     sl_list_node_t *ev_list = sl_list_remove_all(&w->ev_list);
-    lock_unlock(&w->lock);
+    sl_lock_unlock(&w->lock);
 
     int err = 0;
     while (err == 0) {
@@ -172,15 +172,15 @@ void worker_obj_shutdown(void *o) {
     sl_worker_t *w = o;
     assert(!w->thread_running);
     if (w->engine) sl_obj_release(w->engine);
-    lock_destroy(&w->lock);
-    cond_destroy(&w->has_event);
+    sl_lock_destroy(&w->lock);
+    sl_cond_destroy(&w->has_event);
 }
 
 int worker_obj_init(void *o, const char *name) {
     sl_worker_t *w = o;
     w->name = name;
     w->thread_running = false;
-    lock_init(&w->lock);
-    cond_init(&w->has_event);
+    sl_lock_init(&w->lock);
+    sl_cond_init(&w->has_event);
     return 0;
 }
