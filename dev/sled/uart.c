@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <device/sled/sled.h>
 #include <device/sled/uart.h>
 #include <sled/device.h>
 #include <sled/error.h>

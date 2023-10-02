@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <device/sled/sled.h>
 #include <plat/platform.h>
 #include <sled/arch.h>
 #include <sled/device.h>

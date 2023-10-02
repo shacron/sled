@@ -70,16 +70,6 @@ void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m);
 int sl_device_send_event_async(sl_dev_t *d, sl_event_t *ev);
 int sl_device_update_mapper_async(sl_dev_t *d, u4 ops, u4 count, sl_mapping_t *ent_list);
 
-// common device calls
-
-// uart
-#define UART_IO_NULL 0
-#define UART_IO_CONS 1
-#define UART_IO_FILE 2
-#define UART_IO_PORT 3
-int sled_uart_set_channel(sl_dev_t *d, int io, int fd_in, int fd_out);
-
-
 #ifdef __cplusplus
 }
 #endif
