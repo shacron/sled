@@ -13,17 +13,13 @@ extern "C" {
 // sled core devices
 #define SL_DEV_NONE         0
 #define SL_DEV_BUS          1
-#define SL_DEV_CORE         2
-#define SL_DEV_MEM          3
-#define SL_DEV_ROM          4
-#define SL_DEV_INTC         5
-#define SL_DEV_TIMER        6
 
 // sled devices
-#define SL_DEV_UART         128
-#define SL_DEV_RTC          129
-#define SL_DEV_IRQGEN       130
-#define SL_DEV_MPU          131
+#define SL_DEV_SLED_UART         128
+#define SL_DEV_SLED_RTC          129
+#define SL_DEV_SLED_INTC         130
+#define SL_DEV_SLED_MPU          131
+#define SL_DEV_SLED_TIMER        132
 
 // user-defined devices
 #define SL_DEV_RESERVED     1024

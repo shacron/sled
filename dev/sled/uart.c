@@ -124,7 +124,7 @@ static void uart_release(void *ctx) {
 }
 
 static const sl_dev_ops_t uart_ops = {
-    .type = SL_DEV_UART,
+    .type = SL_DEV_SLED_UART,
     .read = uart_read,
     .write = uart_write,
     .create = sled_uart_create,

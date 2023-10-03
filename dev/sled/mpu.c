@@ -176,7 +176,7 @@ static void mpu_release(void *ctx) {
 }
 
 static const sl_dev_ops_t mpu_ops = {
-    .type = SL_DEV_MPU,
+    .type = SL_DEV_SLED_MPU,
     .read = mpu_read,
     .write = mpu_write,
     .create = sled_mpu_create,

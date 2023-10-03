@@ -70,7 +70,7 @@ static int intc_write(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
 }
 
 static const sl_dev_ops_t intc_ops = {
-    .type = SL_DEV_INTC,
+    .type = SL_DEV_SLED_INTC,
     .read = intc_read,
     .write = intc_write,
     .create = sled_intc_create,

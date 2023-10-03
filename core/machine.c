@@ -115,7 +115,7 @@ int sl_machine_add_device(sl_machine_t *m, u4 type, u8 base, const char *name) {
         fprintf(stderr, "bus_add_device failed: %s\n", st_err(err));
         goto out_err;
     }
-    if (type == SL_DEV_INTC) m->intc = d;
+    if (type == SL_DEV_SLED_INTC) m->intc = d;
 
 out_err:
     sl_obj_release(d);

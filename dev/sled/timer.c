@@ -197,7 +197,7 @@ static void timer_release(void *ctx) {
 }
 
 static const sl_dev_ops_t timer_ops = {
-    .type = SL_DEV_TIMER,
+    .type = SL_DEV_SLED_TIMER,
     .read = timer_read,
     .write = timer_write,
     .create = sled_timer_create,

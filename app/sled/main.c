@@ -330,27 +330,27 @@ int simple_machine(sm_t *sm) {
         goto out_err_machine;
     }
 
-    if ((err = sl_machine_add_device(m, SL_DEV_INTC, PLAT_INTC_BASE, "intc0"))) {
+    if ((err = sl_machine_add_device(m, SL_DEV_SLED_INTC, PLAT_INTC_BASE, "intc0"))) {
         fprintf(stderr, "add interrupt controller failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    if ((err = sl_machine_add_device(m, SL_DEV_RTC, PLAT_RTC_BASE, "rtc"))) {
+    if ((err = sl_machine_add_device(m, SL_DEV_SLED_RTC, PLAT_RTC_BASE, "rtc"))) {
         fprintf(stderr, "add real time clock failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    if ((err = sl_machine_add_device(m, SL_DEV_UART, PLAT_UART_BASE, "uart0"))) {
+    if ((err = sl_machine_add_device(m, SL_DEV_SLED_UART, PLAT_UART_BASE, "uart0"))) {
         fprintf(stderr, "add uart failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    if ((err = sl_machine_add_device(m, SL_DEV_MPU, PLAT_MPU_BASE, "mpu0"))) {
+    if ((err = sl_machine_add_device(m, SL_DEV_SLED_MPU, PLAT_MPU_BASE, "mpu0"))) {
         fprintf(stderr, "add mpu failed: %s\n", st_err(err));
         goto out_err_machine;
     }
 
-    if ((err = sl_machine_add_device(m, SL_DEV_TIMER, PLAT_TIMER_BASE, "timer0"))) {
+    if ((err = sl_machine_add_device(m, SL_DEV_SLED_TIMER, PLAT_TIMER_BASE, "timer0"))) {
         fprintf(stderr, "add timer failed: %s\n", st_err(err));
         goto out_err_machine;
     }

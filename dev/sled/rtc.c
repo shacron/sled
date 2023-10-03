@@ -58,7 +58,7 @@ static int rtc_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
 }
 
 static const sl_dev_ops_t rtc_ops = {
-    .type = SL_DEV_RTC,
+    .type = SL_DEV_SLED_RTC,
     .read = rtc_read,
     .create = sled_rtc_create,
 };
