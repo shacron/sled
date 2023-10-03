@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <core/irq.h>
 #include <core/lock.h>
 #include <core/mapper.h>
 #include <core/obj.h>
@@ -26,7 +25,6 @@ struct sl_dev {
     const char *name;
 
     sl_lock_t lock;
-    sl_irq_ep_t irq_ep;
     sl_map_ep_t map_ep;     // incoming io from external mapper
     void *context;          // context of owner object
     u4 aperture;

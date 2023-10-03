@@ -63,3 +63,10 @@ int sl_irq_endpoint_set_client(sl_irq_ep_t *ep, sl_irq_ep_t *client, u4 num) {
     irq_endpoint_set_active(ep);
     return 0;
 }
+
+int irq_ep_obj_init(void *o, const char *name, void *cfg) {
+    return 0;
+}
+
+void irq_ep_obj_shutdown(void *o) { }
+

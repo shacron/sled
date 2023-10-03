@@ -14,16 +14,6 @@
 
 #define DEV_MAGIC           0x91919192
 
-// default irq handler wrapper
-static int device_accept_irq(sl_irq_ep_t *ep, u4 num, bool high) {
-    if (num > 31) return SL_ERR_ARG;
-    sl_dev_t *d = containerof(ep, sl_dev_t, irq_ep);
-    dev_lock(d);
-    int err = sl_irq_endpoint_assert(ep, num, high);
-    dev_unlock(d);
-    return err;
-}
-
 static int dev_dummy_read(void *d, u8 addr, u4 size, u4 count, void *buf) {
     return SL_ERR_IO_NORD;
 }
@@ -48,7 +38,6 @@ void * sl_device_get_context(sl_dev_t *d) { return d->context; }
 
 void sl_device_lock(sl_dev_t *d) { sl_lock_lock(&d->lock); }
 void sl_device_unlock(sl_dev_t *d) { sl_lock_unlock(&d->lock); }
-sl_irq_ep_t * sl_device_get_irq_ep(sl_dev_t *d) { return &d->irq_ep; }
 sl_mapper_t * sl_device_get_mapper(sl_dev_t *d) { return d->mapper; }
 void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m) { d->mapper = m; }
 
@@ -114,7 +103,6 @@ int device_obj_init(void *o, const char *name, void *vcfg) {
     if (d->ops.write == NULL) d->ops.write = dev_dummy_write;
     if (d->ops.release == NULL) d->ops.release = dev_dummy_release;
 
-    d->irq_ep.assert = device_accept_irq;
     d->map_ep.io = device_mapper_ep_io;
     d->event_ep.handle = device_ep_handle_event;
     sl_lock_init(&d->lock);

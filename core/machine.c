@@ -11,6 +11,7 @@
 #include <core/mem.h>
 #include <core/riscv.h>
 #include <core/sym.h>
+#include <device/sled/sled.h>
 #include <sled/arch.h>
 #include <sled/core.h>
 #include <sled/elf.h>
@@ -166,8 +167,10 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     }
 
     opts->id = m->core_count;
-    if (m->intc != NULL)
-        sl_irq_endpoint_set_client(&m->intc->irq_ep, &mc->core->engine.irq_ep, 11); // todo: get proper irq number
+    if (m->intc != NULL) {
+        sl_irq_ep_t *ep = sled_intc_get_irq_ep(m->intc);
+        sl_irq_endpoint_set_client(ep, &mc->core->engine.irq_ep, 11); // todo: get proper irq number
+    }
     m->core_count++;
     return 0;
 
@@ -188,7 +191,8 @@ sl_dev_t * sl_machine_get_device_for_name(sl_machine_t *m, const char *name) {
 
 int sl_machine_set_interrupt(sl_machine_t *m, u4 irq, bool high) {
     if (m->intc == NULL) return SL_ERR_IO_NODEV;
-    return sl_irq_endpoint_assert(&m->intc->irq_ep, irq, high);
+    sl_irq_ep_t *ep = sled_intc_get_irq_ep(m->intc);
+    return sl_irq_endpoint_assert(ep, irq, high);
 }
 
 void sl_machine_destroy(sl_machine_t *m) {

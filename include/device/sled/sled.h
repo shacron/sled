@@ -19,6 +19,9 @@ extern "C" {
 #define UART_IO_PORT 3
 int sled_uart_set_channel(sl_dev_t *d, int io, int fd_in, int fd_out);
 
+// intc
+sl_irq_ep_t * sled_intc_get_irq_ep(sl_dev_t *d);
+
 #ifdef __cplusplus
 }
 #endif
