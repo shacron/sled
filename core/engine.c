@@ -52,7 +52,6 @@ static int engine_handle_irq_event(sl_engine_t *e, sl_event_t *ev) {
     return err;
 }
 
-
 void sl_engine_set_context(sl_engine_t *e, void *ctx) { e->context = ctx; }
 void * sl_engine_get_context(sl_engine_t *e) { return e->context; }
 
@@ -139,7 +138,8 @@ int sl_engine_run(sl_engine_t *e) {
 }
 
 void engine_obj_shutdown(void *o) {
-    // nop
+    sl_engine_t *e = o;
+    sl_obj_release(&e->irq_ep);
 }
 
 int engine_obj_init(void *o, const char *name, void *cfg) {
@@ -147,9 +147,11 @@ int engine_obj_init(void *o, const char *name, void *cfg) {
     const sl_engine_ops_t *ops = cfg;
     e->name = name;
     e->worker = NULL;
-    e->irq_ep.assert = engine_irq_transition_async;
     e->event_ep.handle = engine_event_handle;
     if (ops != NULL) e->ops = *ops;
+    int err = sl_obj_init(&e->irq_ep, SL_OBJ_TYPE_IRQ_EP, name, NULL);
+    if (err) return err;
+    e->irq_ep.assert = engine_irq_transition_async;
     return 0;
 }
 
