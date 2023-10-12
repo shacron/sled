@@ -68,7 +68,7 @@ static int timer_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     case TIMER_REG_NUM_UNITS:    *val = t->num_units;        goto out;
     default:    break;
     }
-    if (addr >= TIMER_APERTURE_LENGTH(t->num_units)) {
+    if ((addr < 0x20) || (addr >= TIMER_APERTURE_LENGTH(t->num_units))) {
         err = SL_ERR_IO_INVALID;
         goto out;
     }
