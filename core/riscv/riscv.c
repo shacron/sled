@@ -2,12 +2,14 @@
 // Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <assert.h>
+#include <ctype.h>
 #include <inttypes.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <core/bus.h>
 #include <core/common.h>
@@ -180,3 +182,119 @@ int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out) 
     *core_out = &rc->core;
     return 0;
 }
+
+typedef struct {
+    char *name;
+    u4 ext;
+    u2 version;
+    u2 patch;
+} rv_extension_t;
+
+typedef struct {
+    const char *name;
+    u4 option;
+} rv_extension_map_t;
+
+static const rv_extension_map_t ext_map[] = {
+  { "m", SL_RISCV_EXT_M },
+  { "a", SL_RISCV_EXT_A },
+  { "f", SL_RISCV_EXT_F | SL_RISCV_EXT_ZICSR },
+  { "d", SL_RISCV_EXT_D | SL_RISCV_EXT_F | SL_RISCV_EXT_ZICSR },
+  { "c", SL_RISCV_EXT_C },
+  { "zicsr", SL_RISCV_EXT_ZICSR },
+};
+
+static int parse_attribute(char *s, rv_extension_t *ex) {
+    int len = strlen(s);
+    if (len == 0) goto malformed;
+    char *p = strrchr(s, 'p');
+    if ((p == NULL) || (p == s)) goto malformed;
+    char *endp;
+    u4 patch = strtoul(p + 1, &endp, 10);
+    if (endp != s + len) goto malformed;
+    *p = '\0';
+    char *v = p - 1;
+    for ( ; v != s; v--) {
+        if (!isdigit(*v)) break;
+    }
+    if (v == p - 1) goto malformed;
+    u4 version = strtoul(v + 1, &endp, 10);
+    if (endp != p) goto malformed;
+    v[1] = '\0';
+
+    ex->name = s;
+    ex->version = version;
+    ex->patch = patch;
+    return 0;
+
+malformed:
+    return SL_ERR_ARG;
+}
+
+int riscv_decode_attributes(const char *attrib, u4 *arch_options_out) {
+    int err = 0;
+    char *at = strdup(attrib);
+    if (at == NULL) return SL_ERR_MEM;
+    u4 options = 0;
+
+    printf("RISCV attributes: %s\n", at);
+
+    const char *sep = "_";
+    char *lasts;
+    char *s = strtok_r(at, sep, &lasts);
+    if (s == NULL) {
+        printf("invalid format string\n");
+        err = SL_ERR_ARG;
+        goto out;
+    }
+
+    rv_extension_t ex;
+    if ((err = parse_attribute(s, &ex))) {
+        printf("invalid attribute string segment '%s'\n", s);
+        goto out;
+    }
+
+    if (!strcmp(ex.name, "rv64i")) {
+        options = RV_MODE_RV64;
+    } else {
+        if (strcmp(ex.name, "rv32i")) {
+            printf("unexpected arch mode: %s\n", ex.name);
+            err = SL_ERR_ARG;
+            goto out;
+        }
+        options = RV_MODE_RV32;
+    }
+
+    err = SL_ERR_ARG;
+    while ((s = strtok_r(NULL, sep, &lasts))) {
+        if (s[0] == '\0') continue;
+        rv_extension_t ex = {};
+        if ((err = parse_attribute(s, &ex))) {
+            printf("invalid attribute string segment '%s'\n", s);
+            goto out;
+        }
+
+        bool found = false;
+        for (int i = 0; i < countof(ext_map); i++) {
+            if (!strcmp(ex.name, ext_map[i].name)) {
+                // printf("attribute %s (%up%u)\n", ex.name, ex.version, ex.patch);
+                options |= ext_map[i].option;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            printf("unhandled extension: %s\n", ex.name);
+            err = SL_ERR_UNSUPPORTED;
+            goto out;
+        }
+    }
+    err = 0;
+    *arch_options_out = options;
+
+out:
+    free(at);
+    return err;
+}
+

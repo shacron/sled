@@ -10,3 +10,5 @@
 #define RV_HAS_PRIV_LEVEL_HYPERVISOR (1u << 2)
 
 int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out);
+
+int riscv_decode_attributes(const char *attrib, u4 *arch_options_out);

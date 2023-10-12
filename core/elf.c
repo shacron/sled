@@ -13,6 +13,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <core/riscv.h>
 #include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/elf.h>
@@ -102,71 +103,11 @@ static int elf_riscv_attributes(sl_elf_obj_t *o, void *vsh) {
         // size = sh->sh_size;
     }
 
-    char *at = strdup(o->image + offset + 19);
-
-    printf("RISC string: %s\n", at);
-
-    const char *sep = "_";
-    char *lasts;
-    char *s = strtok_r(at, sep, &lasts);
-    if (s == NULL) {
-        printf("invalid format string\n");
-        err = -1;
-        goto out;
-    }
-    if (o->is64) err = strncmp(s, "rv64i", 5);
-    else err = strncmp(s, "rv32i", 5);
-    if (err) {
-        printf("unexpected attribute: %s\n", s);
-        goto out;
-    }
-
-    err = -1;
-    while ((s = strtok_r(NULL, sep, &lasts))) {
-        const char c0 = s[0];
-        if (c0 == '\0') continue;
-        const char c1 = s[1];
-        if (isdigit(c1)) {
-            switch (c0) {
-            case 'm':
-                printf("M attribute version %c\n", c1);
-                o->arch_options |= SL_RISCV_EXT_M;
-                break;
-
-            case 'a':
-                printf("A attribute version %c\n", c1);
-                o->arch_options |= SL_RISCV_EXT_A;
-                break;
-
-            case 'c':
-                printf("C attribute version %c\n", c1);
-                o->arch_options |= SL_RISCV_EXT_C;
-                break;
-
-            case 'd':
-                printf("D attribute version %c\n", c1);
-                o->arch_options |= SL_RISCV_EXT_D | SL_RISCV_EXT_F;
-                break;
-
-            case 'f':
-                printf("F attribute version %c\n", c1);
-                o->arch_options |= SL_RISCV_EXT_F;
-                break;
-
-            default:
-                printf("unhandled attribute %c\n", c0);
-                goto out;
-            }
-        } else {
-            printf("unexpected attribute: %s\n", s);
-            goto out;
-        }
-    }
-    err = 0;
-
-out:
-    free(at);
-    return err;
+    u4 options = 0;
+    err = riscv_decode_attributes(o->image + offset + 19, &options);
+    if (err) return err;
+    o->arch_options = options;
+    return 0;
 }
 
 int sl_elf_open(const char *filename, sl_elf_obj_t **obj_out) {
