@@ -38,7 +38,10 @@ struct sl_machine {
 
 extern const void * dyn_dev_ops_list[];
 
-sl_chrono_t * sl_machine_get_chrono(sl_machine_t *m) { return m->chrono; }
+sl_chrono_t * sl_machine_get_chrono(sl_machine_t *m) {
+    sl_obj_retain(m->chrono);
+    return m->chrono;
+}
 
 static const sl_dev_ops_t * get_ops_for_device(u4 type) {
     for (int i = 0; dyn_dev_ops_list[i] != NULL; i++) {
