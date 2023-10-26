@@ -40,7 +40,7 @@ static int intc_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     case INTC_REG_DEV_TYPE:     *val = INTC_TYPE;           break;
     case INTC_REG_DEV_VERSION:  *val = INTC_VERSION;        break;
     case INTC_REG_ASSERTED:     *val = sl_irq_endpoint_get_asserted(ic->irq_ep);    break;
-    case INTC_REG_MASK:         *val = sl_irq_endpoint_get_enabled(ic->irq_ep);     break;
+    case INTC_REG_MASK:         *val = ~sl_irq_endpoint_get_enabled(ic->irq_ep);     break;
     default:                    err = SL_ERR_IO_INVALID;    break;
     }
     sl_device_unlock(ic->dev);
