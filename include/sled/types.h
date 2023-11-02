@@ -42,6 +42,7 @@ typedef struct sl_event sl_event_t;
 typedef struct sl_event_ep sl_event_ep_t;
 typedef struct sl_io_op sl_io_op_t;
 typedef struct sl_irq_ep sl_irq_ep_t;
+typedef struct sl_irq_mux sl_irq_mux_t;
 typedef struct sl_list sl_list_t;
 typedef struct sl_list_node sl_list_node_t;
 typedef struct sl_list_iterator sl_list_iterator_t;

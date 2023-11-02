@@ -38,6 +38,7 @@ void * sl_device_get_context(sl_dev_t *d) { return d->context; }
 
 void sl_device_lock(sl_dev_t *d) { sl_lock_lock(&d->lock); }
 void sl_device_unlock(sl_dev_t *d) { sl_lock_unlock(&d->lock); }
+sl_irq_mux_t * sl_device_get_irq_mux(sl_dev_t *d) { return &d->irq_mux; }
 sl_mapper_t * sl_device_get_mapper(sl_dev_t *d) { return d->mapper; }
 void sl_device_set_mapper(sl_dev_t *d, sl_mapper_t *m) { d->mapper = m; }
 

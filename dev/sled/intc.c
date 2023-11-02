@@ -27,6 +27,12 @@ sl_irq_ep_t * sled_intc_get_irq_ep(sl_dev_t *d) {
     return ic->irq_ep;
 }
 
+int sled_intc_set_input(sl_dev_t *intc, sl_dev_t *src, u4 num) {
+    if (num >= INTC_NUM_SUPPORTED) return SL_ERR_RANGE;
+    sled_intc_t *ic = sl_device_get_context(intc);
+    return sl_irq_mux_set_client(sl_device_get_irq_mux(src), ic->irq_ep, num);
+}
+
 static int intc_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
     if (count != 1) return SL_ERR_IO_COUNT;
@@ -73,6 +79,16 @@ static int intc_write(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     return err;
 }
 
+static int sled_intc_assert(sl_irq_ep_t *ep, u4 num, bool high) {
+    if (num >= INTC_NUM_SUPPORTED) return SL_ERR_ARG;
+    sled_intc_t *ic = sl_irq_endpoint_get_context(ep);
+
+    sl_device_lock(ic->dev);
+    int err = sl_irq_endpoint_assert(ep, num, high);
+    sl_device_unlock(ic->dev);
+    return err;
+}
+
 void intc_release(void *ctx) {
     sled_intc_t *ic = ctx;
     sl_obj_release(ic->irq_ep);
@@ -103,6 +119,8 @@ int sled_intc_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out)
         free(ic);
         return err;
     }
+    sl_irq_endpoint_set_context(ic->irq_ep, ic);
+    sl_irq_endpoint_set_handler(ic->irq_ep, sled_intc_assert);
 
     *dev_out = ic->dev;
     sl_device_set_context(ic->dev, ic);

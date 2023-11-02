@@ -12,6 +12,7 @@
 #include <sled/error.h>
 #include <sled/machine.h>
 #include <sled/chrono.h>
+#include <sled/irq.h>
 
 #define TIMER_TYPE 'timr'
 #define TIMER_VERSION       0
@@ -24,7 +25,7 @@ typedef struct {
     u4 config;
     u4 status;
     u8 reset_val;
-    u8 tid;     // timer id
+    u8 tid;     // timer id for chrono
     u8 count;
 } sled_timer_unit_t;
 
@@ -42,6 +43,10 @@ struct sled_timer {
 
 int sled_timer_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
 
+static u4 index_for_pointer(sled_timer_t *t, sled_timer_unit_t *u) {
+    return ((uptr)u - (uptr)&t->unit[0]) / sizeof(sled_timer_unit_t);
+}
+
 static sled_timer_unit_t * addr_to_unit(sled_timer_t *t, u8 addr, u4 *reg) {
     addr -= 0x20;
     u4 u = addr / 0x20;
@@ -57,6 +62,7 @@ static int timer_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     sled_timer_t *t = ctx;
     u4 *val = buf;
     int err = 0;
+    sl_irq_mux_t *m;
 
     sl_device_lock(t->dev);
     switch (addr) {
@@ -66,6 +72,17 @@ static int timer_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     case TIMER_REG_STATUS:       *val = t->status;           goto out;
     case TIMER_REG_RT_SCALER_US: *val = t->scalar;           goto out;
     case TIMER_REG_NUM_UNITS:    *val = t->num_units;        goto out;
+
+    case TIMER_IRQ_MASK:
+        m = sl_device_get_irq_mux(t->dev);
+        *val = ~sl_irq_mux_get_enabled(m);
+        goto out;
+
+    case TIMER_IRQ_STATUS:
+        m = sl_device_get_irq_mux(t->dev);
+        *val = sl_irq_mux_get_active(m);
+        goto out;
+
     default:    break;
     }
     if ((addr < 0x20) || (addr >= TIMER_APERTURE_LENGTH(t->num_units))) {
@@ -89,27 +106,33 @@ out:
 }
 
 static int timer_callback(void *context, int err) {
+    if (err) {
+        printf("timer stopped\n");
+        return 0;
+    }
+
     sled_timer_unit_t *u = context;
     sled_timer_t *t = u->timer;
     int ret = 0;
     u8 count;
+    u4 index = index_for_pointer(t, u);
+    sl_irq_mux_t *m = sl_device_get_irq_mux(t->dev);
 
-    // this should take something other than the device lock
     sl_device_lock(t->dev);
 
-    if (!err) {
-        if (u->config & TIMER_UNIT_CONFIG_CONTINUOUS) ret = SL_ERR_RESTART;
-        u->count++;
-        count = u->count;
-    }
+    if (u->config & TIMER_UNIT_CONFIG_CONTINUOUS) ret = SL_ERR_RESTART;
+    else u->config &= ~TIMER_UNIT_CONFIG_RUN;
+    u->config |= TIMER_UNIT_CONFIG_LOOPED;
+    u->count++;
+    count = u->count;
+    sl_irq_mux_set_active_bit(m, index, true);
     sl_device_unlock(t->dev);
 
-    if (err) printf("timer stopped\n");
-    else printf("timer fired %" PRIu64 "\n", count);
+    printf("timer fired %" PRIu64 "\n", count);
     return ret;
 }
 
-static void timer_set_unit_config(sled_timer_t *t, sled_timer_unit_t *u, u4 val) {
+static void timer_set_unit_config_locked(sled_timer_t *t, sled_timer_unit_t *u, u4 val) {
     u4 config = u->config;
 
     config &= ~TIMER_UNIT_CONFIG_CONTINUOUS;
@@ -118,6 +141,7 @@ static void timer_set_unit_config(sled_timer_t *t, sled_timer_unit_t *u, u4 val)
     if (val & TIMER_UNIT_CONFIG_LOOPED) config &= ~TIMER_UNIT_CONFIG_LOOPED;
 
     if (config & TIMER_UNIT_CONFIG_RUN) {
+        // currently running
         if ((val & TIMER_UNIT_CONFIG_RUN) == 0) {
             // stop timer
             config &= ~TIMER_UNIT_CONFIG_RUN;
@@ -130,7 +154,7 @@ static void timer_set_unit_config(sled_timer_t *t, sled_timer_unit_t *u, u4 val)
             config |= TIMER_UNIT_CONFIG_RUN;
             int err = sl_chrono_timer_set(t->chrono, u->reset_val, timer_callback, u, &u->tid);
             if (err) {
-                fprintf(stderr, "timer_set_unit_config: failed to allocate memory for system timer, device is in broken state\n");
+                fprintf(stderr, "timer_set_unit_config_locked: failed to allocate memory for system timer, device is in broken state\n");
             }
         }
     }
@@ -145,11 +169,25 @@ static int timer_write(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     sled_timer_t *t = ctx;
     u4 val = *(u4 *)buf;
     int err = 0;
+    sl_irq_mux_t *m;
 
     sl_device_lock(t->dev);
     switch (addr) {
     case TIMER_REG_CONFIG:          t->config = val;    goto out;
     case TIMER_REG_RT_SCALER_US:    t->scalar = val;    goto out;
+
+    case TIMER_IRQ_MASK:
+        m = sl_device_get_irq_mux(t->dev);
+        sl_irq_mux_set_enabled(m, ~val);
+        goto out;
+
+    case TIMER_IRQ_STATUS: {
+        m = sl_device_get_irq_mux(t->dev);
+        u4 vec = sl_irq_mux_get_active(m);
+        vec &= ~val;
+        sl_irq_mux_set_active(m, vec);
+        goto out;
+    }
 
     case TIMER_REG_DEV_TYPE:
     case TIMER_REG_DEV_VERSION:
@@ -169,7 +207,7 @@ static int timer_write(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     sled_timer_unit_t *u = addr_to_unit(t, addr, &reg);
     switch (reg) {
     case 0: // TIMER_REG_UNIT_CONFIG
-        timer_set_unit_config(t, u, val);                   break;
+        timer_set_unit_config_locked(t, u, val);                   break;
 
     case 1: // TIMER_REG_UNIT_RESET_VAL_LO
         u->reset_val = (u->reset_val & 0xffffffff00000000) | val;       break;

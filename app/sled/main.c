@@ -358,6 +358,12 @@ int simple_machine(sm_t *sm) {
     sl_dev_t *d = sl_machine_get_device_for_name(m, "uart0");
     sled_uart_set_channel(d, sm->uart_io, sm->uart_fd_in, sm->uart_fd_out);
 
+    sl_dev_t *timer = sl_machine_get_device_for_name(m, "timer0");
+    sl_dev_t *intc = sl_machine_get_device_for_name(m, "intc0");
+    if ((err = sled_intc_set_input(intc, timer, PLAT_INTC_TIMER_IRQ_BIT))) {
+        fprintf(stderr, "intc set input failed: %s\n", st_err(err));
+        goto out_err_machine;
+    }
 
     // create core
 

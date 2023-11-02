@@ -6,6 +6,7 @@
 #include <core/lock.h>
 #include <core/mapper.h>
 #include <core/obj.h>
+#include <core/irq.h>
 #include <core/types.h>
 #include <sled/device.h>
 #include <sled/event.h>
@@ -25,6 +26,7 @@ struct sl_dev {
     const char *name;
 
     sl_lock_t lock;
+    sl_irq_mux_t irq_mux;   // outgoing interrupts
     sl_map_ep_t map_ep;     // incoming io from external mapper
     void *context;          // context of owner object
     u4 aperture;
