@@ -9,8 +9,6 @@
 
 const sl_obj_class_t * sl_obj_class_for_type(u1 type);
 
-// static atomic_uint_least32_t g_obj_id = 0;
-
 void sl_obj_retain(void *vo) {
     sl_obj_t *o = vo;
     assert(o != NULL);

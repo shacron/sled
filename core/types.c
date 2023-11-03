@@ -8,6 +8,7 @@
 #include <core/engine.h>
 #include <core/irq.h>
 #include <core/obj.h>
+#include <core/regview.h>
 #include <core/riscv/rv.h>
 #include <core/worker.h>
 
@@ -25,6 +26,7 @@ CLASS_FUNC(chrono)
 CLASS_FUNC(worker)
 CLASS_FUNC(bus)
 CLASS_FUNC(irq_endpoint)
+CLASS_FUNC(reg_view)
 
 static const sl_obj_class_t obj_class_list[] = {
     CLASS_INST(SL_OBJ_TYPE_DEVICE, sl_dev_t, device)
@@ -34,6 +36,7 @@ static const sl_obj_class_t obj_class_list[] = {
     CLASS_INST(SL_OBJ_TYPE_WORKER, sl_worker_t, worker)
     CLASS_INST(SL_OBJ_TYPE_BUS, sl_bus_t, bus)
     CLASS_INST(SL_OBJ_TYPE_IRQ_EP, sl_irq_ep_t, irq_ep)
+    CLASS_INST(SL_OBJ_TYPE_REGVIEW, sl_reg_view_t, reg_view)
 };
 
 const sl_obj_class_t * sl_obj_class_for_type(u1 type) {

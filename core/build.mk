@@ -17,6 +17,7 @@ LIB_CSOURCES += \
 	$(SRCDIR)/mapper.c \
 	$(SRCDIR)/mem.c \
 	$(SRCDIR)/obj.c \
+	$(SRCDIR)/regview.c \
 	$(SRCDIR)/ringbuffer.c \
 	$(SRCDIR)/riscv/csr.c \
 	$(SRCDIR)/riscv/dispatch.c \
