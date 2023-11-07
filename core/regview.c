@@ -123,6 +123,7 @@ void reg_view_obj_shutdown(void *o) {
 
 int reg_view_obj_init(void *o, const char *name, void *cfg) {
     sl_reg_view_t *rv = o;
+    rv->ops.type = SL_DEV_REG_VIEW;
     rv->ops.read = reg_view_device_read;
     rv->ops.write = reg_view_device_write;
     int err = sl_obj_init(&rv->dev, SL_OBJ_TYPE_DEVICE, name, &rv->ops);

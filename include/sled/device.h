@@ -13,6 +13,7 @@ extern "C" {
 // sled core devices
 #define SL_DEV_NONE         0
 #define SL_DEV_BUS          1
+#define SL_DEV_REG_VIEW     2
 
 // sled devices
 #define SL_DEV_SLED_UART         128
