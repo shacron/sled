@@ -17,6 +17,9 @@ int sl_machine_add_device(sl_machine_t *m, u4 type, u8 base, const char *name);
 int sl_machine_add_device_prefab(sl_machine_t *m, u8 base, sl_dev_t *d);
 int sl_machine_add_mem(sl_machine_t *m, u8 base, u8 size);
 
+// Create a device without adding it to the machine
+int sl_machine_create_device(sl_machine_t *m, u4 type, const char *name, sl_dev_t **d_out);
+
 int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *obj, bool configure);
 int sl_machine_load_core_raw(sl_machine_t *m, u4 id, u8 addr, void *buf, u8 size);
 
