@@ -23,7 +23,7 @@ extern "C" {
 // The mapped devices receive a uniform address range, allowing the same code to be
 // used without needing be aware of the variable user-facing addresses.
 
-int sl_reg_view_allocate(const char *name, sl_reg_view_t **rv_out);
+int sl_reg_view_create(const char *name, sl_dev_config_t *cfg, sl_reg_view_t **rv_out);
 
 sl_dev_t * sl_reg_view_get_dev(sl_reg_view_t *rv);
 

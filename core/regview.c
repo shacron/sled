@@ -113,6 +113,10 @@ static int reg_view_device_write(void *ctx, u8 addr, u4 size, u4 count, void *bu
     return d->ops.write(d->context, it->value << 2, size, count, buf);
 }
 
+static void reg_view_device_release(void *ctx) {
+    // nop
+}
+
 void reg_view_obj_shutdown(void *o) {
     sl_reg_view_t *rv = o;
     for (u4 i = 0; i < rv->dev_count; i++)
@@ -123,20 +127,26 @@ void reg_view_obj_shutdown(void *o) {
 
 int reg_view_obj_init(void *o, const char *name, void *cfg) {
     sl_reg_view_t *rv = o;
-    rv->ops.type = SL_DEV_REG_VIEW;
-    rv->ops.read = reg_view_device_read;
-    rv->ops.write = reg_view_device_write;
-    int err = sl_obj_init(&rv->dev, SL_OBJ_TYPE_DEVICE, name, &rv->ops);
+    int err = sl_obj_init(&rv->dev, SL_OBJ_TYPE_DEVICE, name, cfg);
     if (err) return err;
+    sl_device_set_context(&rv->dev, rv);
     return 0;
 }
 
-int sl_reg_view_allocate(const char *name, sl_reg_view_t **rv_out) {
+static const sl_dev_ops_t reg_view_ops = {
+    .type = SL_DEV_REG_VIEW,
+    .read = reg_view_device_read,
+    .write = reg_view_device_write,
+    .release = reg_view_device_release,
+};
+
+int sl_reg_view_create(const char *name, sl_dev_config_t *cfg, sl_reg_view_t **rv_out) {
     sl_reg_view_t *rv;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_REGVIEW, name, NULL, (void **)&rv);
+
+    cfg->ops = &reg_view_ops;
+    int err = sl_obj_alloc_init(SL_OBJ_TYPE_REGVIEW, name, cfg, (void **)&rv);
     if (err) return err;
     *rv_out = rv;
-    sl_device_set_context(&rv->dev, rv);
     return 0;
 }
 
