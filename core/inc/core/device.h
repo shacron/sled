@@ -3,10 +3,10 @@
 
 #pragma once
 
+#include <core/irq.h>
 #include <core/lock.h>
 #include <core/mapper.h>
 #include <core/obj.h>
-#include <core/irq.h>
 #include <core/types.h>
 #include <sled/device.h>
 #include <sled/event.h>
