@@ -2,6 +2,7 @@
 // Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <stdatomic.h>
+#include <stdio.h>
 
 #include <core/device.h>
 #include <core/core.h>
@@ -25,6 +26,7 @@ void sl_core_config_get(sl_core_t *c, sl_core_params_t *p) {
     p->id = c->id;
     p->options = c->options;
     p->arch_options = c->arch_options;
+    p->name = c->name;
 }
 
 static void config_set_internal(sl_core_t *c, sl_core_params_t *p) {
@@ -33,12 +35,21 @@ static void config_set_internal(sl_core_t *c, sl_core_params_t *p) {
     c->id = p->id;
     c->options = p->options;
     c->arch_options = p->arch_options;
+    c->name = p->name;
 }
 
 int sl_core_config_set(sl_core_t *c, sl_core_params_t *p) {
     if (c->arch != p->arch) return SL_ERR_ARG;
     config_set_internal(c, p);
     return 0;
+}
+
+void sl_core_print_config(sl_core_t *c) {
+    printf("core '%s'\n", c->name);
+    printf("  arch: %s\n", sl_arch_name(c->arch));
+    printf("  subarch: %u\n", c->subarch);
+    printf("  options: %x\n", c->options);
+    printf("  arch_options: %x\n", c->arch_options);
 }
 
 void sl_core_shutdown(sl_core_t *c) {

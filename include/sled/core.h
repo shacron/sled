@@ -105,6 +105,7 @@ u4 sl_core_get_reg_count(sl_core_t *c, int type);
 // debug feature: print the bus topology as seen by this core
 // using the current translation regime.
 void sl_core_print_bus_topology(sl_core_t *c);
+void sl_core_print_config(sl_core_t *c);
 
 #ifdef __cplusplus
 }

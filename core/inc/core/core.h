@@ -44,6 +44,7 @@ struct sl_core {
     u1 id;             // numerical id of this core instance
     u4 options;
     u4 arch_options;
+    const char *name;
 #if WITH_SYMBOLS
     sl_sym_list_t *symbols;
 #endif
