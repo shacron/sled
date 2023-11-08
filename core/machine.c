@@ -282,7 +282,14 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
         goto out_err;
     }
     params.subarch = sl_elf_subarch(o);
-    params.arch_options = sl_elf_arch_options(o);
+    u4 arch_options = sl_elf_arch_options(o);
+    if (params.arch_options == 0) {
+        params.arch_options = arch_options;
+    } else if (arch_options & ~params.arch_options) {
+        fprintf(stderr, "core does not support elf arch options\n");
+        err = SL_ERR_UNSUPPORTED;
+        goto out_err;
+    }
 
     if ((err = sl_core_config_set(c, &params))) {
         fprintf(stderr, "sl_core_config_set failed: %s\n", st_err(err));
