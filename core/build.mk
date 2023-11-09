@@ -9,6 +9,7 @@ LIB_CSOURCES += \
 	$(SRCDIR)/elf.c \
 	$(SRCDIR)/engine.c \
 	$(SRCDIR)/error.c \
+	$(SRCDIR)/host.c \
 	$(SRCDIR)/io.c \
 	$(SRCDIR)/irq.c \
 	$(SRCDIR)/list.c \
