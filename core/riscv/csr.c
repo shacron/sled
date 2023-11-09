@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include <core/core.h>
+#include <core/host.h>
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
 #include <sled/arch.h>
@@ -510,18 +511,27 @@ result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
         goto out;
 
     // Unprivileged Counter/Timers (URO)
-    case 0xc00: // cycle
-    case 0xc01: // time
-    case 0xc02: // instret
-        result.err = SL_ERR_UNIMPLEMENTED;
+    case RV_CSR_CYCLE:      // cycle
+    case RV_CSR_INSTRET:    // instret
+        result.value = c->core.ticks;
+        if (c->mode == RV_MODE_RV32) result.value &= 0xffffffff;
+        goto out;
+
+    case RV_CSR_TIME:       // time
+        result.value = host_get_clock_ns();
+        if (c->mode == RV_MODE_RV32) result.value &= 0xffffffff;
         goto out;
 
     // rv32 only (URO)
-    case 0xc80: // cycleh
-    case 0xc81: // timeh
-    case 0xc82: // instreth
+    case RV_CSR_CYCLEH: // cycleh
+    case RV_CSR_INSTRETH: // instreth
         if (c->mode != RV_MODE_RV32) goto undef;
-        result.err = SL_ERR_UNIMPLEMENTED;
+        result.value = (u4)(c->core.ticks >> 32);
+        goto out;
+
+    case RV_CSR_TIMEH: // timeh
+        if (c->mode != RV_MODE_RV32) goto undef;
+        result.value = (u4)(host_get_clock_ns() >> 32);
         goto out;
 
     default:

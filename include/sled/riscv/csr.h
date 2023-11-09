@@ -66,6 +66,24 @@
 // CSR addresses in csr instruction
 // ****************************************************************************
 
+// Unprivileged Counter/Timers
+#define RV_CSR_CYCLE            0xC00   // URO cycle - Cycle counter for RDCYCLE instruction
+#define RV_CSR_TIME             0xC01   // URO time - Timer for RDTIME instruction
+#define RV_CSR_INSTRET          0xC02   // URO instret - Instructions-retired counter for RDINSTRET instruction
+#define RV_CSR_HPMCOUNTER3      0xC03   // URO hpmcounter3 - Performance-monitoring counter
+#define RV_CSR_HPMCOUNTER4      0xC04   // URO hpmcounter4
+                                        // ...
+#define RV_CSR_HPMCOUNTER31     0xC1F   // URO hpmcounter31
+
+#define RV_CSR_CYCLEH           0xC80   // URO cycleh - Upper 32 bits of cycle, RV32 only
+#define RV_CSR_TIMEH            0xC81   // URO timeh - Upper 32 bits of time, RV32 only
+#define RV_CSR_INSTRETH         0xC82   // URO instreth - Upper 32 bits of instret, RV32 only
+#define RV_CSR_HPMCOUNTER3H     0xC83   // URO hpmcounter3h - Upper 32 bits of hpmcounter3, RV32 only
+#define RV_CSR_HPMCOUNTER4H     0xC84   // URO hpmcounter4h
+                                        // ...
+#define RV_CSR_HPMCOUNTER31H    0xC9F   // URO hpmcounter31h
+
+
 // Supervisor Trap Setup
 #define RV_CSR_SSTATUS      0x100   // SRW sstatus - Supervisor status register.
 #define RV_CSR_SIE          0x104   // SRW sie - Supervisor interrupt-enable register.
