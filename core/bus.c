@@ -89,16 +89,6 @@ sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
     return NULL;
 }
 
-void bus_destroy(sl_bus_t *bus) {
-    mapper_shutdown(&bus->mapper);
-    sl_list_node_t *c;
-    while ((c = sl_list_remove_first(&bus->dev_list)) != NULL)
-        sl_obj_release(containerof(c, sl_dev_t, node));
-    while ((c = sl_list_remove_first(&bus->mem_list)) != NULL)
-        mem_region_destroy((mem_region_t *)c);
-    sl_obj_release(&bus->dev);
-}
-
 static const sl_dev_ops_t bus_ops = {
     .type = SL_DEV_BUS,
     .read = bus_op_read,
@@ -107,6 +97,12 @@ static const sl_dev_ops_t bus_ops = {
 
 void bus_obj_shutdown(void *o) {
     sl_bus_t *b = o;
+    mapper_shutdown(&b->mapper);
+    sl_list_node_t *c;
+    while ((c = sl_list_remove_first(&b->dev_list)) != NULL)
+        sl_obj_release(containerof(c, sl_dev_t, node));
+    while ((c = sl_list_remove_first(&b->mem_list)) != NULL)
+        mem_region_destroy((mem_region_t *)c);
     sl_obj_release(&b->dev);
 }
 
