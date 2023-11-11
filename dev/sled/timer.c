@@ -232,7 +232,6 @@ static void timer_release(void *ctx) {
     if (ctx == NULL) return;
     sled_timer_t *t = ctx;
     sl_obj_release(t->chrono);
-    sl_obj_release(t->dev);
     free(t);
 }
 

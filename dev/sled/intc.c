@@ -92,7 +92,6 @@ static int sled_intc_assert(sl_irq_ep_t *ep, u4 num, bool high) {
 void intc_release(void *ctx) {
     sled_intc_t *ic = ctx;
     sl_obj_release(ic->irq_ep);
-    sl_obj_release(ic->dev);
     free(ic);
 }
 
