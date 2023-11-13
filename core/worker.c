@@ -171,7 +171,6 @@ int sl_worker_thread_join(sl_worker_t *w) {
 void worker_obj_shutdown(void *o) {
     sl_worker_t *w = o;
     assert(!w->thread_running);
-    if (w->engine) sl_obj_release(w->engine);
     sl_lock_destroy(&w->lock);
     sl_cond_destroy(&w->has_event);
 }
