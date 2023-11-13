@@ -164,6 +164,10 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
         goto out_err;
     }
 
+    // core has eng ref (embedded)
+    // worker has engine ref
+    // engine has worker pointer with no ref
+
     if ((err = sl_worker_add_engine(mc->worker, &mc->core->engine, &mc->epid))) {
         fprintf(stderr, "sl_worker_add_engine failed: %s\n", st_err(err));
         goto out_err;

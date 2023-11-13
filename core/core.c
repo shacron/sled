@@ -60,7 +60,7 @@ void sl_core_shutdown(sl_core_t *c) {
         sym_free(s);
     }
 #endif
-    sl_obj_release(&c->engine);
+    sl_obj_release_embedded(&c->engine);
 }
 
 const core_ops_t * core_get_ops(sl_core_t *c) {

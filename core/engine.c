@@ -139,6 +139,7 @@ int sl_engine_run(sl_engine_t *e) {
 
 void engine_obj_shutdown(void *o) {
     sl_engine_t *e = o;
+    if (e->worker != NULL) sl_obj_release(e->worker);
     sl_obj_release(&e->irq_ep);
 }
 

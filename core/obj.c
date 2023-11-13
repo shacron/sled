@@ -29,6 +29,13 @@ void sl_obj_release(void *vo) {
     }
 }
 
+void sl_obj_release_embedded(void *vo) {
+    sl_obj_t *o = vo;
+    assert(o->refcount == 1);
+    assert(o->flags & SL_OBJ_FLAG_EMBEDDED);
+    sl_obj_release(o);
+}
+
 static int obj_shared_init(sl_obj_t *o, uint8_t type, const char *name, void *cfg, uint8_t flags) {
     o->type = type;
     o->flags = flags;

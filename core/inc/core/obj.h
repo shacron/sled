@@ -22,3 +22,7 @@ struct sl_obj_class {
 
 int sl_obj_init(void *o, u1 type, const char *name, void *cfg);
 
+// same as object release, except it asserts that:
+// ref count of o is 1
+// o is embedded object
+void sl_obj_release_embedded(void *o);
