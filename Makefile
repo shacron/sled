@@ -134,6 +134,11 @@ $(BLD_HOST_OBJDIR)/core/%.c.o: core/%.c
 	@echo " [cc]" $<
 	$(SILENT) $(BLD_HOST_CC) $(CFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
 
+$(BLD_HOST_OBJDIR)/core/%.cpp.o: core/%.cpp
+	$(SILENT) mkdir -p $(dir $@)
+	@echo " [c++]" $<
+	$(SILENT) $(BLD_HOST_CXX) $(CXXFLAGS) $(INCLUDES) $(DEFINES) -Icore/inc -c -o $@ $<
+
 $(BLD_HOST_OBJDIR)/dev/%.c.o: dev/%.c
 	$(SILENT) mkdir -p $(dir $@)
 	@echo " [cc]" $<
@@ -232,11 +237,13 @@ install: apps install_headers
 ##############################################################################
 
 LIB_CSOURCES :=
+LIB_CXXSOURCES :=
 
 include core/build.mk
 include core/extension/build.mk
 
-LIB_OBJS := $(LIB_CSOURCES:%.c=$(BLD_HOST_OBJDIR)/%.c.o)
+LIB_OBJS := $(LIB_CSOURCES:%.c=$(BLD_HOST_OBJDIR)/%.c.o) $(LIB_CXXSOURCES:%.cpp=$(BLD_HOST_OBJDIR)/%.cpp.o)
+
 DOBJS += $(LIB_OBJS)
 
 lib: $(BLD_HOST_LIBDIR)/libsled.a
