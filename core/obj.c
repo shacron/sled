@@ -20,8 +20,8 @@ void sl_obj_release(void *vo) {
     sl_obj_t *o = vo;
     assert(o != NULL);
     assert(o->refcount > 0);
-    atomic_fetch_sub_explicit((_Atomic u2 *)&o->refcount, 1, memory_order_relaxed);
-    if (o->refcount == 0) {
+    u2 prev = atomic_fetch_sub_explicit((_Atomic u2 *)&o->refcount, 1, memory_order_relaxed);
+    if (prev == 1) {
         const sl_obj_class_t *c = sl_obj_class_for_type(o->type);
         // printf("obj_release shutting down %s\n", o->name);
         c->shutdown(o);
