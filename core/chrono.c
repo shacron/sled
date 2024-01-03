@@ -39,7 +39,7 @@ static u8 get_time_us(void) {
     return (tv.tv_sec * 1000000) + tv.tv_usec;
 }
 
-static int timer_compare(const sl_list_node_t *na, const sl_list_node_t *nb) {
+static int timer_compare(const void *na, const void *nb) {
     const sl_timer_t *a = FROM_NODE(na);
     const sl_timer_t *b = FROM_NODE(nb);
     if (a->expiry > b->expiry) return 1;

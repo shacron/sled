@@ -39,7 +39,7 @@ sl_list_node_t * sl_list_remove_all(sl_list_t *list) {
     return n;
 }
 
-void sl_list_insert_sorted(sl_list_t *list, int(*compare)(const sl_list_node_t *, const sl_list_node_t *), sl_list_node_t *n) {
+void sl_list_insert_sorted(sl_list_t *list, int(*compare)(const void *, const void *), sl_list_node_t *n) {
     if (list->first == NULL) {
         sl_list_add_first(list, n);
         return;
