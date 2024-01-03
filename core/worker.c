@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2023 Shac Ron and The Sled Project
+// Copyright (c) 2023-2024 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <errno.h>
@@ -49,7 +49,7 @@ static int handle_events(sl_worker_t *w, bool wait) {
             }
         }
         if (ev->flags & SL_EV_FLAG_SIGNAL) sl_sem_post((sl_sem_t *)ev->signal);
-        if (ev->flags & SL_EV_FLAG_FREE) free(ev);
+        else if (ev->flags & SL_EV_FLAG_FREE) free(ev);
     }
     return err;
 }
@@ -97,6 +97,7 @@ int sl_worker_event_enqueue_async(sl_worker_t *w, sl_event_t *ev) {
     if (flags & SL_EV_FLAG_SIGNAL) {
         sl_sem_wait(&sem);
         sl_sem_destroy(&sem);
+        if (flags & SL_EV_FLAG_FREE) free(ev);
     }
     return 0;
 }

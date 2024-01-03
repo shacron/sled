@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2023 Shac Ron and The Sled Project
+// Copyright (c) 2023-2024 Shac Ron and The Sled Project
 
 #include <core/sem.h>
 #include <sled/error.h>
@@ -36,7 +36,8 @@ int sl_sem_timedwait(sl_sem_t *restrict sem, const struct timespec *restrict abs
 }
 
 int sl_sem_destroy(sl_sem_t *sem) {
-    return 0; // nop
+    dispatch_release(sem->dsem);
+    return 0;
 }
 
 #else
