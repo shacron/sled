@@ -8,7 +8,6 @@
 
 #include <core/core.h>
 #include <core/lock.h>
-#include <core/obj.h>
 #include <core/sem.h>
 #include <core/worker.h>
 #include <sled/error.h>
@@ -62,11 +61,7 @@ void sl_worker_set_engine_runnable(sl_worker_t *w, bool runnable) {
 int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, u4 *id_out) {
     int err = sl_worker_add_event_endpoint(w, &e->event_ep, id_out);
     if (err) return err;
-
-    sl_obj_retain(w);
     e->worker = w;
-
-    // worker does not retain engine to avoid retain loop
     w->engine = e;
     return 0;
 }
@@ -169,18 +164,36 @@ int sl_worker_thread_join(sl_worker_t *w) {
     }
 }
 
-void worker_obj_shutdown(void *o) {
-    sl_worker_t *w = o;
-    assert(!w->thread_running);
-    sl_lock_destroy(&w->lock);
-    sl_cond_destroy(&w->has_event);
-}
-
-int worker_obj_init(void *o, const char *name) {
-    sl_worker_t *w = o;
+int sl_worker_init(sl_worker_t *w, const char *name) {
     w->name = name;
     w->thread_running = false;
     sl_lock_init(&w->lock);
     sl_cond_init(&w->has_event);
     return 0;
 }
+
+int sl_worker_create(const char *name, sl_worker_t **w_out) {
+    sl_worker_t *w = calloc(1, sizeof(*w));
+    if (w == NULL) return SL_ERR_MEM;
+
+    int err = sl_worker_init(w, name);
+    if (err) {
+        free(w);
+        return err;
+    }
+    *w_out = w;
+    return 0;
+}
+
+void sl_worker_shutdown(sl_worker_t *w) {
+    assert(!w->thread_running);
+    sl_lock_destroy(&w->lock);
+    sl_cond_destroy(&w->has_event);
+}
+
+void sl_worker_destroy(sl_worker_t *w) {
+    if (w == NULL) return;
+    sl_worker_shutdown(w);
+    free(w);
+}
+

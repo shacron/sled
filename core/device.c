@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <stdatomic.h>
@@ -14,22 +14,16 @@
 
 #define DEV_MAGIC           0x91919192
 
-static int dev_dummy_read(void *d, u8 addr, u4 size, u4 count, void *buf) {
-    return SL_ERR_IO_NORD;
-}
-
-static int dev_dummy_write(void *d, u8 addr, u4 size, u4 count, void *buf) {
-    return SL_ERR_IO_NOWR;
-}
-
-static void dev_dummy_release(void *d) {}
-
 int device_mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     sl_dev_t *d = containerof(ep, sl_dev_t, map_ep);
-    if (op->op == IO_OP_IN)
-        return d->ops.read(d->context, op->addr, op->size, op->count, op->buf);
-    if (op->op == IO_OP_OUT)
-        return d->ops.write(d->context, op->addr, op->size, op->count, op->buf);
+    if (op->op == IO_OP_IN) {
+        if (d->ops->read == NULL) return SL_ERR_IO_NORD;
+        return d->ops->read(d->context, op->addr, op->size, op->count, op->buf);
+    }
+    if (op->op == IO_OP_OUT) {
+        if (d->ops->write == NULL) return SL_ERR_IO_NOWR;
+        return d->ops->write(d->context, op->addr, op->size, op->count, op->buf);
+    }
     return SL_ERR_IO_NOATOMIC;
 }
 
@@ -83,39 +77,53 @@ int sl_device_update_mapper_async(sl_dev_t *d, u4 ops, u4 count, sl_mapping_t *e
     return err;
 }
 
-void device_obj_shutdown(void *o) {
-    sl_dev_t *d = o;
-    assert(d->magic == DEV_MAGIC);
-    d->ops.release(d->context);
-    d->context = NULL;
-    sl_lock_destroy(&d->lock);
-}
-
-int device_obj_init(void *o, const char *name, void *vcfg) {
-    sl_dev_t *d = o;
-    sl_dev_config_t *cfg = vcfg;
+int sl_device_init(sl_dev_t *d, sl_dev_config_t *cfg) {
     d->magic = DEV_MAGIC;
-    d->type = cfg->ops->type;
-    d->name = name;
+    d->ops = cfg->ops;
+    d->name = cfg->name;
     d->aperture = cfg->aperture;
-
-    memcpy(&d->ops, cfg->ops, sizeof(sl_dev_ops_t));
-    if (d->ops.read == NULL) d->ops.read = dev_dummy_read;
-    if (d->ops.write == NULL) d->ops.write = dev_dummy_write;
-    if (d->ops.release == NULL) d->ops.release = dev_dummy_release;
-
     d->map_ep.io = device_mapper_ep_io;
     d->event_ep.handle = device_ep_handle_event;
     sl_lock_init(&d->lock);
     return 0;
 }
 
-int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
-    cfg->aperture = aperture;
-    cfg->ops = ops;
-    sl_dev_t *d;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_DEVICE, name, cfg, (void **)&d);
-    if (err) return err;
+int sl_device_create(sl_dev_config_t *cfg, sl_dev_t **dev_out) {
+    sl_dev_t *d = calloc(1, sizeof(*d));
+    if (d == NULL) return SL_ERR_MEM;
+    int err = sl_device_init(d, cfg);
+    if (err) {
+        free(d);
+        return err;
+    }
+    if (d->ops->create != NULL) {
+        err = d->ops->create(d, cfg);
+        if (err) {
+            sl_device_destroy(d);
+            return err;
+        }
+    }
+    d->aperture = cfg->aperture;
     *dev_out = d;
     return 0;
+}
+
+// int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
+//     cfg->ops = ops;
+//     cfg->name = name;
+//     cfg->aperture = aperture;
+//     return sl_device_create(cfg, dev_out);
+// }
+
+void sl_device_shutdown(sl_dev_t *d) {
+    assert(d->magic == DEV_MAGIC);
+    if (d->ops->destroy != NULL) d->ops->destroy(d);
+    sl_lock_destroy(&d->lock);
+}
+
+void sl_device_destroy(sl_dev_t *d) {
+    if (d == NULL) return;
+    assert(d->magic == DEV_MAGIC);
+    sl_device_shutdown(d);
+    free(d);
 }

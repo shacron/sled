@@ -2,6 +2,8 @@
 // Copyright (c) 2022-2023 Shac Ron and The Sled Project
 
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <core/irq.h>
 #include <sled/error.h>
@@ -88,9 +90,23 @@ int sl_irq_endpoint_set_client(sl_irq_ep_t *ep, sl_irq_ep_t *client, u4 num) {
     return 0;
 }
 
-int irq_ep_obj_init(void *o, const char *name, void *cfg) {
+int sl_irq_ep_init(sl_irq_ep_t *ep) {
+    memset(ep, 0, sizeof(*ep));
     return 0;
 }
 
-void irq_ep_obj_shutdown(void *o) { }
+int sl_irq_ep_create(sl_irq_ep_t **ep_out) {
+    sl_irq_ep_t *ep = calloc(1, sizeof(*ep));
+    if (ep == NULL) return SL_ERR_MEM;
+    *ep_out = ep;
+    return 0;
+}
+
+void sl_irq_ep_shutdown(sl_irq_ep_t *ep) {} // nop
+
+void sl_irq_ep_destroy(sl_irq_ep_t *ep) {
+    if (ep == NULL) return;
+    free(ep);
+}
+
 

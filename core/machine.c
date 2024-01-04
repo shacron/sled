@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -7,13 +7,14 @@
 #include <string.h>
 
 #include <core/bus.h>
+#include <core/common.h>
 #include <core/core.h>
 #include <core/mem.h>
 #include <core/riscv.h>
 #include <core/sym.h>
+#include <core/worker.h>
 #include <device/sled/sled.h>
 #include <sled/arch.h>
-#include <sled/core.h>
 #include <sled/elf.h>
 #include <sled/error.h>
 #include <sled/machine.h>
@@ -23,9 +24,8 @@
 
 typedef struct {
     sl_core_t *core;
-    sl_worker_t *worker;
+    sl_worker_t worker;
     u4 epid;
-    // sl_mapper_t *mapper;
 } machine_core_t;
 
 struct sl_machine {
@@ -33,13 +33,13 @@ struct sl_machine {
     sl_dev_t *intc;
     sl_chrono_t *chrono;
     u4 core_count;
+    sl_list_t dev_list;
     machine_core_t mc[MACHINE_MAX_CORES];
 };
 
 extern const void * dyn_dev_ops_list[];
 
 sl_chrono_t * sl_machine_get_chrono(sl_machine_t *m) {
-    sl_obj_retain(m->chrono);
     return m->chrono;
 }
 
@@ -59,12 +59,11 @@ int sl_machine_create_device(sl_machine_t *m, u4 type, const char *name, sl_dev_
         return SL_ERR_ARG;
     }
 
-    sl_dev_t *d;
-    sl_dev_config_t cfg;
+    sl_dev_config_t cfg = {};
+    cfg.ops = ops;
+    cfg.name = name;
     cfg.machine = m;
-    int err = ops->create(name, &cfg, &d);
-    if (!err) *dev_out = d;
-    return err;
+    return sl_device_create(&cfg, dev_out);
 }
 
 int sl_machine_create(sl_machine_t **m_out) {
@@ -74,19 +73,20 @@ int sl_machine_create(sl_machine_t **m_out) {
         return SL_ERR_MEM;
     }
 
+    sl_list_init(&m->dev_list);
     int err;
     sl_dev_config_t cfg;
     cfg.machine = m;
-    if ((err = bus_create("bus0", &cfg, &m->bus))) goto out_err;
-    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_CHRONO, "tm0", NULL, (void **)&m->chrono))) goto out_err;
+    if ((err = sl_bus_create("bus0", &cfg, &m->bus))) goto out_err;
+    if ((err = sl_chrono_create("tm0", &m->chrono))) goto out_err;
     if ((err = sl_chrono_run(m->chrono))) goto out_err;
 
     *m_out = m;
     return 0;
 
 out_err:
-    if (m->chrono != NULL) sl_obj_release(m->chrono);
-    if (m->bus != NULL) sl_obj_release(m->bus);
+    sl_chrono_destroy(m->chrono);
+    sl_bus_destroy(m->bus);
     free(m);
     return err;
 }
@@ -120,9 +120,11 @@ int sl_machine_add_device(sl_machine_t *m, u4 type, u8 base, const char *name) {
         goto out_err;
     }
     if (type == SL_DEV_SLED_INTC) m->intc = d;
+    sl_list_add_last(&m->dev_list, &d->node);
+    return 0;
 
 out_err:
-    sl_obj_release(d);
+    sl_device_destroy(d);
     return err;
 }
 
@@ -140,17 +142,19 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     machine_core_t *mc = &m->mc[m->core_count];
     // mc->mapper = bus_get_mapper(m->bus);
     mc->core = NULL;
-    mc->worker = NULL;
 
     int err;
-    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_WORKER, "core_worker", NULL, (void **)&mc->worker))) {
-        fprintf(stderr, "sl_worker_create failed: %s\n", st_err(err));
+    if ((err = sl_worker_init(&mc->worker, "core_worker"))) {
+        fprintf(stderr, "sl_worker_init failed: %s\n", st_err(err));
         return err;
     }
 
+    opts->bus = m->bus;
+    if (opts->name == NULL) opts->name = "core";
+
     switch (opts->arch) {
     case SL_ARCH_RISCV:
-        err = riscv_core_create(opts, m->bus, &mc->core);
+        err = sl_riscv_core_create(opts, &mc->core);
         break;
 
     default:
@@ -164,7 +168,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
         goto out_err;
     }
 
-    if ((err = sl_worker_add_engine(mc->worker, &mc->core->engine, &mc->epid))) {
+    if ((err = sl_worker_add_engine(&mc->worker, &mc->core->engine, &mc->epid))) {
         fprintf(stderr, "sl_worker_add_engine failed: %s\n", st_err(err));
         goto out_err;
     }
@@ -178,8 +182,8 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
     return 0;
 
 out_err:
-    if (mc->worker) sl_obj_release(mc->worker);
-    if (mc->core) sl_obj_release(mc->core);
+    sl_worker_shutdown(&mc->worker);
+    sl_core_destroy(mc->core);
     return err;
 }
 
@@ -189,7 +193,12 @@ sl_core_t * sl_machine_get_core(sl_machine_t *m, u4 id) {
 }
 
 sl_dev_t * sl_machine_get_device_for_name(sl_machine_t *m, const char *name) {
-    return bus_get_device_for_name(m->bus, name);
+    sl_list_node_t *n = sl_list_peek_first(&m->dev_list);
+    for ( ; n != NULL; n = n->next) {
+        sl_dev_t *d = containerof(n, sl_dev_t, node);
+        if (!strcmp(name, d->name)) return d;
+    }
+    return NULL;
 }
 
 int sl_machine_set_interrupt(sl_machine_t *m, u4 irq, bool high) {
@@ -200,12 +209,16 @@ int sl_machine_set_interrupt(sl_machine_t *m, u4 irq, bool high) {
 
 void sl_machine_destroy(sl_machine_t *m) {
     for (int i = 0; i < m->core_count; i++) {
-        sl_obj_release(m->mc[i].core);
-        sl_obj_release(m->mc[i].worker);
+        sl_core_destroy(m->mc[i].core);
+        sl_worker_shutdown(&m->mc[i].worker);
     }
-    sl_chrono_stop(m->chrono);
-    sl_obj_release(m->chrono);
-    sl_obj_release(m->bus);
+    sl_list_node_t *n;
+    while ((n = sl_list_remove_first(&m->dev_list)) != NULL) {
+        sl_dev_t *d = containerof(n, sl_dev_t, node);
+        sl_device_destroy(d);
+    }
+    sl_chrono_destroy(m->chrono);
+    sl_bus_destroy(m->bus);
     free(m);
 }
 

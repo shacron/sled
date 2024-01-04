@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2023 Shac Ron and The Sled Project
+// Copyright (c) 2023 -2024Shac Ron and The Sled Project
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -98,7 +98,7 @@ static int reg_view_device_read(void *ctx, u8 addr, u4 size, u4 count, void *buf
     hash_item_t *it = hash_lookup(&rv->hash, addr);
     if (it == NULL) return SL_ERR_IO_INVALID;
     sl_dev_t *d = it->dev;
-    return d->ops.read(d->context, it->value << 2, size, count, buf);
+    return d->ops->read(d->context, it->value << 2, size, count, buf);
 }
 
 static int reg_view_device_write(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
@@ -110,44 +110,45 @@ static int reg_view_device_write(void *ctx, u8 addr, u4 size, u4 count, void *bu
     hash_item_t *it = hash_lookup(&rv->hash, addr);
     if (it == NULL) return SL_ERR_IO_INVALID;
     sl_dev_t *d = it->dev;
-    return d->ops.write(d->context, it->value << 2, size, count, buf);
-}
-
-static void reg_view_device_release(void *ctx) {
-    // nop
-}
-
-void reg_view_obj_shutdown(void *o) {
-    sl_reg_view_t *rv = o;
-    for (u4 i = 0; i < rv->dev_count; i++)
-        sl_obj_release(rv->dev_list[i]);
-    sl_obj_release(&rv->dev);
-    free(rv->hash.items);
-}
-
-int reg_view_obj_init(void *o, const char *name, void *cfg) {
-    sl_reg_view_t *rv = o;
-    int err = sl_obj_init(&rv->dev, SL_OBJ_TYPE_DEVICE, name, cfg);
-    if (err) return err;
-    sl_device_set_context(&rv->dev, rv);
-    return 0;
+    return d->ops->write(d->context, it->value << 2, size, count, buf);
 }
 
 static const sl_dev_ops_t reg_view_ops = {
     .type = SL_DEV_REG_VIEW,
     .read = reg_view_device_read,
     .write = reg_view_device_write,
-    .release = reg_view_device_release,
 };
 
-int sl_reg_view_create(const char *name, sl_dev_config_t *cfg, sl_reg_view_t **rv_out) {
-    sl_reg_view_t *rv;
-
+int sl_reg_view_init(sl_reg_view_t *rv, const char *name, sl_dev_config_t *cfg) {
+    rv->name = name;
     cfg->ops = &reg_view_ops;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_REGVIEW, name, cfg, (void **)&rv);
+    cfg->name = name;
+    int err = sl_device_init(&rv->dev, cfg);
     if (err) return err;
+    sl_device_set_context(&rv->dev, rv);
+    return 0;
+}
+
+int sl_reg_view_create(const char *name, sl_dev_config_t *cfg, sl_reg_view_t **rv_out) {
+    sl_reg_view_t *rv = calloc(1, sizeof(*rv));
+    if (rv == NULL) return SL_ERR_MEM;
+
+    int err = sl_reg_view_init(rv, name, cfg);
+    if (err) {
+        free(rv);
+        return err;
+    }
     *rv_out = rv;
     return 0;
+}
+
+void sl_reg_view_shutdown(sl_reg_view_t *rv) {
+    free(rv->hash.items);
+}
+
+void sl_reg_view_destroy(sl_reg_view_t *rv) {
+    sl_reg_view_shutdown(rv);
+    free(rv);
 }
 
 void sl_reg_view_print_mappings(sl_dev_t *d, u8 base) {

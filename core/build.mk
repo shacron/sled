@@ -17,7 +17,6 @@ LIB_CSOURCES += \
 	$(SRCDIR)/machine.c \
 	$(SRCDIR)/mapper.c \
 	$(SRCDIR)/mem.c \
-	$(SRCDIR)/obj.c \
 	$(SRCDIR)/regview.c \
 	$(SRCDIR)/ringbuffer.c \
 	$(SRCDIR)/riscv/csr.c \
@@ -31,6 +30,5 @@ LIB_CSOURCES += \
 	$(SRCDIR)/riscv/riscv.c \
 	$(SRCDIR)/sem.c \
 	$(SRCDIR)/sym.c \
-	$(SRCDIR)/types.c \
 	$(SRCDIR)/worker.c \
 

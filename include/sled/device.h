@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #pragma once
 
-#include <sled/obj.h>
 #include <sled/types.h>
 
 #ifdef __cplusplus
@@ -30,6 +29,7 @@ extern "C" {
 
 struct sl_dev_config {
     const sl_dev_ops_t *ops;
+    const char *name;
     u4 aperture;
 
     sl_machine_t *machine;
@@ -42,13 +42,21 @@ struct sl_dev_config {
 
 struct sl_dev_ops {
     u4 type;
+    // mmio read transaction
     int (*read)(void *ctx, u8 addr, u4 size, u4 count, void *buf);
+    // mmio write transaction
     int (*write)(void *ctx, u8 addr, u4 size, u4 count, void *buf);
-    int (*create)(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
-    void (*release)(void *ctx);
+    // create driver-specific context
+    int (*create)(sl_dev_t *d, sl_dev_config_t *cfg);
+    // destroy driver-specific context
+    void (*destroy)(sl_dev_t *d);
 };
 
-int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out);
+// allocate and call ops->create()
+int sl_device_create(sl_dev_config_t *cfg, sl_dev_t **dev_out);
+// free device and call ops->destroy()
+void sl_device_destroy(sl_dev_t *d);
+
 
 void sl_device_set_context(sl_dev_t *d, void *ctx);
 void * sl_device_get_context(sl_dev_t *d);

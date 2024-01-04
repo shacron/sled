@@ -41,8 +41,6 @@ struct sled_timer {
     sled_timer_unit_t unit[TIMER_MAX_UNITS];
 };
 
-int sled_timer_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
-
 static u4 index_for_pointer(sled_timer_t *t, sled_timer_unit_t *u) {
     return ((uptr)u - (uptr)&t->unit[0]) / sizeof(sled_timer_unit_t);
 }
@@ -228,11 +226,23 @@ out:
     return err;
 }
 
-static void timer_release(void *ctx) {
-    if (ctx == NULL) return;
-    sled_timer_t *t = ctx;
-    sl_obj_release(t->chrono);
+static void sled_timer_destroy(sl_dev_t *d) {
+    sled_timer_t *t = sl_device_get_context(d);
     free(t);
+}
+
+static int sled_timer_create(sl_dev_t *d, sl_dev_config_t *cfg) {
+    sled_timer_t *t = calloc(1, sizeof(sled_timer_t));
+    if (t == NULL) return SL_ERR_MEM;
+
+    t->dev = d;
+    cfg->aperture = TIMER_APERTURE_LENGTH(TIMER_MAX_UNITS);
+    sl_device_set_context(d, t);
+    t->chrono = sl_machine_get_chrono(cfg->machine);
+    t->num_units = 1;
+    t->scalar = 1;
+    for (int i = 0; i < TIMER_MAX_UNITS; i++) t->unit[i].timer = t;
+    return 0;
 }
 
 static const sl_dev_ops_t timer_ops = {
@@ -240,25 +250,7 @@ static const sl_dev_ops_t timer_ops = {
     .read = timer_read,
     .write = timer_write,
     .create = sled_timer_create,
-    .release = timer_release,
+    .destroy = sled_timer_destroy,
 };
-
-int sled_timer_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) {
-    sled_timer_t *t = calloc(1, sizeof(sled_timer_t));
-    if (t == NULL) return SL_ERR_MEM;
-
-    int err = sl_device_allocate(name, cfg, TIMER_APERTURE_LENGTH(TIMER_MAX_UNITS), &timer_ops, dev_out);
-    if (err) {
-        free(t);
-        return err;
-    }
-    t->dev = *dev_out;
-    sl_device_set_context(t->dev, t);
-    t->chrono = sl_machine_get_chrono(cfg->machine);
-    t->num_units = 1;
-    t->scalar = 1;
-    for (int i = 0; i < TIMER_MAX_UNITS; i++) t->unit[i].timer = t;
-    return 0;
-}
 
 DECLARE_DEVICE(sled_timer, SL_DEV_TIMER, &timer_ops);

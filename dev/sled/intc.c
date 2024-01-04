@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <stdlib.h>
@@ -19,8 +19,6 @@ typedef struct {
     sl_dev_t *dev;
     sl_irq_ep_t *irq_ep;
 } sled_intc_t;
-
-int sled_intc_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
 
 sl_irq_ep_t * sled_intc_get_irq_ep(sl_dev_t *d) {
     sled_intc_t *ic = sl_device_get_context(d);
@@ -89,10 +87,27 @@ static int sled_intc_assert(sl_irq_ep_t *ep, u4 num, bool high) {
     return err;
 }
 
-void intc_release(void *ctx) {
-    sled_intc_t *ic = ctx;
-    sl_obj_release(ic->irq_ep);
+static void sled_intc_destroy(sl_dev_t *d) {
+    sled_intc_t *ic = sl_device_get_context(d);
+    sl_irq_ep_destroy(ic->irq_ep);
     free(ic);
+}
+
+static int sled_intc_create(sl_dev_t *d, sl_dev_config_t *cfg) {
+    sled_intc_t *ic = calloc(1, sizeof(*ic));
+    if (ic == NULL) return SL_ERR_MEM;
+    ic->dev = d;
+    cfg->aperture = INTC_APERTURE_LENGTH;
+    sl_device_set_context(ic->dev, ic);
+
+    int err;
+    if ((err = sl_irq_ep_create(&ic->irq_ep))) {
+        free(ic);
+        return err;
+    }
+    sl_irq_endpoint_set_context(ic->irq_ep, ic);
+    sl_irq_endpoint_set_handler(ic->irq_ep, sled_intc_assert);
+    return 0;
 }
 
 static const sl_dev_ops_t intc_ops = {
@@ -100,30 +115,7 @@ static const sl_dev_ops_t intc_ops = {
     .read = intc_read,
     .write = intc_write,
     .create = sled_intc_create,
-    .release = intc_release,
+    .destroy = sled_intc_destroy,
 };
-
-int sled_intc_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) {
-    sled_intc_t *ic = calloc(1, sizeof(*ic));
-    if (ic == NULL) return SL_ERR_MEM;
-
-    int err = sl_device_allocate(name, cfg, INTC_APERTURE_LENGTH, &intc_ops, &ic->dev);
-    if (err) {
-        free(ic);
-        return err;
-    }
-
-    if ((err = sl_obj_alloc_init(SL_OBJ_TYPE_IRQ_EP, name, cfg, (void **)&ic->irq_ep))) {
-        sl_obj_release(ic->dev);
-        free(ic);
-        return err;
-    }
-    sl_irq_endpoint_set_context(ic->irq_ep, ic);
-    sl_irq_endpoint_set_handler(ic->irq_ep, sled_intc_assert);
-
-    *dev_out = ic->dev;
-    sl_device_set_context(ic->dev, ic);
-    return 0;
-}
 
 DECLARE_DEVICE(sled_intc, SL_DEV_INTC, &intc_ops);

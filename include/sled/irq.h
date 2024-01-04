@@ -36,6 +36,9 @@ u4 sl_irq_endpoint_get_asserted(sl_irq_ep_t *ep);
 u4 sl_irq_endpoint_get_active(sl_irq_ep_t *ep);
 
 // setup functions
+int sl_irq_ep_create(sl_irq_ep_t **ep_out);
+void sl_irq_ep_destroy(sl_irq_ep_t *ep);
+
 int sl_irq_mux_set_client(sl_irq_mux_t *m, sl_irq_ep_t *ep, u4 num);
 int sl_irq_endpoint_set_client(sl_irq_ep_t *ep, sl_irq_ep_t *client, u4 num);
 void sl_irq_endpoint_set_handler(sl_irq_ep_t *ep, int (*assert)(sl_irq_ep_t *ep, u4 num, bool high));

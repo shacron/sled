@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <ctype.h>
@@ -13,7 +13,6 @@
 
 #include <core/bus.h>
 #include <core/common.h>
-#include <core/obj.h>
 #include <core/riscv.h>
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
@@ -25,7 +24,7 @@ static int rv_load_pc(rv_core_t *c, u4 *inst) {
     return sl_core_mem_read(&c->core, c->pc, 4, 1, inst);
 }
 
-static void riscv_set_reg(sl_core_t *c, u4 reg, u8 value) {
+static void riscv_op_set_reg(sl_core_t *c, u4 reg, u8 value) {
     rv_core_t *rc = (rv_core_t *)c;
 
     if (reg == 0) return;  // always zero
@@ -53,7 +52,7 @@ static void riscv_set_reg(sl_core_t *c, u4 reg, u8 value) {
     }
 }
 
-static u8 riscv_get_reg(sl_core_t *c, u4 reg) {
+static u8 riscv_op_get_reg(sl_core_t *c, u4 reg) {
     rv_core_t *rc = (rv_core_t *)c;
 
     if (reg == 0) return 0;  // always zero
@@ -72,7 +71,7 @@ static u8 riscv_get_reg(sl_core_t *c, u4 reg) {
     }
 }
 
-static int riscv_core_set_state(sl_core_t *c, u4 state, bool enabled) {
+static int riscv_op_set_state(sl_core_t *c, u4 state, bool enabled) {
     rv_core_t *rc = (rv_core_t *)c;
 
     const u4 bit = (1u << state);
@@ -144,15 +143,21 @@ static int riscv_core_step(sl_engine_t *e) {
     return err;
 }
 
-int riscv_core_obj_init(void *o, const char *name, void *cfg) {
-    rv_core_t *rc = o;
-    sl_core_params_t *p = cfg;
+static void riscv_core_shutdown(sl_core_t *c);
+static void riscv_core_destroy(sl_core_t *c);
 
+static const core_ops_t riscv_core_ops = {
+    .set_reg = riscv_op_set_reg,
+    .get_reg = riscv_op_get_reg,
+    .set_state = riscv_op_set_state,
+    .shutdown = riscv_core_shutdown,
+    .destroy = riscv_core_destroy,
+};
+
+int sl_riscv_core_init(rv_core_t *rc, sl_core_params_t *p) {
     int err = sl_core_init(&rc->core, p, bus_get_mapper(p->bus));
-    if (err) {
-        sl_obj_release(rc);
-        return err;
-    }
+    if (err) return err;
+
     rc->core.options |= SL_CORE_OPT_ENDIAN_LITTLE;
     rc->mhartid = p->id;
 
@@ -160,28 +165,36 @@ int riscv_core_obj_init(void *o, const char *name, void *cfg) {
     rc->pl = RV_PL_MACHINE;
     rc->core.engine.ops.step = riscv_core_step;
     rc->core.engine.ops.interrupt = riscv_interrupt;
-    rc->core.ops.set_reg = riscv_set_reg;
-    rc->core.ops.get_reg = riscv_get_reg;
-    rc->core.ops.set_state = riscv_core_set_state;
+    rc->core.ops = &riscv_core_ops;
     rc->mimpid = 'sled';
     rc->ext.name_for_sysreg = rv_name_for_sysreg;
     return 0;
 }
 
-void riscv_core_obj_shutdown(void *o) {
-    rv_core_t *rc = o;
-    sl_core_shutdown(&rc->core);
-    if (rc->ext.destroy != NULL) rc->ext.destroy(rc->ext_private);
-}
-
-int riscv_core_create(sl_core_params_t *p, sl_bus_t *bus, sl_core_t **core_out) {
-    p->bus = bus;
-    rv_core_t *rc;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_RVCORE, p->name, p, (void **)&rc);
-    if (err) return err;
+int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
+    rv_core_t *rc = calloc(1, sizeof(*rc));
+    if (rc == NULL) return SL_ERR_MEM;
+    int err = sl_riscv_core_init(rc, p);
+    if (err) {
+        free(rc);
+        return err;
+    }
     *core_out = &rc->core;
     return 0;
 }
+
+static void riscv_core_shutdown(sl_core_t *c) {
+    rv_core_t *rc = (rv_core_t *)c;
+    if (rc->ext.destroy != NULL) rc->ext.destroy(rc->ext_private);
+}
+
+static void riscv_core_destroy(sl_core_t *c) {
+    if (c == NULL) return;
+    sl_core_shutdown(c);
+    rv_core_t *rc = (rv_core_t *)c;
+    free(rc);
+}
+
 
 typedef struct {
     char *name;

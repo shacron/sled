@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <core/obj.h>
 #include <sled/irq.h>
 
 struct sl_irq_mux {
@@ -14,8 +13,6 @@ struct sl_irq_mux {
 };
 
 struct sl_irq_ep {
-    sl_obj_t obj;
-
     u4 asserted;            // input irq line state
     u4 retained;            // sticky version of asserted bits
     sl_irq_mux_t mux;       // output irq to client
@@ -26,5 +23,5 @@ struct sl_irq_ep {
     void *context;
 };
 
-int irq_ep_obj_init(void *o, const char *name, void *cfg);
-void irq_ep_obj_shutdown(void *o);
+int sl_irq_ep_init(sl_irq_ep_t *ep);
+void sl_irq_ep_shutdown(sl_irq_ep_t *ep);

@@ -241,7 +241,7 @@ void mapper_print_mappings(sl_mapper_t *m) {
             case SL_MAP_TYPE_DEVICE:
                 d = device_get_for_ep(ent->ep);
                 printf(" device: %s\n", d->name);
-                if (d->type == SL_DEV_REG_VIEW) {
+                if (d->ops->type == SL_DEV_REG_VIEW) {
                     // printf("reg view mapping:\n");
                     sl_reg_view_print_mappings(d, ent->va_base);
                 }

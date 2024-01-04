@@ -137,29 +137,35 @@ int sl_engine_run(sl_engine_t *e) {
     return sl_worker_run(e->worker);
 }
 
-void engine_obj_shutdown(void *o) {
-    sl_engine_t *e = o;
-    if (e->worker != NULL) sl_obj_release(e->worker);
-    sl_obj_release(&e->irq_ep);
-}
-
-int engine_obj_init(void *o, const char *name, void *cfg) {
-    sl_engine_t *e = o;
-    const sl_engine_ops_t *ops = cfg;
+int sl_engine_init(sl_engine_t *e, const char *name, const sl_engine_ops_t *ops) {
     e->name = name;
     e->worker = NULL;
     e->event_ep.handle = engine_event_handle;
     if (ops != NULL) e->ops = *ops;
-    int err = sl_obj_init(&e->irq_ep, SL_OBJ_TYPE_IRQ_EP, name, NULL);
+    int err = sl_irq_ep_init(&e->irq_ep);
     if (err) return err;
     e->irq_ep.assert = engine_irq_transition_async;
     return 0;
 }
 
-int sl_engine_allocate(const char *name, const sl_engine_ops_t *ops, sl_engine_t **e_out) {
-    sl_engine_t *e;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_ENGINE, name, (void *)ops, (void **)&e);
-    if (err) return err;
+int sl_engine_create(const char *name, const sl_engine_ops_t *ops, sl_engine_t **e_out) {
+    sl_engine_t *e = calloc(1, sizeof(*e));
+    if (e == NULL) return SL_ERR_MEM;
+    int err = sl_engine_init(e, name, ops);
+    if (err) {
+        free(e);
+        return err;
+    }
     *e_out = e;
     return 0;
+}
+
+void sl_engine_shutdown(sl_engine_t *e) {
+    sl_irq_ep_shutdown(&e->irq_ep);
+}
+
+void sl_engine_destory(sl_engine_t *e) {
+    if (e == NULL) return;
+    sl_engine_shutdown(e);
+    free(e);
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #pragma once
 
@@ -27,17 +27,18 @@ typedef struct core_ops {
     void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
     u8 (*get_reg)(sl_core_t *c, u4 reg);
     int (*set_state)(sl_core_t *c, u4 state, bool enabled);
+    void (*shutdown)(sl_core_t *c);
+    void (*destroy)(sl_core_t *c);
 } core_ops_t;
 
 struct sl_core {
-    sl_obj_t obj_;
     sl_engine_t engine;
 
     u8 ticks;
 
     sl_mapper_t *mapper;
     itrace_t *trace;
-    core_ops_t ops;
+    const core_ops_t *ops;
 
     u1 arch;
     u1 subarch;
@@ -59,6 +60,7 @@ struct sl_core {
 
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m);
 void sl_core_shutdown(sl_core_t *c);
+void sl_core_destroy(sl_core_t *c);
 
 void sl_core_config_get(sl_core_t *c, sl_core_params_t *p);
 int sl_core_config_set(sl_core_t *c, sl_core_params_t *p);

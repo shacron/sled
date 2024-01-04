@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2023 Shac Ron and The Sled Project
+// Copyright (c) 2023-2024 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <stdio.h>
@@ -8,7 +8,6 @@
 
 #include <core/common.h>
 #include <core/lock.h>
-#include <core/obj.h>
 #include <core/chrono.h>
 #include <sled/error.h>
 
@@ -302,8 +301,29 @@ int sl_chrono_stop(sl_chrono_t *c) {
     return 0;
 }
 
-void chrono_obj_shutdown(void *o) {
-    sl_chrono_t *c = o;
+int sl_chrono_init(sl_chrono_t *c, const char *name) {
+    c->name = name;
+    sl_list_init(&c->active_timers);
+    sl_list_init(&c->unused_timers);
+    sl_lock_init(&c->lock);
+    sl_cond_init(&c->cond);
+    c->state = SL_CHRONO_STATE_STOPPED;
+    return 0;
+}
+
+int sl_chrono_create(const char *name, sl_chrono_t **c_out) {
+    sl_chrono_t *c = calloc(1, sizeof(*c));
+    if (c == NULL) return SL_ERR_MEM;
+    int err = sl_chrono_init(c, name);
+    if (err) {
+        free(c);
+        return err;
+    }
+    *c_out = c;
+    return 0;
+}
+
+void sl_chrono_shutdown(sl_chrono_t *c) {
     sl_list_node_t *n;
 
     sl_chrono_stop(c);
@@ -317,13 +337,8 @@ void chrono_obj_shutdown(void *o) {
     sl_lock_destroy(&c->lock);
 }
 
-int chrono_obj_init(void *o, const char *name) {
-    sl_chrono_t *c = o;
-    c->name = name;
-    sl_list_init(&c->active_timers);
-    sl_list_init(&c->unused_timers);
-    sl_lock_init(&c->lock);
-    sl_cond_init(&c->cond);
-    c->state = SL_CHRONO_STATE_STOPPED;
-    return 0;
+void sl_chrono_destroy(sl_chrono_t *c) {
+    if (c == NULL) return;
+    sl_chrono_shutdown(c);
+    free(c);
 }

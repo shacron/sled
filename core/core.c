@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <stdatomic.h>
 #include <stdio.h>
@@ -52,19 +52,8 @@ void sl_core_print_config(sl_core_t *c) {
     printf("  arch_options: %x\n", c->arch_options);
 }
 
-void sl_core_shutdown(sl_core_t *c) {
-#if WITH_SYMBOLS
-    sl_sym_list_t *n = NULL;
-    for (sl_sym_list_t *s = c->symbols; s != NULL; s = n) {
-        n = s->next;
-        sym_free(s);
-    }
-#endif
-    sl_obj_release_embedded(&c->engine);
-}
-
 const core_ops_t * core_get_ops(sl_core_t *c) {
-    return &c->ops;
+    return c->ops;
 }
 
 u8 sl_core_get_cycles(sl_core_t *c) {
@@ -76,7 +65,7 @@ void sl_core_interrupt_set(sl_core_t *c, bool enable) {
 }
 
 int sl_core_endian_set(sl_core_t *c, bool big) {
-    return c->ops.set_state(c, SL_CORE_STATE_ENDIAN_BIG, big);
+    return c->ops->set_state(c, SL_CORE_STATE_ENDIAN_BIG, big);
 }
 
 void sl_core_instruction_barrier(sl_core_t *c) {
@@ -142,11 +131,11 @@ int sl_core_mem_atomic(sl_core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1,
 }
 
 void sl_core_set_reg(sl_core_t *c, u4 reg, u8 value) {
-    c->ops.set_reg(c, reg, value);
+    c->ops->set_reg(c, reg, value);
 }
 
 u8 sl_core_get_reg(sl_core_t *c, u4 reg) {
-    return c->ops.get_reg(c, reg);
+    return c->ops->get_reg(c, reg);
 }
 
 int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d) {
@@ -170,7 +159,7 @@ int sl_core_run(sl_core_t *c) {
 }
 
 int sl_core_set_state(sl_core_t *c, u4 state, bool enabled) {
-    return c->ops.set_state(c, state, enabled);
+    return c->ops->set_state(c, state, enabled);
 }
 
 u4 sl_core_get_reg_count(sl_core_t *c, int type) {
@@ -203,9 +192,25 @@ sl_sym_entry_t *sl_core_get_sym_for_addr(sl_core_t *c, u8 addr) {
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mapper = m;
     config_set_internal(c, p);
-    sl_obj_init(&c->engine, SL_OBJ_TYPE_ENGINE, NULL, NULL);
+    sl_engine_init(&c->engine, "core_eng", NULL);
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;
+}
+
+void sl_core_shutdown(sl_core_t *c) {
+    c->ops->shutdown(c);
+    sl_engine_shutdown(&c->engine);
+#if WITH_SYMBOLS
+    sl_sym_list_t *n = NULL;
+    for (sl_sym_list_t *s = c->symbols; s != NULL; s = n) {
+        n = s->next;
+        sym_free(s);
+    }
+#endif
+}
+
+void sl_core_destroy(sl_core_t *c) {
+    c->ops->destroy(c);
 }
 
 void sl_core_print_bus_topology(sl_core_t *c) {

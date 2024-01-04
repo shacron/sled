@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -71,23 +71,10 @@ int bus_add_device(sl_bus_t *b, sl_dev_t *dev, u8 base) {
     m.output_base = 0;
     m.type = SL_MAP_TYPE_DEVICE;
     m.ep = &dev->map_ep;
-    int err = sl_mappper_add_mapping(&b->mapper, &m);
-    if (err) return err;
-    sl_obj_retain(dev);
-    sl_list_add_last(&b->dev_list, &dev->node);
-    return 0;
+    return sl_mappper_add_mapping(&b->mapper, &m);
 }
 
 sl_mapper_t * bus_get_mapper(sl_bus_t *b) { return &b->mapper; }
-
-sl_dev_t * bus_get_device_for_name(sl_bus_t *b, const char *name) {
-    sl_list_node_t *n = sl_list_peek_first(&b->dev_list);
-    for ( ; n != NULL; n = n->next) {
-        sl_dev_t *d = containerof(n, sl_dev_t, node);
-        if (!strcmp(name, d->name)) return d;
-    }
-    return NULL;
-}
 
 static const sl_dev_ops_t bus_ops = {
     .type = SL_DEV_BUS,
@@ -95,35 +82,41 @@ static const sl_dev_ops_t bus_ops = {
     .write = bus_op_write,
 };
 
-void bus_obj_shutdown(void *o) {
-    sl_bus_t *b = o;
-    mapper_shutdown(&b->mapper);
-    sl_list_node_t *c;
-    while ((c = sl_list_remove_first(&b->dev_list)) != NULL)
-        sl_obj_release(containerof(c, sl_dev_t, node));
-    while ((c = sl_list_remove_first(&b->mem_list)) != NULL)
-        mem_region_destroy((mem_region_t *)c);
-    sl_obj_release(&b->dev);
-}
-
-int bus_obj_init(void *o, const char *name, void *cfg) {
-    sl_bus_t *b = o;
-    int err = sl_obj_init(&b->dev, SL_OBJ_TYPE_DEVICE, name, cfg);
+int sl_bus_init(sl_bus_t *b, const char *name, sl_dev_config_t *cfg) {
+    cfg->name = name;
+    int err = sl_device_init(&b->dev, cfg);
     if (err) return err;
     mapper_init(&b->mapper);
     sl_mapper_set_mode(&b->mapper, SL_MAP_OP_MODE_TRANSLATE);
     sl_device_set_context(&b->dev, b);
     sl_device_set_mapper(&b->dev, &b->mapper);
     sl_list_init(&b->mem_list);
-    sl_list_init(&b->dev_list);
     return 0;
 }
 
-int bus_create(const char *name, sl_dev_config_t *cfg, sl_bus_t **bus_out) {
+int sl_bus_create(const char *name, sl_dev_config_t *cfg, sl_bus_t **bus_out) {
+    sl_bus_t *b = calloc(1, sizeof(*b));
+    if (b == NULL) return SL_ERR_MEM;
     cfg->ops = &bus_ops;
-    sl_bus_t *b;
-    int err = sl_obj_alloc_init(SL_OBJ_TYPE_BUS, name, cfg, (void **)&b);
-    if (err) return err;
+    int err = sl_bus_init(b, name, cfg);
+    if (err) {
+        free(b);
+        return err;
+    }
     *bus_out = b;
     return 0;
+}
+
+void sl_bus_shutdown(sl_bus_t *b) {
+    mapper_shutdown(&b->mapper);
+    sl_list_node_t *c;
+    while ((c = sl_list_remove_first(&b->mem_list)) != NULL)
+        mem_region_destroy((mem_region_t *)c);
+    sl_device_shutdown(&b->dev);
+}
+
+void sl_bus_destroy(sl_bus_t *b) {
+    if (b == NULL) return;
+    sl_bus_shutdown(b);
+    free(b);
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2023 Shac Ron and The Sled Project
+// Copyright (c) 2023-2024 Shac Ron and The Sled Project
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -27,8 +27,6 @@ typedef struct {
     u8 va_base[MPU_MAX_MAPPINGS];
     u8 pa_base[MPU_MAX_MAPPINGS];
 } sled_mpu_t;
-
-int sled_mpu_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
 
 static int mpu_read(void *ctx, u8 addr, u4 size, u4 count, void *buf) {
     if (size != 4) return SL_ERR_IO_SIZE;
@@ -168,11 +166,29 @@ out:
     return err;
 }
 
-static void mpu_release(void *ctx) {
-    if (ctx == NULL) return;
-    sled_mpu_t *m = ctx;
+static void sled_mpu_destroy(sl_dev_t *d) {
+    sled_mpu_t *m = sl_device_get_context(d);
     sl_mapper_destroy(m->mapper);
     free(m);
+}
+
+static int sled_mpu_create(sl_dev_t *d, sl_dev_config_t *cfg) {
+    int err = 0;
+
+    sled_mpu_t *m = calloc(1, sizeof(sled_mpu_t));
+    if (m == NULL) return SL_ERR_MEM;
+    if ((err = sl_mapper_create(&m->mapper))) goto out_err;
+
+    m->dev = d;
+    cfg->aperture = MPU_APERTURE_LENGTH;
+    sl_device_set_context(m->dev, m);
+    sl_mapper_set_mode(m->mapper, SL_MAP_OP_MODE_PASSTHROUGH);
+    sl_device_set_mapper(m->dev, m->mapper);
+    return 0;
+
+out_err:
+    free(m);
+    return err;
 }
 
 static const sl_dev_ops_t mpu_ops = {
@@ -180,28 +196,7 @@ static const sl_dev_ops_t mpu_ops = {
     .read = mpu_read,
     .write = mpu_write,
     .create = sled_mpu_create,
-    .release = mpu_release,
+    .destroy = sled_mpu_destroy,
 };
-
-int sled_mpu_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) {
-    int err = 0;
-
-    sled_mpu_t *m = calloc(1, sizeof(sled_mpu_t));
-    if (m == NULL) return SL_ERR_MEM;
-
-    if ((err = sl_device_allocate(name, cfg, MPU_APERTURE_LENGTH, &mpu_ops, &m->dev))) goto out_err;
-    if ((err = sl_mapper_create(&m->mapper))) goto out_err;
-
-    *dev_out = m->dev;
-    sl_device_set_context(m->dev, m);
-    sl_mapper_set_mode(m->mapper, SL_MAP_OP_MODE_PASSTHROUGH);
-    sl_device_set_mapper(m->dev, m->mapper);
-    return 0;
-
-out_err:
-    if (m->dev) sl_obj_release(m->dev);
-    free(m);
-    return err;
-}
 
 DECLARE_DEVICE(sled_mpu, SL_DEV_MPU, &mpu_ops);

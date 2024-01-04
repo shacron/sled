@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,8 +28,6 @@ typedef struct {
 
     u1 buf[BUFLEN + 1];
 } sled_uart_t;
-
-int sled_uart_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out);
 
 static void uart_flush(sled_uart_t *u) {
     u->buf[u->buf_pos] = '\0';
@@ -116,11 +114,21 @@ int sled_uart_set_channel(sl_dev_t *dev, int io, int fd_in, int fd_out) {
     return 0;
 }
 
-static void uart_release(void *ctx) {
-    sled_uart_t *u = ctx;
-    if (ctx == NULL) return;
+static void sled_uart_destroy(sl_dev_t *d) {
+    sled_uart_t *u = sl_device_get_context(d);
     if (u->buf_pos > 0) uart_flush(u);
     free(u);
+}
+
+static int sled_uart_create(sl_dev_t *d, sl_dev_config_t *cfg) {
+    sled_uart_t *u = calloc(1, sizeof(sled_uart_t));
+    if (u == NULL) return SL_ERR_MEM;
+    u->dev = d;
+    sl_device_set_context(d, u);
+    cfg->aperture = UART_APERTURE_LENGTH;
+    u->fd_in = STDIN_FILENO;
+    u->fd_out = STDOUT_FILENO;
+    return 0;
 }
 
 static const sl_dev_ops_t uart_ops = {
@@ -128,23 +136,7 @@ static const sl_dev_ops_t uart_ops = {
     .read = uart_read,
     .write = uart_write,
     .create = sled_uart_create,
-    .release = uart_release,
+    .destroy = sled_uart_destroy,
 };
-
-int sled_uart_create(const char *name, sl_dev_config_t *cfg, sl_dev_t **dev_out) {
-    sled_uart_t *u = calloc(1, sizeof(sled_uart_t));
-    if (u == NULL) return SL_ERR_MEM;
-
-    int err = sl_device_allocate(name, cfg, UART_APERTURE_LENGTH, &uart_ops, dev_out);
-    if (err) {
-        free(u);
-        return err;
-    }
-    u->dev = *dev_out;
-    sl_device_set_context(u->dev, u);
-    u->fd_in = STDIN_FILENO;
-    u->fd_out = STDOUT_FILENO;
-    return 0;
-}
 
 DECLARE_DEVICE(sled_uart, SL_DEV_UART, &uart_ops);
