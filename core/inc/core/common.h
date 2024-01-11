@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #pragma once
 
@@ -14,4 +14,5 @@
 #define MIN(a,b) ((a) <= (b) ? (a) : (b))
 #define MAX(a,b) ((a) >= (b) ? (a) : (b))
 
-
+#define ROUND_UP(a, sz)   ((((a) + (sz - 1)) / (sz)) * (sz))
+#define ROUND_DOWN(a, sz) (((a) / (sz)) * (sz))
