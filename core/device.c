@@ -108,13 +108,6 @@ int sl_device_create(sl_dev_config_t *cfg, sl_dev_t **dev_out) {
     return 0;
 }
 
-// int sl_device_allocate(const char *name, sl_dev_config_t *cfg, u4 aperture, const sl_dev_ops_t *ops, sl_dev_t **dev_out) {
-//     cfg->ops = ops;
-//     cfg->name = name;
-//     cfg->aperture = aperture;
-//     return sl_device_create(cfg, dev_out);
-// }
-
 void sl_device_shutdown(sl_dev_t *d) {
     assert(d->magic == DEV_MAGIC);
     if (d->ops->destroy != NULL) d->ops->destroy(d);

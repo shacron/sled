@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -21,7 +21,6 @@
 #include <sled/elf.h>
 #include <sled/error.h>
 #include <sled/machine.h>
-#include <sled/worker.h>
 
 #include "cons.h"
 
