@@ -50,7 +50,6 @@ typedef struct sl_machine sl_machine_t;
 typedef struct sl_map_ep sl_map_ep_t;
 typedef struct sl_mapper sl_mapper_t;
 typedef struct sl_mapping sl_mapping_t;
-typedef struct sl_obj sl_obj_t;
 typedef struct sl_reg_view sl_reg_view_t;
 typedef struct sl_sym_entry sl_sym_entry_t;
 typedef struct sl_sym_list sl_sym_list_t;

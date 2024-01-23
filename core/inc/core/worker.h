@@ -8,8 +8,6 @@
 #define SL_WORKER_MAX_EPS   64
 
 struct sl_worker {
-    sl_obj_t *obj_;
-
     const char *name;
 
     sl_lock_t lock;
