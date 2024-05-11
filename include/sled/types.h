@@ -66,6 +66,11 @@ typedef struct {
     int err;
 } result64_t;
 
+typedef struct {
+    void *value;
+    int err;
+} resultptr_t;
+
 #ifdef __cplusplus
 }
 #endif
