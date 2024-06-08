@@ -51,8 +51,6 @@ typedef union {
 struct rv_core {
     sl_core_t core;
 
-    u8 r[32];
-
     u8 status;
     fexcept_t fexc; // host cumulative fp exception flags
     u1 frm;         // floating point rounding mode

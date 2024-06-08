@@ -82,8 +82,8 @@ static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 o
     c->monitor_status = MONITOR_UNARMED;
     if ((err = sl_core_mem_atomic(&c->core, addr, 4, op, operand, 0, &result, ord, memory_order_relaxed))) return err;
     if (rd != RV_ZERO) {
-        c->r[rd] = (u4)result;
-        RV_TRACE_RD(c, rd, c->r[rd]);
+        c->core.r[rd] = (u4)result;
+        RV_TRACE_RD(c, rd, c->core.r[rd]);
     }
     return 0;
 }
@@ -94,8 +94,8 @@ static int rv_atomic_alu64(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 o
     c->monitor_status = MONITOR_UNARMED;
     if ((err = sl_core_mem_atomic(&c->core, addr, 8, op, operand, 0, &result, ord, memory_order_relaxed))) return err;
     if (rd != RV_ZERO) {
-        c->r[rd] = result;
-        RV_TRACE_RD(c, rd, c->r[rd]);
+        c->core.r[rd] = result;
+        RV_TRACE_RD(c, rd, c->core.r[rd]);
     }
     return 0;
 }
@@ -112,7 +112,7 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
     const u1 barrier = inst.r.funct7 & 3;   // 1: acquire, 0: release
     const u1 ord = ord_index[barrier];
     const u1 rd = inst.r.rd;
-    const u8 addr = c->r[inst.r.rs1];
+    const u8 addr = c->core.r[inst.r.rs1];
     u8 result;
 
 #if RV_TRACE
@@ -137,8 +137,8 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             c->monitor_value = w;
             c->monitor_status = MONITOR_ARMED32;
             if (rd != RV_ZERO) {
-                c->r[rd] = w;
-                RV_TRACE_RD(c, rd, c->r[rd]);
+                c->core.r[rd] = w;
+                RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
             break;
         }
@@ -155,57 +155,57 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             }
             // new_val, old_val
             // todo: clarify if barrier is invoked on failure and ord_failure needs to be set
-            if ((err = sl_core_mem_atomic(&c->core, addr, 4, IO_OP_ATOMIC_CAS, c->r[inst.r.rs2], c->monitor_value, &result, ord, ord))) return err;
+            if ((err = sl_core_mem_atomic(&c->core, addr, 4, IO_OP_ATOMIC_CAS, c->core.r[inst.r.rs2], c->monitor_value, &result, ord, ord))) return err;
             if (rd != RV_ZERO) {
-                c->r[rd] = (u4)result;
-                RV_TRACE_RD(c, rd, c->r[rd]);
+                c->core.r[rd] = (u4)result;
+                RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
             c->monitor_status = MONITOR_UNARMED;
             break;
 
         case 0b00001: // AMOSWAP.W
             RV_TRACE_PRINT(c, "amoswap.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SWAP, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SWAP, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b00000: // AMOADD.W
             RV_TRACE_PRINT(c, "amoadd.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_ADD, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_ADD, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b00100: // AMOXOR.W
             RV_TRACE_PRINT(c, "amoxor.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_XOR, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_XOR, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b01100: // AMOAND.W
             RV_TRACE_PRINT(c, "amoand.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_AND, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_AND, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b01000: // AMOOR.W
             RV_TRACE_PRINT(c, "amoor.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_OR, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_OR, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b10000: // AMOMIN.W
             RV_TRACE_PRINT(c, "amomin.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SMIN, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SMIN, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b10100: // AMOMAX.W
             RV_TRACE_PRINT(c, "amomax.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SMAX, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SMAX, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b11000: // AMOMINU.W
             RV_TRACE_PRINT(c, "amominu.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_UMIN, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_UMIN, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b11100: // AMOMAXU.W
             RV_TRACE_PRINT(c, "amomaxu.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_UMAX, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_UMAX, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         default: goto undef;
@@ -229,8 +229,8 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             c->monitor_value = d;
             c->monitor_status = MONITOR_ARMED64;
             if (rd != RV_ZERO) {
-                c->r[rd] = d;
-                RV_TRACE_RD(c, rd, c->r[rd]);
+                c->core.r[rd] = d;
+                RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
             break;
         }
@@ -245,57 +245,57 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
                 c->monitor_status = MONITOR_UNARMED;
                 return 0;
             }
-            if ((err = sl_core_mem_atomic(&c->core, addr, 8, IO_OP_ATOMIC_CAS, c->r[inst.r.rs2], c->monitor_value, &result, ord, ord))) return err;
+            if ((err = sl_core_mem_atomic(&c->core, addr, 8, IO_OP_ATOMIC_CAS, c->core.r[inst.r.rs2], c->monitor_value, &result, ord, ord))) return err;
             if (rd != RV_ZERO) {
-                c->r[rd] = result;
-                RV_TRACE_RD(c, rd, c->r[rd]);
+                c->core.r[rd] = result;
+                RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
             c->monitor_status = MONITOR_UNARMED;
             break;
 
         case 0b00001: // AMOSWAP.D
             RV_TRACE_PRINT(c, "amoswap.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SWAP, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SWAP, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b00000: // AMOADD.D
             RV_TRACE_PRINT(c, "amoadd.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_ADD, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_ADD, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b00100: // AMOXOR.D
             RV_TRACE_PRINT(c, "amoxor.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_XOR, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_XOR, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b01100: // AMOAND.D
             RV_TRACE_PRINT(c, "amoand.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_AND, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_AND, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b01000: // AMOOR.D
             RV_TRACE_PRINT(c, "amoor.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_OR, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_OR, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b10000: // AMOMIN.D
             RV_TRACE_PRINT(c, "amomin.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SMIN, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SMIN, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b10100: // AMOMAX.D
             RV_TRACE_PRINT(c, "amomax.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SMAX, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SMAX, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b11000: // AMOMINU.D
             RV_TRACE_PRINT(c, "amominu.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_UMIN, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_UMIN, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b11100: // AMOMAXU.D
             RV_TRACE_PRINT(c, "amomaxu.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_UMAX, c->r[inst.r.rs2], rd, ord);
+            err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_UMAX, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         default: goto undef;
@@ -431,7 +431,7 @@ int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst) {
     int err;
 
     const i4 imm = ((i4)inst.raw) >> 20;
-    u8 addr = c->r[inst.i.rs1] + imm;
+    u8 addr = c->core.r[inst.i.rs1] + imm;
     if (c->core.mode == SL_CORE_MODE_32) addr &= 0xffffffff;
     rv_fp_reg_t val = {};
 
@@ -475,7 +475,7 @@ undef:
 int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     const i4 imm = (((i4)inst.raw >> 20) & ~(0x1f)) | inst.s.imm1;
-    u8 addr = c->r[inst.s.rs1] + imm;
+    u8 addr = c->core.r[inst.s.rs1] + imm;
     if (c->core.mode == SL_CORE_MODE_32) addr &= 0xffffffff;
     rv_fp_reg_t val;
     int err = 0;
@@ -608,7 +608,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     int op = (csr_op & 3);
     const bool csr_imm = csr_op & 0b100;
     if (csr_imm) value = inst.i.rs1; // treat rs1 as immediate value
-    else value = c->r[inst.i.rs1];
+    else value = c->core.r[inst.i.rs1];
 
     if (op == RV_CSR_OP_SWAP) {
         if (inst.i.rd == 0) op = RV_CSR_OP_WRITE;
@@ -643,11 +643,11 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
 
     if (inst.i.rd != RV_ZERO) {
         if (c->core.mode == SL_CORE_MODE_32) result.value = (u4)result.value;
-        c->r[inst.i.rd] = result.value;
+        c->core.r[inst.i.rd] = result.value;
     }
 
 #ifdef RV_TRACE
-    RV_TRACE_RD(c, inst.i.rd, c->r[inst.i.rd]);
+    RV_TRACE_RD(c, inst.i.rd, c->core.r[inst.i.rd]);
     if (op != RV_CSR_OP_READ) {
         c->core.trace->options |= ITRACE_OPT_SYSREG;
         c->core.trace->addr = csr_addr;
@@ -670,7 +670,7 @@ int rv_dispatch(rv_core_t *c, u4 instruction) {
 #if RV_TRACE
     itrace_t tr;
     tr.pc = c->pc;
-    tr.sp = c->r[RV_SP];
+    tr.sp = c->core.r[RV_SP];
     tr.opcode = instruction;
     tr.options = 0;
     tr.pl = c->core.el;

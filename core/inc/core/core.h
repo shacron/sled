@@ -38,6 +38,7 @@ struct sl_core {
     bool branch_taken;  // was the last instruction a branch
 
     u8 pc;
+    u8 r[32];
 
     sl_engine_t engine;
 

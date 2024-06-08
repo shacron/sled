@@ -11,10 +11,10 @@
 #include <sled/error.h>
 
 static void rv_dump_core_state(rv_core_t *c) {
-    printf("pc=%"PRIx64", sp=%"PRIx64", ra=%"PRIx64", ticks=%"PRIu64"\n", c->core.pc, c->r[RV_SP], c->r[RV_RA], c->core.ticks);
+    printf("pc=%"PRIx64", sp=%"PRIx64", ra=%"PRIx64", ticks=%"PRIu64"\n", c->core.pc, c->core.r[RV_SP], c->core.r[RV_RA], c->core.ticks);
     for (u4 i = 0; i < 32; i += 4) {
         if (i < 10) printf(" ");
-        printf("x%u: %16"PRIx64"  %16"PRIx64"  %16"PRIx64"  %16"PRIx64"\n", i, c->r[i], c->r[i+1], c->r[i+2], c->r[i+3]);
+        printf("x%u: %16"PRIx64"  %16"PRIx64"  %16"PRIx64"  %16"PRIx64"\n", i, c->core.r[i], c->core.r[i+1], c->core.r[i+2], c->core.r[i+3]);
     }
 }
 

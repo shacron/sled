@@ -29,7 +29,7 @@ static void riscv_op_set_reg(sl_core_t *c, u4 reg, u8 value) {
 
     if (reg == 0) return;  // always zero
     if (reg < 32) {
-        rc->r[reg] = value;
+        rc->core.r[reg] = value;
         return;
     }
 
@@ -38,8 +38,8 @@ static void riscv_op_set_reg(sl_core_t *c, u4 reg, u8 value) {
 
     switch (reg) {
     case SL_CORE_REG_PC:   rc->core.pc = value;         break;
-    case SL_CORE_REG_SP:   rc->r[RV_SP] = value;   break;
-    case SL_CORE_REG_LR:   rc->r[RV_RA] = value;   break;
+    case SL_CORE_REG_SP:   rc->core.r[RV_SP] = value;   break;
+    case SL_CORE_REG_LR:   rc->core.r[RV_RA] = value;   break;
     case SL_RV_CORE_REG(RV_CSR_MTVEC):     sr->tvec = value;       break;
     case SL_RV_CORE_REG(RV_CSR_MSCRATCH):  sr->scratch = value;    break;
     case SL_RV_CORE_REG(RV_CSR_MEPC):      sr->epc = value;        break;
@@ -57,14 +57,14 @@ static u8 riscv_op_get_reg(sl_core_t *c, u4 reg) {
 
     if (reg == 0) return 0;  // always zero
     if (reg < 32)
-        return rc->r[reg];
+        return rc->core.r[reg];
 
     switch (reg) {
     case SL_CORE_REG_PC: return rc->core.pc;
-    case SL_CORE_REG_SP: return rc->r[RV_SP];
-    case SL_CORE_REG_LR: return rc->r[RV_RA];
-    case SL_CORE_REG_ARG0: return rc->r[RV_A0];
-    case SL_CORE_REG_ARG1: return rc->r[RV_A1];
+    case SL_CORE_REG_SP: return rc->core.r[RV_SP];
+    case SL_CORE_REG_LR: return rc->core.r[RV_RA];
+    case SL_CORE_REG_ARG0: return rc->core.r[RV_A0];
+    case SL_CORE_REG_ARG1: return rc->core.r[RV_A1];
     default:
         assert(false);
         return 0xbaddbaddbaddbadd;
