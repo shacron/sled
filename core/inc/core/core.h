@@ -23,6 +23,13 @@
 #define CORE_EV_IRQ     1
 #define CORE_EV_RUNMODE 2
 
+typedef union {
+    u4 u4;
+    float f;
+    u8 u8;
+    double d;
+} sl_fp_reg_t;
+
 typedef struct core_ops {
     void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
     u8 (*get_reg)(sl_core_t *c, u4 reg);
@@ -39,6 +46,8 @@ struct sl_core {
 
     u8 pc;
     u8 r[32];
+
+    sl_fp_reg_t f[32];
 
     sl_engine_t engine;
 

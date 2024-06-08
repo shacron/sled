@@ -770,7 +770,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             RV_TRACE_RDF(c, rd, val);
             RV_TRACE_PRINT(c, "c.flw f%u, %u(x%u)", rd, imm, rs);
             if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
-            c->f[rd].f = val;
+            c->core.f[rd].f = val;
             break;
         }
 #else
@@ -966,7 +966,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             RV_TRACE_RDD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.fldsp f%u, %u", ci.ci.rsd, imm);
             if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
-            c->f[ci.ci.rsd].d = val;
+            c->core.f[ci.ci.rsd].d = val;
             break;
         }
 
@@ -997,7 +997,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             RV_TRACE_RDF(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.flwsp f%u, %u", ci.ci.rsd, imm);
             if (err) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
-            c->f[ci.ci.rsd].f = val;
+            c->core.f[ci.ci.rsd].f = val;
             break;
         }
 #else
@@ -1064,8 +1064,8 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
         const u4 imm = CSS_IMM_SCALED_8(ci);
         const u8 addr = c->core.r[RV_SP] + imm;
-        u8 val = c->f[ci.css.rs2].u8;
-        RV_TRACE_STORE_D(c, addr, ci.css.rs2, c->f[ci.css.rs2].d);
+        u8 val = c->core.f[ci.css.rs2].u8;
+        RV_TRACE_STORE_D(c, addr, ci.css.rs2, c->core.f[ci.css.rs2].d);
         err = sl_core_mem_write(&c->core, addr, 8, 1, &val);
         RV_TRACE_PRINT(c, "c.fsdsp x%u, %u", ci.css.rs2, imm);
         if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
@@ -1089,8 +1089,8 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
     {   // C.FSWSP
         const u4 imm = CSS_IMM_SCALED_4(ci);
         const u4 addr = c->core.r[RV_SP] + imm;
-        u4 val = c->f[ci.css.rs2].u4;
-        RV_TRACE_STORE_F(c, addr, ci.css.rs2, c->f[ci.css.rs2].f);
+        u4 val = c->core.f[ci.css.rs2].u4;
+        RV_TRACE_STORE_F(c, addr, ci.css.rs2, c->core.f[ci.css.rs2].f);
         err = sl_core_mem_write(&c->core, addr, 4, 1, &val);
         RV_TRACE_PRINT(c, "c.fswsp f%u, %u", ci.css.rs2, imm);
         if (err) return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);

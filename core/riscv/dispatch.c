@@ -335,9 +335,9 @@ int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
     if (inst.r4.fmt == 0b10) {
         if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
 
-        const float rs1 = c->f[inst.r4.rs1].f;
-        const float rs2 = c->f[inst.r4.rs2].f;
-        const float rs3 = c->f[inst.r4.funct5].f;
+        const float rs1 = c->core.f[inst.r4.rs1].f;
+        const float rs2 = c->core.f[inst.r4.rs2].f;
+        const float rs3 = c->core.f[inst.r4.funct5].f;
         float result;
 
         feclearexcept(FE_ALL_EXCEPT);
@@ -372,16 +372,16 @@ int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
 
         fegetexceptflag(&flags, FE_ALL_EXCEPT);
         c->fexc |= flags;
-        c->f[inst.r4.rd].f = result;
+        c->core.f[inst.r4.rd].f = result;
         RV_TRACE_RDF(c, inst.r4.rd, result);
         RV_TRACE_PRINT(c, "%s f%u, f%u, f%u, f%u", opstr, inst.r4.rd, inst.r4.rs1, inst.r4.rs2, inst.r4.funct5);
         return 0;
     } else if (inst.r4.fmt == 0b01) {
         if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
 
-        const double rs1 = c->f[inst.r4.rs1].d;
-        const double rs2 = c->f[inst.r4.rs2].d;
-        const double rs3 = c->f[inst.r4.funct5].d;
+        const double rs1 = c->core.f[inst.r4.rs1].d;
+        const double rs2 = c->core.f[inst.r4.rs2].d;
+        const double rs3 = c->core.f[inst.r4.funct5].d;
         double result;
 
         feclearexcept(FE_ALL_EXCEPT);
@@ -416,7 +416,7 @@ int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
 
         fegetexceptflag(&flags, FE_ALL_EXCEPT);
         c->fexc |= flags;
-        c->f[inst.r4.rd].d = result;
+        c->core.f[inst.r4.rd].d = result;
         RV_TRACE_RDD(c, inst.r4.rd, result);
         RV_TRACE_PRINT(c, "%s f%u, f%u, f%u, f%u", opstr, inst.r4.rd, inst.r4.rs1, inst.r4.rs2, inst.r4.funct5);
         return 0;
@@ -433,7 +433,7 @@ int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst) {
     const i4 imm = ((i4)inst.raw) >> 20;
     u8 addr = c->core.r[inst.i.rs1] + imm;
     if (c->core.mode == SL_CORE_MODE_32) addr &= 0xffffffff;
-    rv_fp_reg_t val = {};
+    sl_fp_reg_t val = {};
 
     // imm[11:0] rs1 010 rd 0000111 FLW
     // imm[11:0] rs1 011 rd 0000111 FLD
@@ -464,7 +464,7 @@ int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst) {
             opstr, inst.i.rd, imm, inst.i.rs1, addr, st_err(err));
         return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
     }
-    c->f[inst.i.rd].u8 = val.u8;
+    c->core.f[inst.i.rd].u8 = val.u8;
     RV_TRACE_PRINT(c, "%s f%u, %d(x%u)", opstr, inst.i.rd, imm, inst.i.rs1);
     return 0;
 
@@ -477,7 +477,7 @@ int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
     const i4 imm = (((i4)inst.raw >> 20) & ~(0x1f)) | inst.s.imm1;
     u8 addr = c->core.r[inst.s.rs1] + imm;
     if (c->core.mode == SL_CORE_MODE_32) addr &= 0xffffffff;
-    rv_fp_reg_t val;
+    sl_fp_reg_t val;
     int err = 0;
 
     //imm[11:5] rs2 rs1 010 imm[4:0] 0100111 FSW
@@ -486,7 +486,7 @@ int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
     case 0b010:
         RV_TRACE_OPSTR("fsw");
         if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
-        val.u4 = c->f[inst.s.rs2].u4;
+        val.u4 = c->core.f[inst.s.rs2].u4;
         err = sl_core_mem_write(&c->core, addr, 4, 1, &val.u4);
         RV_TRACE_STORE_F(c, addr, inst.s.rs2, val.f);
         break;
@@ -494,7 +494,7 @@ int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
     case 0b011:
         RV_TRACE_OPSTR("fsd");
         if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-        val.u8 = c->f[inst.s.rs2].u8;
+        val.u8 = c->core.f[inst.s.rs2].u8;
         err = sl_core_mem_write(&c->core, addr, 8, 1, &val.u8);
         RV_TRACE_STORE_D(c, addr, inst.s.rs2, val.d);
         break;

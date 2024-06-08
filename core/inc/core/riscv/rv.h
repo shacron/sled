@@ -41,21 +41,12 @@ typedef struct {
     void (*destroy)(void *ext_private);
 } rv_isa_extension_t;
 
-typedef union {
-    u4 u4;
-    float f;
-    u8 u8;
-    double d;
-} rv_fp_reg_t;
-
 struct rv_core {
     sl_core_t core;
 
     u8 status;
     fexcept_t fexc; // host cumulative fp exception flags
     u1 frm;         // floating point rounding mode
-
-    rv_fp_reg_t f[32];
 
     uint64_t monitor_addr;
     uint64_t monitor_value;
