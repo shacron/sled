@@ -20,10 +20,6 @@
 #include <sled/error.h>
 #include <sled/riscv/csr.h>
 
-static int rv_load_pc(rv_core_t *c, u4 *inst) {
-    return sl_core_mem_read(&c->core, c->core.pc, 4, 1, inst);
-}
-
 static void riscv_op_set_reg(sl_core_t *c, u4 reg, u8 value) {
     rv_core_t *rc = (rv_core_t *)c;
 
@@ -103,11 +99,6 @@ static int riscv_op_set_state(sl_core_t *c, u4 state, bool enabled) {
     return 0;
 }
 
-static void riscv_core_next_pc(rv_core_t *c) {
-    c->core.pc += c->core.prev_len;
-    c->core.prev_len = 4;       // todo: fix me in decoder
-}
-
 // Synchronous irq handler - invokes an exception before the next instruction is dispatched.
 static int riscv_interrupt(sl_engine_t *e) {
     sl_irq_ep_t *ep = &e->irq_ep;
@@ -130,12 +121,12 @@ static int riscv_core_step(sl_engine_t *e) {
     int err = 0;
     rv_core_t *rc = containerof(e, rv_core_t, core.engine);
     u4 inst;
-    if ((err = rv_load_pc(rc, &inst)))
+    if ((err = sl_core_load_pc(&rc->core, &inst)))
         return rv_synchronous_exception(rc, EX_ABORT_INST, rc->core.pc, err);
     rc->core.branch_taken = false;
     if ((err = rv_dispatch(rc, inst))) return err;
     rc->core.ticks++;
-    if(!rc->core.branch_taken) riscv_core_next_pc(rc);
+    if(!rc->core.branch_taken) sl_core_next_pc(&rc->core);
     return err;
 }
 

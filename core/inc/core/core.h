@@ -119,6 +119,9 @@ int sl_core_endian_set(sl_core_t *c, bool big);
 void sl_core_instruction_barrier(sl_core_t *c);
 void sl_core_memory_barrier(sl_core_t *c, u4 type);
 
+void sl_core_next_pc(sl_core_t *c);
+int sl_core_load_pc(sl_core_t *c, u4 *inst);
+
 // ----------------------------------------------------------------------------
 // Misc
 // ----------------------------------------------------------------------------

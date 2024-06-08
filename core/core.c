@@ -189,6 +189,15 @@ sl_sym_entry_t *sl_core_get_sym_for_addr(sl_core_t *c, u8 addr) {
 }
 #endif
 
+void sl_core_next_pc(sl_core_t *c) {
+    c->pc += c->prev_len;
+    c->prev_len = 4;       // todo: fix me in decoder
+}
+
+int sl_core_load_pc(sl_core_t *c, u4 *inst) {
+    return sl_core_mem_read(c, c->pc, 4, 1, inst);
+}
+
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mapper = m;
     c->el = SL_CORE_EL_MONITOR;
