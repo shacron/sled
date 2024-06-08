@@ -32,6 +32,8 @@ typedef struct core_ops {
 } core_ops_t;
 
 struct sl_core {
+    u1 el;      // exception level
+
     sl_engine_t engine;
 
     u8 ticks;
@@ -80,7 +82,7 @@ void sl_core_add_symbols(sl_core_t *c, sl_sym_list_t *list);
 // int sl_core_event_send_async(sl_core_t *c, sl_event_t *ev);
 
 // ----------------------------------------------------------------------------
-// dispatch functions
+// synchronous functions
 // ----------------------------------------------------------------------------
 
 // These functions may only be invoked by the core dispatch loop

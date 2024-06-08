@@ -191,6 +191,7 @@ sl_sym_entry_t *sl_core_get_sym_for_addr(sl_core_t *c, u8 addr) {
 
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mapper = m;
+    c->el = SL_CORE_EL_MONITOR;
     config_set_internal(c, p);
     sl_engine_init(&c->engine, "core_eng", NULL);
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);

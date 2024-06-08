@@ -162,7 +162,7 @@ int sl_riscv_core_init(rv_core_t *rc, sl_core_params_t *p) {
     rc->mhartid = p->id;
 
     rc->mode = RV_MODE_RV32;
-    rc->pl = RV_PL_MACHINE;
+    rc->core.el = SL_CORE_EL_MONITOR;
     rc->core.engine.ops.step = riscv_core_step;
     rc->core.engine.ops.interrupt = riscv_interrupt;
     rc->core.ops = &riscv_core_ops;

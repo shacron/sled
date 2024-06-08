@@ -19,14 +19,14 @@ static void rv_dump_core_state(rv_core_t *c) {
 }
 
 rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u1 pl) {
-    assert(c->pl != 0);
+    assert(c->core.el != 0);
     return &c->sr_pl[pl - 1];
 }
 
 int rv_exception_enter(rv_core_t *c, u8 cause, u8 addr) {
     // todo: check medeleg / mideleg for priv level dispatching
 
-    rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_MACHINE);
+    rv_sr_pl_t *r = rv_get_pl_csrs(c, SL_CORE_EL_MONITOR);
     r->cause = cause;
     r->epc = c->pc;
     r->tval = addr;
@@ -36,10 +36,10 @@ int rv_exception_enter(rv_core_t *c, u8 cause, u8 addr) {
     s.raw = c->status;
     s.m_mpie = s.m_mie;             // previous interrupt state
     s.m_mie = 0;                    // disable interrupts
-    s.m_mpp = c->pl;                // previous priv level
+    s.m_mpp = c->core.el;                // previous priv level
     c->status = s.raw;
 
-    c->pl = RV_PL_MACHINE;          // todo: fix me
+    c->core.el = SL_CORE_EL_MONITOR;          // todo: fix me
 
     u8 tvec = r->tvec;
     if (cause & RV_CAUSE64_INT) {
@@ -77,9 +77,9 @@ int rv_exception_return(rv_core_t *c, u1 op) {
     }
     c->status = s.raw;
 
-    rv_sr_pl_t *r = rv_get_pl_csrs(c, c->pl);
+    rv_sr_pl_t *r = rv_get_pl_csrs(c, c->core.el);
     c->pc = r->epc;
-    c->pl = dest_pl;
+    c->core.el = dest_pl;
     c->jump_taken = 1;
 
     sl_core_interrupt_set(&c->core, int_enabled);
@@ -94,7 +94,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
     switch (ex) {
     case EX_SYSCALL:
         if (c->core.options & SL_CORE_OPT_TRAP_SYSCALL) return SL_ERR_SYSCALL;
-        return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->pl, value);
+        return rv_exception_enter(c, RV_EX_CALL_FROM_U + c->core.el, value);
 
     case EX_UNDEFINDED:
         if (c->core.options & SL_CORE_OPT_TRAP_UNDEF) {

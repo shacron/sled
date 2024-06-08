@@ -55,7 +55,7 @@ static u8 status_for_pl(u8 s, u1 pl) {
 
 static result64_t rv_status_csr(rv_core_t *c, int op, u8 value) {
     result64_t result = {};
-    u8 s = status_for_pl(c->status, c->pl);
+    u8 s = status_for_pl(c->status, c->core.el);
 
     if (op == RV_CSR_OP_READ) {
         result.value = s;
@@ -65,7 +65,7 @@ static result64_t rv_status_csr(rv_core_t *c, int op, u8 value) {
     if (c->mode == RV_MODE_RV32)
         value = ((value & RV_SR_STATUS_SD) << 32) | (value & ~(RV_SR_STATUS_SD));
 
-    value = status_for_pl(value, c->pl);
+    value = status_for_pl(value, c->core.el);
     u8 changed_bits;
 
     switch (op) {
@@ -303,13 +303,13 @@ result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
     csr_addr_t addr;
     addr.raw = csr;
 
-    if (addr.f.level > c->pl) goto undef;
+    if (addr.f.level > c->core.el) goto undef;
     if (op != RV_CSR_OP_READ) {
         if (addr.f.type == 3) goto undef;
     }
 
     if (addr.f.level == RV_PL_MACHINE) {
-        rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_MACHINE);
+        rv_sr_pl_t *r = rv_get_pl_csrs(c, SL_CORE_EL_MONITOR);
 
         // machine level
         switch (addr.raw) {
@@ -458,7 +458,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
 
     // supervisor level
     if (addr.f.level == RV_PL_SUPERVISOR) {
-        rv_sr_pl_t *r = rv_get_pl_csrs(c, RV_PL_SUPERVISOR);
+        rv_sr_pl_t *r = rv_get_pl_csrs(c, SL_CORE_EL_SUPERVISOR);
 
         switch (addr.raw) {
         // Supervisor Trap Setup (SRW)

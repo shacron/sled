@@ -11,6 +11,12 @@ extern "C" {
 
 // Public core interface
 
+// exception / privilege level
+#define SL_CORE_EL_USER         0
+#define SL_CORE_EL_SUPERVISOR   1
+#define SL_CORE_EL_HYPERVISOR   2
+#define SL_CORE_EL_MONITOR      3
+
 #define SL_CORE_OPT_TRAP_SYSCALL           (1u << 0)
 #define SL_CORE_OPT_TRAP_BREAKPOINT        (1u << 1)
 #define SL_CORE_OPT_TRAP_ABORT             (1u << 2)

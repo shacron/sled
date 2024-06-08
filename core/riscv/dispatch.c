@@ -541,7 +541,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
 
         case 0b0011000: // MRET
             RV_TRACE_PRINT(c, "mret");
-            if (c->pl != RV_PL_MACHINE) goto undef;
+            if (c->core.el != SL_CORE_EL_MONITOR) goto undef;
             err = rv_exception_return(c, RV_OP_MRET);
             if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
             return err;
@@ -549,13 +549,13 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         case 0b0001000:
             if (inst.r.rs2 == 0b00010) {
                 RV_TRACE_PRINT(c, "sret");
-                if (c->pl < RV_PL_SUPERVISOR) goto undef;
+                if (c->core.el < SL_CORE_EL_SUPERVISOR) goto undef;
                 err = rv_exception_return(c, RV_OP_SRET);
                 if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
                 return err;
             }
             if (inst.r.rs2 == 0b00101) { // WFI
-                if (c->pl == RV_PL_USER) goto undef;
+                if (c->core.el == SL_CORE_EL_USER) goto undef;
                 RV_TRACE_PRINT(c, "wfi");
                 return sl_engine_wait_for_interrupt(&c->core.engine);
             }
@@ -673,7 +673,7 @@ int rv_dispatch(rv_core_t *c, u4 instruction) {
     tr.sp = c->r[RV_SP];
     tr.opcode = instruction;
     tr.options = 0;
-    tr.pl = c->pl;
+    tr.pl = c->core.el;
     tr.rd = RV_ZERO;
     tr.cur = 0;
     tr.opstr[0] = 0;
