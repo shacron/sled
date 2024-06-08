@@ -19,6 +19,10 @@
 #define BARRIER_SYSTEM  (1u << 2)
 #define BARRIER_SYNC    (1u << 3)
 
+#define MONITOR_UNARMED 0
+#define MONITOR_ARMED32 1
+#define MONITOR_ARMED64 2
+
 #define CORE_INT_ENABLED(s) (s & (1u << SL_CORE_STATE_INTERRUPTS_EN))
 #define CORE_IS_WFI(s) (s & (1u << SL_CORE_STATE_WFI))
 
@@ -53,11 +57,15 @@ struct sl_core {
     u1 frm;         // floating point rounding mode
     sl_fp_reg_t f[32];
 
-    sl_engine_t engine;
+    uint64_t monitor_addr;
+    uint64_t monitor_value;
+    uint8_t  monitor_status;
 
     u8 ticks;
-
     sl_mapper_t *mapper;
+
+    sl_engine_t engine;
+
     itrace_t *trace;
     const core_ops_t *ops;
 

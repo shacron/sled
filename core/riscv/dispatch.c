@@ -24,10 +24,6 @@
 #define FENCE_O (1u << 2)
 #define FENCE_I (1u << 3)
 
-#define MONITOR_UNARMED 0
-#define MONITOR_ARMED32 1
-#define MONITOR_ARMED64 2
-
 int rv_fp32_exec_fp(rv_core_t *c, rv_inst_t inst);
 int rv_fp64_exec_fp(rv_core_t *c, rv_inst_t inst);
 
@@ -79,7 +75,7 @@ undef:
 static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 ord) {
     u8 result;
     int err;
-    c->monitor_status = MONITOR_UNARMED;
+    c->core.monitor_status = MONITOR_UNARMED;
     if ((err = sl_core_mem_atomic(&c->core, addr, 4, op, operand, 0, &result, ord, memory_order_relaxed))) return err;
     if (rd != RV_ZERO) {
         c->core.r[rd] = (u4)result;
@@ -91,7 +87,7 @@ static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 o
 static int rv_atomic_alu64(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 ord) {
     u8 result;
     int err;
-    c->monitor_status = MONITOR_UNARMED;
+    c->core.monitor_status = MONITOR_UNARMED;
     if ((err = sl_core_mem_atomic(&c->core, addr, 8, op, operand, 0, &result, ord, memory_order_relaxed))) return err;
     if (rd != RV_ZERO) {
         c->core.r[rd] = result;
@@ -128,14 +124,14 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             if (inst.r.rs2 != 0) goto undef;
             // we are faking a monitor by retaining the loaded value and then compare-exchanging with the stored value
             RV_TRACE_PRINT(c, "lr.w%s x%u, (x%u)", bstr, rd, inst.r.rs1);
-            c->monitor_addr = addr;
-            c->monitor_status = MONITOR_UNARMED;
+            c->core.monitor_addr = addr;
+            c->core.monitor_status = MONITOR_UNARMED;
             if (barrier & 1) atomic_thread_fence(memory_order_release);
             u4 w;
             if ((err = sl_core_mem_read(&c->core, addr, 4, 1, &w))) break;
             if (barrier & 2) atomic_thread_fence(memory_order_acquire);
-            c->monitor_value = w;
-            c->monitor_status = MONITOR_ARMED32;
+            c->core.monitor_value = w;
+            c->core.monitor_status = MONITOR_ARMED32;
             if (rd != RV_ZERO) {
                 c->core.r[rd] = w;
                 RV_TRACE_RD(c, rd, c->core.r[rd]);
@@ -145,22 +141,22 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
 
         case 0b00011: // SC.W
             RV_TRACE_PRINT(c, "sc.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            if (c->monitor_status != MONITOR_ARMED32) {
-                c->monitor_status = MONITOR_UNARMED;
+            if (c->core.monitor_status != MONITOR_ARMED32) {
+                c->core.monitor_status = MONITOR_UNARMED;
                 return 0;
             }
-            if (c->monitor_addr != addr) {
-                c->monitor_status = MONITOR_UNARMED;
+            if (c->core.monitor_addr != addr) {
+                c->core.monitor_status = MONITOR_UNARMED;
                 return 0;
             }
             // new_val, old_val
             // todo: clarify if barrier is invoked on failure and ord_failure needs to be set
-            if ((err = sl_core_mem_atomic(&c->core, addr, 4, IO_OP_ATOMIC_CAS, c->core.r[inst.r.rs2], c->monitor_value, &result, ord, ord))) return err;
+            if ((err = sl_core_mem_atomic(&c->core, addr, 4, IO_OP_ATOMIC_CAS, c->core.r[inst.r.rs2], c->core.monitor_value, &result, ord, ord))) return err;
             if (rd != RV_ZERO) {
                 c->core.r[rd] = (u4)result;
                 RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
-            c->monitor_status = MONITOR_UNARMED;
+            c->core.monitor_status = MONITOR_UNARMED;
             break;
 
         case 0b00001: // AMOSWAP.W
@@ -220,14 +216,14 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
         case 0b00010: { // LR.D
             if (inst.r.rs2 != 0) goto undef;
             RV_TRACE_PRINT(c, "lr.d%s x%u, (x%u)", bstr, rd, inst.r.rs1);
-            c->monitor_addr = addr;
-            c->monitor_status = MONITOR_UNARMED;
+            c->core.monitor_addr = addr;
+            c->core.monitor_status = MONITOR_UNARMED;
             if (barrier & 1) atomic_thread_fence(memory_order_release);
             u8 d;
             if ((err = sl_core_mem_read(&c->core, addr, 8, 1, &d))) break;
             if (barrier & 2) atomic_thread_fence(memory_order_acquire);
-            c->monitor_value = d;
-            c->monitor_status = MONITOR_ARMED64;
+            c->core.monitor_value = d;
+            c->core.monitor_status = MONITOR_ARMED64;
             if (rd != RV_ZERO) {
                 c->core.r[rd] = d;
                 RV_TRACE_RD(c, rd, c->core.r[rd]);
@@ -237,20 +233,20 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
 
         case 0b00011: // SC.D
             RV_TRACE_PRINT(c, "sc.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
-            if (c->monitor_status != MONITOR_ARMED64) {
-                c->monitor_status = MONITOR_UNARMED;
+            if (c->core.monitor_status != MONITOR_ARMED64) {
+                c->core.monitor_status = MONITOR_UNARMED;
                 return 0;
             }
-            if (c->monitor_addr != addr) {
-                c->monitor_status = MONITOR_UNARMED;
+            if (c->core.monitor_addr != addr) {
+                c->core.monitor_status = MONITOR_UNARMED;
                 return 0;
             }
-            if ((err = sl_core_mem_atomic(&c->core, addr, 8, IO_OP_ATOMIC_CAS, c->core.r[inst.r.rs2], c->monitor_value, &result, ord, ord))) return err;
+            if ((err = sl_core_mem_atomic(&c->core, addr, 8, IO_OP_ATOMIC_CAS, c->core.r[inst.r.rs2], c->core.monitor_value, &result, ord, ord))) return err;
             if (rd != RV_ZERO) {
                 c->core.r[rd] = result;
                 RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
-            c->monitor_status = MONITOR_UNARMED;
+            c->core.monitor_status = MONITOR_UNARMED;
             break;
 
         case 0b00001: // AMOSWAP.D
