@@ -371,7 +371,7 @@ int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
         }
 
         fegetexceptflag(&flags, FE_ALL_EXCEPT);
-        c->fexc |= flags;
+        c->core.fexc |= flags;
         c->core.f[inst.r4.rd].f = result;
         RV_TRACE_RDF(c, inst.r4.rd, result);
         RV_TRACE_PRINT(c, "%s f%u, f%u, f%u, f%u", opstr, inst.r4.rd, inst.r4.rs1, inst.r4.rs2, inst.r4.funct5);
@@ -415,7 +415,7 @@ int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
         }
 
         fegetexceptflag(&flags, FE_ALL_EXCEPT);
-        c->fexc |= flags;
+        c->core.fexc |= flags;
         c->core.f[inst.r4.rd].d = result;
         RV_TRACE_RDD(c, inst.r4.rd, result);
         RV_TRACE_PRINT(c, "%s f%u, f%u, f%u, f%u", opstr, inst.r4.rd, inst.r4.rs1, inst.r4.rs2, inst.r4.funct5);

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <fenv.h>
+
 #include <core/irq.h>
 #include <core/itrace.h>
 #include <core/engine.h>
@@ -47,6 +49,8 @@ struct sl_core {
     u8 pc;
     u8 r[32];
 
+    fexcept_t fexc; // host cumulative fp exception flags
+    u1 frm;         // floating point rounding mode
     sl_fp_reg_t f[32];
 
     sl_engine_t engine;

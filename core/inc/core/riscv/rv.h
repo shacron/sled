@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <fenv.h>
-
 #include <core/core.h>
 #include <core/ex.h>
 #include <core/types.h>
@@ -45,8 +43,6 @@ struct rv_core {
     sl_core_t core;
 
     u8 status;
-    fexcept_t fexc; // host cumulative fp exception flags
-    u1 frm;         // floating point rounding mode
 
     uint64_t monitor_addr;
     uint64_t monitor_value;

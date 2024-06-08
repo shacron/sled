@@ -195,34 +195,34 @@ static u4 rv_host_fexc_from_fflags(u4 flags) {
 }
 
 static void rv_set_fcsr(rv_core_t *c, u4 value) {
-    c->frm = (value >> 5) & 7;
-    c->fexc = rv_host_fexc_from_fflags(value);
+    c->core.frm = (value >> 5) & 7;
+    c->core.fexc = rv_host_fexc_from_fflags(value);
 }
 
 static result64_t rv_csr_fflags(rv_core_t *c, int op, u8 value) {
     result64_t result = {};
 
     if (op == RV_CSR_OP_WRITE) {
-        c->fexc = rv_host_fexc_from_fflags(value);
+        c->core.fexc = rv_host_fexc_from_fflags(value);
         return result;
     }
 
-    u4 flags = rv_fflags_from_host_fexc(c->fexc);
+    u4 flags = rv_fflags_from_host_fexc(c->core.fexc);
     result.value = flags;
     switch (op) {
     case RV_CSR_OP_READ: break;
     case RV_CSR_OP_SWAP:
-        c->fexc = rv_host_fexc_from_fflags(value);
+        c->core.fexc = rv_host_fexc_from_fflags(value);
         break;
 
     case RV_CSR_OP_READ_SET:
         flags |= value;
-        c->fexc = rv_host_fexc_from_fflags(flags);
+        c->core.fexc = rv_host_fexc_from_fflags(flags);
          break;
 
    case RV_CSR_OP_READ_CLEAR:
         flags &= ~value;
-        c->fexc = rv_host_fexc_from_fflags(flags);
+        c->core.fexc = rv_host_fexc_from_fflags(flags);
         break;
 
     default:
@@ -237,23 +237,23 @@ static result64_t rv_csr_frm(rv_core_t *c, int op, u8 value) {
 
     u1 v = value & 7;
     if (op == RV_CSR_OP_WRITE) {
-        c->frm = v;
+        c->core.frm = v;
         return result;
     }
 
-    result.value = c->frm;
+    result.value = c->core.frm;
     switch (op) {
     case RV_CSR_OP_READ: break;
     case RV_CSR_OP_SWAP:
-        c->frm = v;
+        c->core.frm = v;
         break;
 
     case RV_CSR_OP_READ_SET:
-        c->frm |= v;
+        c->core.frm |= v;
          break;
 
    case RV_CSR_OP_READ_CLEAR:
-        c->frm &= ~v;
+        c->core.frm &= ~v;
         break;
 
     default:
@@ -273,7 +273,7 @@ static result64_t rv_csr_fcsr(rv_core_t *c, int op, u8 value) {
     }
 
     // synthesize current fcsr
-    u4 fcsr = (c->frm << 5) | rv_fflags_from_host_fexc(c->fexc);
+    u4 fcsr = (c->core.frm << 5) | rv_fflags_from_host_fexc(c->core.fexc);
     result.value = fcsr;
     switch (op) {
     case RV_CSR_OP_READ: break;
