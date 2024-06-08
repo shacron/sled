@@ -104,12 +104,8 @@ static int riscv_op_set_state(sl_core_t *c, u4 state, bool enabled) {
 }
 
 static void riscv_core_next_pc(rv_core_t *c) {
-    if (c->c_inst) {
-        c->core.pc += 2;
-        c->c_inst = 0;
-    } else {
-        c->core.pc += 4;
-    }
+    c->core.pc += c->core.prev_len;
+    c->core.prev_len = 4;       // todo: fix me in decoder
 }
 
 // Synchronous irq handler - invokes an exception before the next instruction is dispatched.

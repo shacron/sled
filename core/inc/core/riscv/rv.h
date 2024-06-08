@@ -50,7 +50,6 @@ typedef union {
 
 struct rv_core {
     sl_core_t core;
-    u1 c_inst; // was the last dispatched instruction a C type short instruction?
 
     u8 r[32];
 

@@ -1124,10 +1124,10 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
     // 16 bit compressed instructions
     if ((inst.u.opcode & 3) != 3) {
         if (!(c->core.arch_options & SL_RISCV_EXT_C)) return rv_undef(c, inst);
-        c->c_inst = 1;
+        c->core.prev_len = 2;
         return XLEN_PREFIX(dispatch16)(c, inst);
     }
-    c->c_inst = 0;
+    c->core.prev_len = 4;
 
     switch (inst.u.opcode) {
     // U-type instructions

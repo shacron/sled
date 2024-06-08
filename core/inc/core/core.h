@@ -34,6 +34,7 @@ typedef struct core_ops {
 struct sl_core {
     u1 el;              // exception level
     u1 mode;            // execution mode (register length)
+    u1 prev_len;        // length of last instruction
     bool branch_taken;  // was the last instruction a branch
 
     u8 pc;
