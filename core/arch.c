@@ -27,7 +27,7 @@ static const reg_name_t reg_common[] = {
     { SL_CORE_REG_LR, "lr" },
 };
 
-const arch_ops_t sl_arch_ops[] = {
+static const arch_ops_t arch_ops[] = {
     [SL_ARCH_MIPS] = { },
     [SL_ARCH_ARM] = { },
     [SL_ARCH_RISCV] = {
@@ -65,9 +65,11 @@ const char * sl_arch_name(u1 arch) {
     return arch_name_map[arch];
 }
 
-u1 sl_arch_reg_index(u1 arch, u4 reg) {
-    return sl_arch_ops[arch].reg_index(reg);
+const arch_ops_t * arch_get_ops(u1 arch) {
+    if (arch > SL_ARCH_NUM) return NULL;
+    return &arch_ops[arch];
 }
+
 
 u4 sl_arch_get_reg_count(u1 arch, u1 subarch, int type) {
     if (type != SL_CORE_REG_TYPE_INT) return 0;
@@ -87,7 +89,7 @@ u4 sl_arch_reg_for_name(u1 arch, const char *name) {
         if (!strcmp(name, r->name)) return r->value;
     }
 
-    const arch_ops_t *ops = &sl_arch_ops[arch];
+    const arch_ops_t *ops = &arch_ops[arch];
     if (ops->reg_for_name != NULL)
         return ops->reg_for_name(name);
 

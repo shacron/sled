@@ -5,6 +5,7 @@
 
 #include <fenv.h>
 
+#include <core/arch.h>
 #include <core/irq.h>
 #include <core/itrace.h>
 #include <core/engine.h>
@@ -68,6 +69,7 @@ struct sl_core {
 
     itrace_t *trace;
     const core_ops_t *ops;
+    const arch_ops_t *arch_ops;
 
     u1 arch;
     u1 subarch;

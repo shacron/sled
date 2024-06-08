@@ -37,6 +37,7 @@ static void config_set_internal(sl_core_t *c, sl_core_params_t *p) {
     c->options = p->options;
     c->arch_options = p->arch_options;
     c->name = p->name;
+    c->arch_ops = arch_get_ops(c->arch);
 }
 
 int sl_core_config_set(sl_core_t *c, sl_core_params_t *p) {
@@ -231,7 +232,7 @@ void sl_core_print_bus_topology(sl_core_t *c) {
 }
 
 void sl_core_dump_state(sl_core_t *c) {
-    const arch_ops_t *ops = &sl_arch_ops[c->arch];
+    const arch_ops_t *ops = c->arch_ops;
     const u1 sp = ops->reg_index(SL_CORE_REG_SP);
     const u1 lr = ops->reg_index(SL_CORE_REG_LR);
     const char *lr_name = ops->name_for_reg(SL_CORE_REG_LR);
