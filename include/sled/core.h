@@ -99,6 +99,7 @@ int sl_core_mem_write(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf);
 int sl_core_mem_atomic(sl_core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1, u8 *result, u1 ord, u1 ord_fail);
 u8 sl_core_get_cycles(sl_core_t *c);
 int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d);
+void sl_core_dump_state(sl_core_t *c);
 
 // ----------------------------------------------------------------------------
 // Async control functions

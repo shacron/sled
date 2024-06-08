@@ -75,5 +75,6 @@ int rv_exception_return(rv_core_t *c, u1 op);
 
 rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u1 pl);
 
+u1 rv_reg_index(u4 reg);
 const char *rv_name_for_reg(u4 reg);
 u4 rv_reg_for_name(const char *name);

@@ -10,14 +10,6 @@
 #include <core/riscv/rv.h>
 #include <sled/error.h>
 
-static void rv_dump_core_state(rv_core_t *c) {
-    printf("pc=%"PRIx64", sp=%"PRIx64", ra=%"PRIx64", ticks=%"PRIu64"\n", c->core.pc, c->core.r[RV_SP], c->core.r[RV_RA], c->core.ticks);
-    for (u4 i = 0; i < 32; i += 4) {
-        if (i < 10) printf(" ");
-        printf("x%u: %16"PRIx64"  %16"PRIx64"  %16"PRIx64"  %16"PRIx64"\n", i, c->core.r[i], c->core.r[i+1], c->core.r[i+2], c->core.r[i+3]);
-    }
-}
-
 rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u1 pl) {
     assert(c->core.el != 0);
     return &c->sr_pl[pl - 1];
@@ -100,7 +92,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
         if (c->core.options & SL_CORE_OPT_TRAP_UNDEF) {
             inst.raw = (u4)value;
             printf("UNDEFINED instruction %08x (op=%x) at pc=%" PRIx64 "\n", inst.raw, inst.b.opcode, c->core.pc);
-            rv_dump_core_state(c);
+            sl_core_dump_state(&c->core);
             return SL_ERR_UNDEF;
         } else {
             return rv_exception_enter(c, RV_EX_INST_ILLEGAL, value);
@@ -109,7 +101,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
     case EX_ABORT_LOAD:
         if (c->core.options & SL_CORE_OPT_TRAP_ABORT) {
             printf("LOAD FAULT (rd) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->core.pc, st_err(status));
-            rv_dump_core_state(c);
+            sl_core_dump_state(&c->core);
             return status;
         } else {
             u4 fault = RV_EX_LOAD_FAULT;
@@ -120,7 +112,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
     case EX_ABORT_STORE:
         if (c->core.options & SL_CORE_OPT_TRAP_ABORT) {
             printf("STORE FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->core.pc, st_err(status));
-            rv_dump_core_state(c);
+            sl_core_dump_state(&c->core);
             return status;
         } else {
             u4 fault = RV_EX_STORE_FAULT;
@@ -131,7 +123,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
     case EX_ABORT_INST:
         if (c->core.options & SL_CORE_OPT_TRAP_PREFETCH_ABORT) {
             printf("PREFETCH FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->core.pc, st_err(status));
-            rv_dump_core_state(c);
+            sl_core_dump_state(&c->core);
             return status;
         } else {
             u4 fault = RV_EX_INST_FAULT;

@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
+#include <inttypes.h>
 #include <stdatomic.h>
 #include <stdio.h>
 
+#include <core/arch.h>
 #include <core/device.h>
 #include <core/core.h>
 #include <core/mapper.h>
 #include <core/sym.h>
-#include <sled/arch.h>
 #include <sled/error.h>
 #include <sled/io.h>
 
@@ -227,4 +228,18 @@ void sl_core_destroy(sl_core_t *c) {
 
 void sl_core_print_bus_topology(sl_core_t *c) {
     mapper_print_mappings(c->mapper);
+}
+
+void sl_core_dump_state(sl_core_t *c) {
+    const arch_ops_t *ops = &sl_arch_ops[c->arch];
+    const u1 sp = ops->reg_index(SL_CORE_REG_SP);
+    const u1 lr = ops->reg_index(SL_CORE_REG_LR);
+    const char *lr_name = ops->name_for_reg(SL_CORE_REG_LR);
+
+    printf("pc=%" PRIx64 ", sp=%" PRIx64 ", %s=%" PRIx64 ", ticks=%" PRIu64 "\n", c->pc, c->r[sp], lr_name, c->r[lr], c->ticks);
+    for (u4 i = 0; i < 32; i += 4) {
+        if (i < 10) printf(" ");
+        printf("r%u: %16" PRIx64 "  %16" PRIx64 "  %16" PRIx64 "  %16" PRIx64 "\n", i, c->r[i], c->r[i+1], c->r[i+2], c->r[i+3]);
+    }
+    // todo: dump fp registers
 }

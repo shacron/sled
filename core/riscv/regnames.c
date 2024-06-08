@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
+#include <assert.h>
 #include <string.h>
 
 #include <core/common.h>
@@ -236,6 +237,16 @@ static const csr_name_t csr_name_f[] = {
     { 0x15, "mconfigpti" },
     { 0xFF, NULL },
 };
+
+u1 rv_reg_index(u4 reg) {
+    switch (reg) {
+    case SL_CORE_REG_SP: return RV_SP;
+    case SL_CORE_REG_LR: return RV_RA;
+    default:
+        assert(false);
+        return 0;
+    }
+}
 
 const char *rv_name_for_reg(u4 reg) {
     switch (reg) {
