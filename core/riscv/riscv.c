@@ -136,10 +136,10 @@ static int riscv_core_step(sl_engine_t *e) {
     u4 inst;
     if ((err = rv_load_pc(rc, &inst)))
         return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);
-    rc->jump_taken = 0;
+    rc->core.branch_taken = false;
     if ((err = rv_dispatch(rc, inst))) return err;
     rc->core.ticks++;
-    if(!rc->jump_taken) riscv_core_next_pc(rc);
+    if(!rc->core.branch_taken) riscv_core_next_pc(rc);
     return err;
 }
 

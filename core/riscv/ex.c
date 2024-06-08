@@ -48,7 +48,7 @@ int rv_exception_enter(rv_core_t *c, u8 cause, u8 addr) {
         if (tvec & 1) tvec += (ci << 2);
     }
     c->pc = tvec;
-    c->jump_taken = 1;
+    c->core.branch_taken = true;
     sl_core_interrupt_set(&c->core, false);
     return 0;
 }
@@ -80,7 +80,7 @@ int rv_exception_return(rv_core_t *c, u1 op) {
     rv_sr_pl_t *r = rv_get_pl_csrs(c, c->core.el);
     c->pc = r->epc;
     c->core.el = dest_pl;
-    c->jump_taken = 1;
+    c->core.branch_taken = true;
 
     sl_core_interrupt_set(&c->core, int_enabled);
     return 0;

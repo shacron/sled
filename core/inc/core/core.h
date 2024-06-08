@@ -32,7 +32,8 @@ typedef struct core_ops {
 } core_ops_t;
 
 struct sl_core {
-    u1 el;      // exception level
+    u1 el;              // exception level
+    bool branch_taken;  // was the last instruction a branch
 
     sl_engine_t engine;
 
