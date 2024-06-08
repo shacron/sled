@@ -117,7 +117,7 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
 #endif
 
     if (inst.r.funct3 == 0b010) {
-        if (addr & 3) return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, SL_ERR_IO_ALIGN);
+        if (addr & 3) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, SL_ERR_IO_ALIGN);
 
         switch (op) {
         case 0b00010: { // LR.W
@@ -458,7 +458,7 @@ int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst) {
     if (err) {
         RV_TRACE_PRINT(c, "%s f%u, %d(x%u)            ; [%" PRIx64 "] = %s",
             opstr, inst.i.rd, imm, inst.i.rs1, addr, st_err(err));
-        return rv_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
+        return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
     }
     c->core.f[inst.i.rd].u8 = val.u8;
     RV_TRACE_PRINT(c, "%s f%u, %d(x%u)", opstr, inst.i.rd, imm, inst.i.rs1);
@@ -501,7 +501,7 @@ int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
     if (err) {
         RV_TRACE_PRINT(c, "%s f%u, %d(x%u)            ; [%" PRIx64 "] = %s",
             opstr, inst.s.rs2, imm, inst.i.rs1, addr, st_err(err));
-        return rv_synchronous_exception(c, EX_ABORT_STORE, addr, err);
+        return sl_core_synchronous_exception(&c->core, EX_ABORT_STORE, addr, err);
     }
     RV_TRACE_PRINT(c, "%s f%u, %d(x%u)", opstr, inst.s.rs2, imm, inst.s.rs1);
     return 0;
@@ -527,7 +527,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
             if (inst.r.rs1 == 0) {
                 if (inst.r.rs2 == 0) {  // ECALL
                     RV_TRACE_PRINT(c, "ecall");
-                    return rv_synchronous_exception(c, EX_SYSCALL, inst.raw, 0);
+                    return sl_core_synchronous_exception(&c->core, EX_SYSCALL, inst.raw, 0);
                 } else if (inst.r.rs2 == 1) {   // EBREAK
                     RV_TRACE_PRINT(c, "ebreak");
                     return rv_exec_ebreak(c);

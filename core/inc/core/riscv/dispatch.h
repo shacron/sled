@@ -15,5 +15,5 @@ int rv32_dispatch(rv_core_t *c, rv_inst_t inst);
 int rv64_dispatch(rv_core_t *c, rv_inst_t inst);
 
 static inline int rv_undef(rv_core_t *c, rv_inst_t inst) {
-    return rv_synchronous_exception(c, EX_UNDEFINDED, inst.raw, 0);
+    return sl_core_synchronous_exception(&c->core, EX_UNDEFINDED, inst.raw, 0);
 }

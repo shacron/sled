@@ -31,6 +31,7 @@ static const arch_ops_t arch_ops[] = {
     [SL_ARCH_MIPS] = { },
     [SL_ARCH_ARM] = { },
     [SL_ARCH_RISCV] = {
+        .exception_enter = rv_exception_enter,
         .reg_index = rv_reg_index,
         .reg_for_name = rv_reg_for_name,
         .name_for_reg = rv_name_for_reg,

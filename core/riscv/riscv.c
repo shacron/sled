@@ -112,7 +112,7 @@ static int riscv_interrupt(sl_engine_t *e) {
         const u1 bit = irq_pri[i];
         const u4 num = (1u << bit);
         if (ep->asserted & num)
-            return rv_exception_enter(rc, bit | RV_CAUSE64_INT, 0);
+            return rv_exception_enter(&rc->core, bit | RV_CAUSE64_INT, 0);
     }
     return SL_ERR_STATE;
 }
@@ -122,7 +122,7 @@ static int riscv_core_step(sl_engine_t *e) {
     rv_core_t *rc = containerof(e, rv_core_t, core.engine);
     u4 inst;
     if ((err = sl_core_load_pc(&rc->core, &inst)))
-        return rv_synchronous_exception(rc, EX_ABORT_INST, rc->core.pc, err);
+        return sl_core_synchronous_exception(&rc->core, EX_ABORT_INST, rc->core.pc, err);
     rc->core.branch_taken = false;
     if ((err = rv_dispatch(rc, inst))) return err;
     rc->core.ticks++;

@@ -124,6 +124,8 @@ void sl_core_memory_barrier(sl_core_t *c, u4 type);
 void sl_core_next_pc(sl_core_t *c);
 int sl_core_load_pc(sl_core_t *c, u4 *inst);
 
+int sl_core_synchronous_exception(sl_core_t *c, u8 ex, u8 value, u4 status);
+
 // ----------------------------------------------------------------------------
 // Misc
 // ----------------------------------------------------------------------------

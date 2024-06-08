@@ -9,6 +9,7 @@ LIB_CSOURCES += \
 	$(SRCDIR)/elf.c \
 	$(SRCDIR)/engine.c \
 	$(SRCDIR)/error.c \
+	$(SRCDIR)/ex.c \
 	$(SRCDIR)/host.c \
 	$(SRCDIR)/io.c \
 	$(SRCDIR)/irq.c \
@@ -25,9 +26,9 @@ LIB_CSOURCES += \
 	$(SRCDIR)/riscv/dispatch_fp64.c \
 	$(SRCDIR)/riscv/dispatch_rv32.c \
 	$(SRCDIR)/riscv/dispatch_rv64.c \
-	$(SRCDIR)/riscv/ex.c \
 	$(SRCDIR)/riscv/regnames.c \
 	$(SRCDIR)/riscv/riscv.c \
+	$(SRCDIR)/riscv/rvex.c \
 	$(SRCDIR)/sem.c \
 	$(SRCDIR)/sym.c \
 	$(SRCDIR)/worker.c \

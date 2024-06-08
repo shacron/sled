@@ -69,8 +69,7 @@ struct rv_core {
 
 int rv_dispatch(rv_core_t *c, u4 instruction);
 
-int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status);
-int rv_exception_enter(rv_core_t *c, u8 cause, u8 addr);
+int rv_exception_enter(sl_core_t *c, u8 cause, u8 addr);
 int rv_exception_return(rv_core_t *c, u1 op);
 
 rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u1 pl);
