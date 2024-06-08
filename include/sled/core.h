@@ -17,6 +17,13 @@ extern "C" {
 #define SL_CORE_EL_HYPERVISOR   2
 #define SL_CORE_EL_MONITOR      3
 
+// execution mode
+#define SL_CORE_MODE_8          0
+#define SL_CORE_MODE_16         1
+#define SL_CORE_MODE_32         2
+#define SL_CORE_MODE_64         3
+#define SL_CORE_MODE_128        4
+
 #define SL_CORE_OPT_TRAP_SYSCALL           (1u << 0)
 #define SL_CORE_OPT_TRAP_BREAKPOINT        (1u << 1)
 #define SL_CORE_OPT_TRAP_ABORT             (1u << 2)

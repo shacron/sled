@@ -153,14 +153,14 @@ int FLEN_PREFIX(exec_fp)(rv_core_t *c, rv_inst_t inst) {
 
         // 11000 size 00010   rs1  rm   rd  1010011  FCVT.L.S/D
         case 0b00010:
-            if (c->mode != RV_MODE_RV64) goto undef;
+            if (c->core.mode != SL_CORE_MODE_64) goto undef;
             uval = (u8)(i8)c->f[inst.r.rs1].FF;
             RV_TRACE_PRINT(c, "fcvt.l." FLEN_S " x%u, f%u", rd, inst.r.rs1);
             break;
 
         // 11000 size 00011   rs1  rm   rd  1010011  FCVT.LU.S/D
         case 0b11000:
-            if (c->mode != RV_MODE_RV64) goto undef;
+            if (c->core.mode != SL_CORE_MODE_64) goto undef;
             uval = (u8)c->f[inst.r.rs1].FF;
             RV_TRACE_PRINT(c, "fcvt.lu." FLEN_S " x%u, f%u", rd, inst.r.rs1);
             break;
@@ -210,11 +210,11 @@ int FLEN_PREFIX(exec_fp)(rv_core_t *c, rv_inst_t inst) {
             // 11100 size 00000   rs1  000  rd  1010011  FMV.X.W
             RV_TRACE_PRINT(c, "fmv.x.w x%u, f%u", rd, inst.r.rs1);
             if (rd == RV_ZERO) break;
-            if (c->mode == RV_MODE_RV32) c->r[rd] = c->f[inst.r.rs1].u4;
-            else                         c->r[rd] = (i8)(i4)c->f[inst.r.rs1].u4;
+            if (c->core.mode == SL_CORE_MODE_32) c->r[rd] = c->f[inst.r.rs1].u4;
+            else c->r[rd] = (i8)(i4)c->f[inst.r.rs1].u4;
 #else
             // 11100 size 00000   rs1  000  rd  1010011  FMV.X.D
-            if (c->mode != RV_MODE_RV64) goto undef;
+            if (c->core.mode != SL_CORE_MODE_64) goto undef;
             RV_TRACE_PRINT(c, "fmv.x.d x%u, f%u", rd, inst.r.rs1);
             if (rd == RV_ZERO) break;
             c->r[rd] = c->f[inst.r.rs1].u8;
@@ -263,14 +263,14 @@ int FLEN_PREFIX(exec_fp)(rv_core_t *c, rv_inst_t inst) {
 
         // 11010 size 00010   rs1  rm   rd  1010011  FCVT.S.L
         case 0b00010:
-            if (c->mode != RV_MODE_RV64) goto undef;
+            if (c->core.mode != SL_CORE_MODE_64) goto undef;
             result.FF = (FLEN_TYPE)(i8)c->r[inst.r.rs1];
             RV_TRACE_PRINT(c, "fcvt." FLEN_S ".l f%u, x%u", rd, inst.r.rs1);
             break;
 
         // 11010 size 00011   rs1  rm   rd  1010011  FCVT.S.LU
         case 0b00011:
-            if (c->mode != RV_MODE_RV64) goto undef;
+            if (c->core.mode != SL_CORE_MODE_64) goto undef;
             result.FF = (FLEN_TYPE)c->r[inst.r.rs1];
             RV_TRACE_PRINT(c, "fcvt." FLEN_S ".lu f%u, x%u", rd, inst.r.rs1);
             break;
@@ -306,7 +306,7 @@ int FLEN_PREFIX(exec_fp)(rv_core_t *c, rv_inst_t inst) {
         RV_TRACE_PRINT(c, "fmv.w.x f%u, x%u", rd, inst.r.rs1);
 #else
         // 11110 size 00000   rs1  000  rd  1010011  FMV.D.X
-        if (c->mode != RV_MODE_RV64) goto undef;
+        if (c->core.mode != SL_CORE_MODE_64) goto undef;
         result.u8 = c->r[inst.r.rs1];
         RV_TRACE_PRINT(c, "fmv.d.x f%u, x%u", rd, inst.r.rs1);
 #endif

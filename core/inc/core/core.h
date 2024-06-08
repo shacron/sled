@@ -33,6 +33,7 @@ typedef struct core_ops {
 
 struct sl_core {
     u1 el;              // exception level
+    u1 mode;            // execution mode (register length)
     bool branch_taken;  // was the last instruction a branch
 
     sl_engine_t engine;

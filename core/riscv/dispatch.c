@@ -214,7 +214,7 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
     }
 
     if (inst.r.funct3 == 0b011) {
-        if (c->mode != RV_MODE_RV64) goto undef;
+        if (c->core.mode != SL_CORE_MODE_64) goto undef;
 
         switch (op) {
         case 0b00010: { // LR.D
@@ -432,7 +432,7 @@ int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst) {
 
     const i4 imm = ((i4)inst.raw) >> 20;
     u8 addr = c->r[inst.i.rs1] + imm;
-    if (c->mode == RV_MODE_RV32) addr &= 0xffffffff;
+    if (c->core.mode == SL_CORE_MODE_32) addr &= 0xffffffff;
     rv_fp_reg_t val = {};
 
     // imm[11:0] rs1 010 rd 0000111 FLW
@@ -476,7 +476,7 @@ int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     const i4 imm = (((i4)inst.raw >> 20) & ~(0x1f)) | inst.s.imm1;
     u8 addr = c->r[inst.s.rs1] + imm;
-    if (c->mode == RV_MODE_RV32) addr &= 0xffffffff;
+    if (c->core.mode == SL_CORE_MODE_32) addr &= 0xffffffff;
     rv_fp_reg_t val;
     int err = 0;
 
@@ -642,7 +642,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     }
 
     if (inst.i.rd != RV_ZERO) {
-        if (c->mode == RV_MODE_RV32) result.value = (u4)result.value;
+        if (c->core.mode == SL_CORE_MODE_32) result.value = (u4)result.value;
         c->r[inst.i.rd] = result.value;
     }
 
@@ -680,7 +680,7 @@ int rv_dispatch(rv_core_t *c, u4 instruction) {
     c->core.trace = &tr;
 #endif
 
-    if (c->mode == RV_MODE_RV32) err = rv32_dispatch(c, inst);
+    if (c->core.mode == SL_CORE_MODE_32) err = rv32_dispatch(c, inst);
     else                         err = rv64_dispatch(c, inst);
 
 #if RV_TRACE

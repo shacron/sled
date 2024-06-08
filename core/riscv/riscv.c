@@ -79,10 +79,10 @@ static int riscv_op_set_state(sl_core_t *c, u4 state, bool enabled) {
 
     case SL_CORE_STATE_64BIT:
         if (enabled) {
-            rc->mode = RV_MODE_RV64;
+            rc->core.mode = SL_CORE_MODE_64;
             c->engine.state |= bit;
         } else {
-            rc->mode = RV_MODE_RV32;
+            rc->core.mode = SL_CORE_MODE_32;
             c->engine.state &= ~bit;
         }
         break;
@@ -161,8 +161,6 @@ int sl_riscv_core_init(rv_core_t *rc, sl_core_params_t *p) {
     rc->core.options |= SL_CORE_OPT_ENDIAN_LITTLE;
     rc->mhartid = p->id;
 
-    rc->mode = RV_MODE_RV32;
-    rc->core.el = SL_CORE_EL_MONITOR;
     rc->core.engine.ops.step = riscv_core_step;
     rc->core.engine.ops.interrupt = riscv_interrupt;
     rc->core.ops = &riscv_core_ops;
@@ -268,14 +266,14 @@ int riscv_decode_attributes(const char *attrib, u4 *arch_options_out) {
     }
 
     if (!strcmp(ex.name, "rv64i")) {
-        options = RV_MODE_RV64;
+        options = SL_CORE_MODE_64;
     } else {
         if (strcmp(ex.name, "rv32i")) {
             printf("unexpected arch mode: %s\n", ex.name);
             err = SL_ERR_ARG;
             goto out;
         }
-        options = RV_MODE_RV32;
+        options = SL_CORE_MODE_32;
     }
 
     err = SL_ERR_ARG;
