@@ -36,6 +36,8 @@ struct sl_core {
     u1 mode;            // execution mode (register length)
     bool branch_taken;  // was the last instruction a branch
 
+    u8 pc;
+
     sl_engine_t engine;
 
     u8 ticks;

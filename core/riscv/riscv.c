@@ -21,7 +21,7 @@
 #include <sled/riscv/csr.h>
 
 static int rv_load_pc(rv_core_t *c, u4 *inst) {
-    return sl_core_mem_read(&c->core, c->pc, 4, 1, inst);
+    return sl_core_mem_read(&c->core, c->core.pc, 4, 1, inst);
 }
 
 static void riscv_op_set_reg(sl_core_t *c, u4 reg, u8 value) {
@@ -37,7 +37,7 @@ static void riscv_op_set_reg(sl_core_t *c, u4 reg, u8 value) {
     if (reg >= SL_RV_CORE_REG_BASE) sr = rv_get_pl_csrs(rc, RV_PL_MACHINE);
 
     switch (reg) {
-    case SL_CORE_REG_PC:   rc->pc = value;         break;
+    case SL_CORE_REG_PC:   rc->core.pc = value;         break;
     case SL_CORE_REG_SP:   rc->r[RV_SP] = value;   break;
     case SL_CORE_REG_LR:   rc->r[RV_RA] = value;   break;
     case SL_RV_CORE_REG(RV_CSR_MTVEC):     sr->tvec = value;       break;
@@ -60,7 +60,7 @@ static u8 riscv_op_get_reg(sl_core_t *c, u4 reg) {
         return rc->r[reg];
 
     switch (reg) {
-    case SL_CORE_REG_PC: return rc->pc;
+    case SL_CORE_REG_PC: return rc->core.pc;
     case SL_CORE_REG_SP: return rc->r[RV_SP];
     case SL_CORE_REG_LR: return rc->r[RV_RA];
     case SL_CORE_REG_ARG0: return rc->r[RV_A0];
@@ -105,10 +105,10 @@ static int riscv_op_set_state(sl_core_t *c, u4 state, bool enabled) {
 
 static void riscv_core_next_pc(rv_core_t *c) {
     if (c->c_inst) {
-        c->pc += 2;
+        c->core.pc += 2;
         c->c_inst = 0;
     } else {
-        c->pc += 4;
+        c->core.pc += 4;
     }
 }
 
@@ -135,7 +135,7 @@ static int riscv_core_step(sl_engine_t *e) {
     rv_core_t *rc = containerof(e, rv_core_t, core.engine);
     u4 inst;
     if ((err = rv_load_pc(rc, &inst)))
-        return rv_synchronous_exception(rc, EX_ABORT_INST, rc->pc, err);
+        return rv_synchronous_exception(rc, EX_ABORT_INST, rc->core.pc, err);
     rc->core.branch_taken = false;
     if ((err = rv_dispatch(rc, inst))) return err;
     rc->core.ticks++;

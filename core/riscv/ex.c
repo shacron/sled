@@ -11,7 +11,7 @@
 #include <sled/error.h>
 
 static void rv_dump_core_state(rv_core_t *c) {
-    printf("pc=%"PRIx64", sp=%"PRIx64", ra=%"PRIx64", ticks=%"PRIu64"\n", c->pc, c->r[RV_SP], c->r[RV_RA], c->core.ticks);
+    printf("pc=%"PRIx64", sp=%"PRIx64", ra=%"PRIx64", ticks=%"PRIu64"\n", c->core.pc, c->r[RV_SP], c->r[RV_RA], c->core.ticks);
     for (u4 i = 0; i < 32; i += 4) {
         if (i < 10) printf(" ");
         printf("x%u: %16"PRIx64"  %16"PRIx64"  %16"PRIx64"  %16"PRIx64"\n", i, c->r[i], c->r[i+1], c->r[i+2], c->r[i+3]);
@@ -28,7 +28,7 @@ int rv_exception_enter(rv_core_t *c, u8 cause, u8 addr) {
 
     rv_sr_pl_t *r = rv_get_pl_csrs(c, SL_CORE_EL_MONITOR);
     r->cause = cause;
-    r->epc = c->pc;
+    r->epc = c->core.pc;
     r->tval = addr;
 
     // update status register
@@ -47,7 +47,7 @@ int rv_exception_enter(rv_core_t *c, u8 cause, u8 addr) {
         // m->ip = 1ull << ci;
         if (tvec & 1) tvec += (ci << 2);
     }
-    c->pc = tvec;
+    c->core.pc = tvec;
     c->core.branch_taken = true;
     sl_core_interrupt_set(&c->core, false);
     return 0;
@@ -78,7 +78,7 @@ int rv_exception_return(rv_core_t *c, u1 op) {
     c->status = s.raw;
 
     rv_sr_pl_t *r = rv_get_pl_csrs(c, c->core.el);
-    c->pc = r->epc;
+    c->core.pc = r->epc;
     c->core.el = dest_pl;
     c->core.branch_taken = true;
 
@@ -99,7 +99,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
     case EX_UNDEFINDED:
         if (c->core.options & SL_CORE_OPT_TRAP_UNDEF) {
             inst.raw = (u4)value;
-            printf("UNDEFINED instruction %08x (op=%x) at pc=%" PRIx64 "\n", inst.raw, inst.b.opcode, c->pc);
+            printf("UNDEFINED instruction %08x (op=%x) at pc=%" PRIx64 "\n", inst.raw, inst.b.opcode, c->core.pc);
             rv_dump_core_state(c);
             return SL_ERR_UNDEF;
         } else {
@@ -108,7 +108,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
 
     case EX_ABORT_LOAD:
         if (c->core.options & SL_CORE_OPT_TRAP_ABORT) {
-            printf("LOAD FAULT (rd) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
+            printf("LOAD FAULT (rd) at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->core.pc, st_err(status));
             rv_dump_core_state(c);
             return status;
         } else {
@@ -119,7 +119,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
 
     case EX_ABORT_STORE:
         if (c->core.options & SL_CORE_OPT_TRAP_ABORT) {
-            printf("STORE FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
+            printf("STORE FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->core.pc, st_err(status));
             rv_dump_core_state(c);
             return status;
         } else {
@@ -130,7 +130,7 @@ int rv_synchronous_exception(rv_core_t *c, core_ex_t ex, u8 value, u4 status) {
 
     case EX_ABORT_INST:
         if (c->core.options & SL_CORE_OPT_TRAP_PREFETCH_ABORT) {
-            printf("PREFETCH FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->pc, st_err(status));
+            printf("PREFETCH FAULT at addr=%" PRIx64 ", pc=%" PRIx64 ", err=%s\n", value, c->core.pc, st_err(status));
             rv_dump_core_state(c);
             return status;
         } else {
