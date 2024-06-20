@@ -67,7 +67,9 @@ void sl_core_interrupt_set(sl_core_t *c, bool enable) {
 }
 
 int sl_core_endian_set(sl_core_t *c, bool big) {
-    return c->ops->set_state(c, SL_CORE_STATE_ENDIAN_BIG, big);
+    if (big) c->state |= SL_CORE_STATE_ENDIAN_BIG;
+    else c->state &= ~SL_CORE_STATE_ENDIAN_BIG;
+    return 0;
 }
 
 void sl_core_instruction_barrier(sl_core_t *c) {
@@ -160,8 +162,8 @@ int sl_core_run(sl_core_t *c) {
     return sl_engine_run(&c->engine);
 }
 
-int sl_core_set_state(sl_core_t *c, u4 state, bool enabled) {
-    return c->ops->set_state(c, state, enabled);
+void sl_core_set_mode(sl_core_t *c, u1 mode) {
+    c->mode = mode;
 }
 
 u4 sl_core_get_reg_count(sl_core_t *c, int type) {

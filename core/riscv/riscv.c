@@ -67,38 +67,6 @@ static u8 riscv_op_get_reg(sl_core_t *c, u4 reg) {
     }
 }
 
-static int riscv_op_set_state(sl_core_t *c, u4 state, bool enabled) {
-    rv_core_t *rc = (rv_core_t *)c;
-
-    const u4 bit = (1u << state);
-    switch (state) {
-
-    case SL_CORE_STATE_64BIT:
-        if (enabled) {
-            rc->core.mode = SL_CORE_MODE_64;
-            c->engine.state |= bit;
-        } else {
-            rc->core.mode = SL_CORE_MODE_32;
-            c->engine.state &= ~bit;
-        }
-        break;
-
-    case SL_CORE_STATE_INTERRUPTS_EN:
-        sl_engine_interrupt_set(&c->engine, enabled);
-        break;
-
-    case SL_CORE_STATE_ENDIAN_BIG:
-        if (enabled) c->engine.state |= bit;
-        else c->engine.state &= ~bit;
-        break;
-
-    default:
-        return SL_ERR_ARG;
-    }
-
-    return 0;
-}
-
 // Synchronous irq handler - invokes an exception before the next instruction is dispatched.
 static int riscv_interrupt(sl_engine_t *e) {
     sl_irq_ep_t *ep = &e->irq_ep;
@@ -136,7 +104,6 @@ static void riscv_core_destroy(sl_core_t *c);
 static const core_ops_t riscv_core_ops = {
     .set_reg = riscv_op_set_reg,
     .get_reg = riscv_op_get_reg,
-    .set_state = riscv_op_set_state,
     .shutdown = riscv_core_shutdown,
     .destroy = riscv_core_destroy,
 };

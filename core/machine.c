@@ -316,12 +316,8 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
         err = SL_ERR_ARG;
         goto out_err;
     }
+    if (is64) sl_core_set_mode(c, SL_CORE_MODE_64);
     sl_core_set_reg(c, SL_CORE_REG_PC, entry);
-
-    if ((err = sl_core_set_state(c, SL_CORE_STATE_64BIT, is64))) {
-        fprintf(stderr, "failed to set core 64-bit state\n");
-        goto out_err;
-    }
     err = 0;
 
 out_err:

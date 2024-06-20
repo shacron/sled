@@ -40,7 +40,6 @@ typedef union {
 typedef struct core_ops {
     void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
     u8 (*get_reg)(sl_core_t *c, u4 reg);
-    int (*set_state)(sl_core_t *c, u4 state, bool enabled);
     void (*shutdown)(sl_core_t *c);
     void (*destroy)(sl_core_t *c);
 } core_ops_t;
@@ -50,6 +49,8 @@ struct sl_core {
     u1 mode;            // execution mode (register length)
     u1 prev_len;        // length of last instruction
     bool branch_taken;  // was the last instruction a branch
+
+    u4 state;           // core state
 
     u8 pc;
     u8 r[32];
