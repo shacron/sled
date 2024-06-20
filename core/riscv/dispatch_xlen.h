@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
 #include <core/riscv.h>
 #include <core/riscv/dispatch.h>
@@ -487,7 +487,7 @@ int rv64_exec_alu_imm32(rv_core_t *c, rv_inst_t inst) {
 
     case 0b001: // SLLIW
         if (shift > 31) return rv_undef(c, inst);
-        result = s1 << shift;
+        result = (u4)s1 << shift;
         RV_TRACE_PRINT(c, "slliw x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
         break;
 
