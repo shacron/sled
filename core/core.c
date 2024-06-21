@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2022-2024 Shac Ron and The Sled Project
 
+#include <assert.h>
 #include <inttypes.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -198,8 +199,30 @@ void sl_core_next_pc(sl_core_t *c) {
     c->prev_len = 4;       // todo: fix me in decoder
 }
 
-int sl_core_load_pc(sl_core_t *c, u4 *inst) {
-    return sl_core_mem_read(c, c->pc, 4, 1, inst);
+int sl_core_load_pc(sl_core_t * restrict c, u4 * restrict inst) {
+    // todo extras: check alignment of pc
+
+    for (int i = 0; i < 3; i++) {
+        int err = sl_cache_read(&c->icache, c->pc, 4, inst);
+        if (err != SL_ERR_NOT_FOUND) return err;
+
+        // filled in both cache pages, all data should be found
+        if (i == 2) return SL_ERR_STATE;
+
+        sl_cache_page_t *pg;
+        const u8 miss_addr = c->icache.miss_addr;
+        if ((err = sl_cache_alloc_page(&c->icache, miss_addr, &pg))) return err;
+
+        const u1 shift = c->icache.page_shift;
+        const u8 pg_size = 1u << shift;
+        const u8 base = (miss_addr >> shift) << shift;
+        if ((err = sl_core_mem_read(c, base, 1, pg_size, pg->buffer))) {
+            sl_cache_discard_unfilled_page(&c->icache, pg);
+            return err;
+        }
+        sl_cache_fill_page(&c->icache, pg);
+    }
+    return 0;
 }
 
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
@@ -208,6 +231,7 @@ int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mode = SL_CORE_MODE_32;
     c->prev_len = 0;
     config_set_internal(c, p);
+    sl_cache_init(&c->icache);
     sl_engine_init(&c->engine, "core_eng", NULL);
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;

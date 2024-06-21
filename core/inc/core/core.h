@@ -6,6 +6,7 @@
 #include <fenv.h>
 
 #include <core/arch.h>
+#include <core/cache.h>
 #include <core/irq.h>
 #include <core/itrace.h>
 #include <core/engine.h>
@@ -65,8 +66,10 @@ struct sl_core {
 
     u8 ticks;
     sl_mapper_t *mapper;
+    sl_cache_t icache;      // instruction cache
 
     sl_engine_t engine;
+
 
     itrace_t *trace;
     const core_ops_t *ops;

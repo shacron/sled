@@ -539,7 +539,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
             RV_TRACE_PRINT(c, "mret");
             if (c->core.el != SL_CORE_EL_MONITOR) goto undef;
             err = rv_exception_return(c, RV_OP_MRET);
-            if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
+            if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->core.pc);
             return err;
 
         case 0b0001000:
@@ -547,7 +547,7 @@ int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
                 RV_TRACE_PRINT(c, "sret");
                 if (c->core.el < SL_CORE_EL_SUPERVISOR) goto undef;
                 err = rv_exception_return(c, RV_OP_SRET);
-                if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->pc);
+                if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->core.pc);
                 return err;
             }
             if (inst.r.rs2 == 0b00101) { // WFI
@@ -665,7 +665,7 @@ int rv_dispatch(rv_core_t *c, u4 instruction) {
 
 #if RV_TRACE
     itrace_t tr;
-    tr.pc = c->pc;
+    tr.pc = c->core.pc;
     tr.sp = c->core.r[RV_SP];
     tr.opcode = instruction;
     tr.options = 0;
@@ -726,10 +726,10 @@ int rv_dispatch(rv_core_t *c, u4 instruction) {
 trace_done:
         puts(buf);
 #if WITH_SYMBOLS
-        if (c->jump_taken) {
-            sl_sym_entry_t *e = sl_core_get_sym_for_addr(&c->core, c->pc);
+        if (c->core.branch_taken) {
+            sl_sym_entry_t *e = sl_core_get_sym_for_addr(&c->core, c->core.pc);
             if (e != NULL) {
-                u8 dist = c->pc - e->addr;
+                u8 dist = c->core.pc - e->addr;
                 printf("<%s+%#"PRIx64">:\n", e->name, dist);
             }
         }

@@ -10,3 +10,6 @@ typedef struct sl_lock sl_lock_t;
 typedef struct sl_cond sl_cond_t;
 typedef struct rv_core rv_core_t;
 typedef struct sl_sem sl_sem_t;
+
+typedef struct sl_cache sl_cache_t;
+typedef struct sl_cache_page sl_cache_page_t;
