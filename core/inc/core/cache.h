@@ -24,6 +24,7 @@ struct sl_cache {
 };
 
 void sl_cache_init(sl_cache_t *c);
+void sl_cache_shutdown(sl_cache_t *c);
 
 int sl_cache_read(sl_cache_t *c, u8 addr, usize size, void *buf);
 int sl_cache_alloc_page(sl_cache_t *c, u8 addr, sl_cache_page_t **pg_out);

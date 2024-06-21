@@ -77,3 +77,11 @@ void sl_cache_init(sl_cache_t *c) {
     sl_list_init(&c->allocated_list);
     sl_list_init(&c->free_list);
 }
+
+void sl_cache_shutdown(sl_cache_t *c) {
+    sl_list_node_t *n;
+    for (n = sl_list_remove_first(&c->allocated_list); n != NULL; n = sl_list_remove_first(&c->allocated_list))
+        free(n);
+    for (n = sl_list_remove_first(&c->free_list); n != NULL; n = sl_list_remove_first(&c->free_list))
+        free(n);
+}

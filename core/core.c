@@ -240,6 +240,7 @@ int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
 void sl_core_shutdown(sl_core_t *c) {
     c->ops->shutdown(c);
     sl_engine_shutdown(&c->engine);
+    sl_cache_shutdown(&c->icache);
 #if WITH_SYMBOLS
     sl_sym_list_t *n = NULL;
     for (sl_sym_list_t *s = c->symbols; s != NULL; s = n) {
