@@ -38,14 +38,30 @@ typedef union {
     double d;
 } sl_fp_reg_t;
 
-typedef struct core_ops {
+struct sl_core {
+
+    // ----------------------------------------------------------------------------
+    // synchronous functions
+    // ----------------------------------------------------------------------------
+    int (*decode)(sl_core_t *c, sl_slac_inst_t *inst);
+    int (*exception_enter)(sl_core_t *c, u8 ex, u8 value);
+    int (*breakpoint)(sl_core_t *c);
+
     void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
     u8 (*get_reg)(sl_core_t *c, u4 reg);
     void (*shutdown)(sl_core_t *c);
     void (*destroy)(sl_core_t *c);
-} core_ops_t;
 
-struct sl_core {
+    // ----------------------------------------------------------------------------
+    // Misc
+    // ----------------------------------------------------------------------------
+
+    // u4 (*reg_count)(sl_core_t *c);
+    // u1 (*reg_index)(sl_core_t *c, u4 reg);
+    // const char* (*name_for_reg)(sl_core_t *c, u4 reg);
+    // u4 (*reg_for_name)(sl_core_t *c, const char *name);
+
+
     u1 el;              // exception level
     u1 mode;            // execution mode (register length)
     u1 prev_len;        // length of last instruction
@@ -60,9 +76,9 @@ struct sl_core {
     u1 frm;         // floating point rounding mode
     sl_fp_reg_t f[32];
 
-    uint64_t monitor_addr;
-    uint64_t monitor_value;
-    uint8_t  monitor_status;
+    u8 monitor_addr;
+    u8 monitor_value;
+    u1  monitor_status;
 
     u8 ticks;
     sl_mapper_t *mapper;
@@ -70,9 +86,7 @@ struct sl_core {
 
     sl_engine_t engine;
 
-
     itrace_t *trace;
-    const core_ops_t *ops;
     const arch_ops_t *arch_ops;
 
     u1 arch;
@@ -126,7 +140,7 @@ void sl_core_instruction_barrier(sl_core_t *c);
 void sl_core_memory_barrier(sl_core_t *c, u4 type);
 
 void sl_core_next_pc(sl_core_t *c);
-int sl_core_load_pc(sl_core_t *c, u4 *inst);
+int sl_core_load_pc(sl_core_t *c, sl_slac_inst_t **inst_out);
 
 int sl_core_synchronous_exception(sl_core_t *c, u8 ex, u8 value, u4 status);
 

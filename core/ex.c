@@ -4,7 +4,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#include <core/arch.h>
 #include <core/core.h>
 #include <core/ex.h>
 #include <sled/error.h>
@@ -14,12 +13,10 @@ int sl_core_synchronous_exception(sl_core_t *c, u8 ex, u8 value, u4 status) {
 
     // todo: check if nested exception
 
-    const arch_ops_t *ops = c->arch_ops;
-
     switch (ex) {
     case EX_SYSCALL:
         if (c->options & SL_CORE_OPT_TRAP_SYSCALL) return SL_ERR_SYSCALL;
-        return ops->exception_enter(c, ex, value);
+        return c->exception_enter(c, ex, value);
 
     case EX_UNDEFINDED:
         if (c->options & SL_CORE_OPT_TRAP_UNDEF) {
@@ -28,7 +25,7 @@ int sl_core_synchronous_exception(sl_core_t *c, u8 ex, u8 value, u4 status) {
             sl_core_dump_state(c);
             return SL_ERR_UNDEF;
         } else {
-            return ops->exception_enter(c, ex, value);
+            return c->exception_enter(c, ex, value);
         }
 
     case EX_ABORT_LOAD:
@@ -38,7 +35,7 @@ int sl_core_synchronous_exception(sl_core_t *c, u8 ex, u8 value, u4 status) {
             return status;
         } else {
             if (status == SL_ERR_IO_ALIGN) ex = EX_ABORT_LOAD_ALIGN;
-            return ops->exception_enter(c, ex, value);
+            return c->exception_enter(c, ex, value);
         }
 
     case EX_ABORT_STORE:
@@ -48,7 +45,7 @@ int sl_core_synchronous_exception(sl_core_t *c, u8 ex, u8 value, u4 status) {
             return status;
         } else {
             if (status == SL_ERR_IO_ALIGN) ex = EX_ABORT_STORE_ALIGN;
-            return ops->exception_enter(c, ex, value);
+            return c->exception_enter(c, ex, value);
         }
 
     case EX_ABORT_INST:
@@ -58,7 +55,7 @@ int sl_core_synchronous_exception(sl_core_t *c, u8 ex, u8 value, u4 status) {
             return status;
         } else {
             if (status == SL_ERR_IO_ALIGN) ex = EX_ABORT_INST_ALIGN;
-            return ops->exception_enter(c, ex, value);
+            return c->exception_enter(c, ex, value);
         }
 
     default:

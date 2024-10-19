@@ -19,13 +19,14 @@
 #include <sled/error.h>
 #include <sled/io.h>
 
+int rv_fp32_exec_fp(rv_core_t *c, rv_inst_t inst);
+int rv_fp64_exec_fp(rv_core_t *c, rv_inst_t inst);
+
+#if 0
 #define FENCE_W (1u << 0)
 #define FENCE_R (1u << 1)
 #define FENCE_O (1u << 2)
 #define FENCE_I (1u << 3)
-
-int rv_fp32_exec_fp(rv_core_t *c, rv_inst_t inst);
-int rv_fp64_exec_fp(rv_core_t *c, rv_inst_t inst);
 
 #if RV_TRACE
 static void rv_fence_op_name(u1 op, char *s) {
@@ -71,6 +72,7 @@ int rv_exec_mem(rv_core_t *c, rv_inst_t inst) {
 undef:
     return rv_undef(c, inst);
 }
+#endif
 
 static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 ord) {
     u8 result;
@@ -658,7 +660,9 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_dispatch(rv_core_t *c, u4 instruction) {
+int rv_dispatch(sl_core_t *cc, u4 instruction) {
+    rv_core_t *c = (rv_core_t *)cc;
+
     rv_inst_t inst;
     inst.raw = instruction;
     int err;

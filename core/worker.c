@@ -97,7 +97,7 @@ int sl_worker_event_enqueue_async(sl_worker_t *w, sl_event_t *ev) {
     return 0;
 }
 
-static int single_step(sl_worker_t *w) {
+int sl_worker_handle_events(sl_worker_t *w) {
     int err = 0;
 
     if (w->state & SL_WORKER_STATE_ENGINE_RUNNABLE) {
@@ -111,28 +111,21 @@ static int single_step(sl_worker_t *w) {
         if ((err = handle_events(w, true))) return err;
     }
 
-    return w->engine->ops.step(w->engine);
+    return 0;
 }
 
 int sl_worker_step(sl_worker_t *w, u8 num) {
-    for (u8 i = 0; i < num; i++) {
-        int err = single_step(w);
-        if (err) return err;
-    }
-    return 0;
+    return sl_engine_step(w->engine, num);
 }
 
 int sl_worker_run(sl_worker_t *w) {
     assert(!w->thread_running);
-    for ( ; ; ) {
-        int err = single_step(w);
-        if (err) return err;
-    }
+    return sl_engine_run(w->engine);
 }
 
 static void * workloop_thread(void *arg) {
     sl_worker_t *w = arg;
-    w->thread_status = sl_worker_run(w);
+    w->thread_status = sl_engine_run(w->engine);
     return NULL;
 }
 

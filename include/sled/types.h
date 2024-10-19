@@ -51,10 +51,23 @@ typedef struct sl_map_ep sl_map_ep_t;
 typedef struct sl_mapper sl_mapper_t;
 typedef struct sl_mapping sl_mapping_t;
 typedef struct sl_reg_view sl_reg_view_t;
+typedef struct sl_slac_desc sl_slac_desc_t;
+typedef struct sl_slac_inst sl_slac_inst_t;
+typedef union sl_slac_opcode sl_slac_opcode_t;
 typedef struct sl_sym_entry sl_sym_entry_t;
 typedef struct sl_sym_list sl_sym_list_t;
 typedef struct sl_chrono sl_chrono_t;
 typedef struct sl_worker sl_worker_t;
+
+typedef struct {
+    u1 value;
+    int err;
+} result8_t;
+
+typedef struct {
+    u2 value;
+    int err;
+} result16_t;
 
 typedef struct {
     u4 value;

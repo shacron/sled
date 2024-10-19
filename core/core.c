@@ -5,14 +5,18 @@
 #include <inttypes.h>
 #include <stdatomic.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <core/arch.h>
+#include <core/common.h>
 #include <core/device.h>
 #include <core/core.h>
+#include <core/ex.h>
 #include <core/mapper.h>
 #include <core/sym.h>
 #include <sled/error.h>
 #include <sled/io.h>
+#include <sled/slac.h>
 
 int sl_core_async_command(sl_core_t *c, u4 cmd, bool wait) {
     return sl_engine_async_command(&c->engine, cmd, wait);
@@ -53,10 +57,6 @@ void sl_core_print_config(sl_core_t *c) {
     printf("  subarch: %u\n", c->subarch);
     printf("  options: %x\n", c->options);
     printf("  arch_options: %x\n", c->arch_options);
-}
-
-const core_ops_t * core_get_ops(sl_core_t *c) {
-    return c->ops;
 }
 
 u8 sl_core_get_cycles(sl_core_t *c) {
@@ -136,11 +136,11 @@ int sl_core_mem_atomic(sl_core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1,
 }
 
 void sl_core_set_reg(sl_core_t *c, u4 reg, u8 value) {
-    c->ops->set_reg(c, reg, value);
+    c->set_reg(c, reg, value);
 }
 
 u8 sl_core_get_reg(sl_core_t *c, u4 reg) {
-    return c->ops->get_reg(c, reg);
+    return c->get_reg(c, reg);
 }
 
 int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d) {
@@ -155,12 +155,59 @@ int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d) {
     return id;
 }
 
+// temporary
+int rv_dispatch(sl_core_t *c, u4 instruction);
+
+int slac4_dispatch(sl_core_t *c, sl_slac_inst_t *si);
+int slac8_dispatch(sl_core_t *c, sl_slac_inst_t *si);
+
+static int slac_dispatch(sl_core_t *c, sl_slac_inst_t *si) {
+/*
+    switch (si->len) {
+    case SLAC_IN_LEN_4:     return slac4_dispatch(c, si);
+    case SLAC_IN_LEN_8:     return slac8_dispatch(c, si);
+    case SLAC_IN_LEN_MODE:  break;
+    }
+*/
+    switch (c->mode) {
+    case SL_CORE_MODE_32:   return slac4_dispatch(c, si);
+    case SL_CORE_MODE_64:   return slac8_dispatch(c, si);
+    }
+    return SL_ERR_STATE;
+}
+
 int sl_core_step(sl_core_t *c, u8 num) {
-    return sl_engine_step(&c->engine, num);
+    for (u8 i = 0; i < num; i++) {
+        int err;
+        if ((err = sl_worker_handle_events(c->engine.worker))) return err;
+
+        sl_slac_inst_t *si;
+        if ((err = sl_core_load_pc(c, &si)))
+            return sl_core_synchronous_exception(c, EX_ABORT_INST, c->pc, err);
+        c->branch_taken = false;
+
+        if (si->raw == SLAC_IN_INVALID) {
+            if ((err = c->decode(c, si))) {
+                // temporary until all instructions can be decoded
+                if (err != SL_ERR_SLAC_UNDECODED) return err;
+                if ((err = rv_dispatch(c, si->desc.machine_op))) return err;
+                goto dispatch_done;
+            }
+        }
+        if ((err = slac_dispatch(c, si))) return err;
+
+dispatch_done:
+        c->ticks++;
+        if(!c->branch_taken) sl_core_next_pc(c);
+    }
+    return 0;
 }
 
 int sl_core_run(sl_core_t *c) {
-    return sl_engine_run(&c->engine);
+    for ( ; ; ) {
+        int err = sl_core_step(c, 0x80000000);
+        if (err) return err;
+    }
 }
 
 void sl_core_set_mode(sl_core_t *c, u1 mode) {
@@ -199,30 +246,103 @@ void sl_core_next_pc(sl_core_t *c) {
     c->prev_len = 4;       // todo: fix me in decoder
 }
 
-int sl_core_load_pc(sl_core_t * restrict c, u4 * restrict inst) {
-    // todo extras: check alignment of pc
+static int fill_cache_pages(sl_core_t *c, u8 addr, u4 len, u1 type) {
+    const u1 shift = c->icache.page_shift;
+    const u4 pg_size = 1u << shift;
+    const u8 pg_mask = ~(pg_size - 1);
+    const u8 start = addr & pg_mask;
+    const u8 end = (addr + len - 1) & pg_mask;
+    const u4 num_inst = pg_size / 2;
 
-    for (int i = 0; i < 3; i++) {
-        int err = sl_cache_read(&c->icache, c->pc, 4, inst);
-        if (err != SL_ERR_NOT_FOUND) return err;
+    int err = 0;
+    sl_cache_page_t *prev = NULL;
+    for (u8 cur = start; cur <= end; cur += pg_size) {
+        sl_cache_page_t *pg = sl_cache_get_page(&c->icache, cur);
+        if (pg != NULL) {
+            prev = pg;
+            continue; // page already exists
+        }
 
-        // filled in both cache pages, all data should be found
-        if (i == 2) return SL_ERR_STATE;
-
-        sl_cache_page_t *pg;
-        const u8 miss_addr = c->icache.miss_addr;
-        if ((err = sl_cache_alloc_page(&c->icache, miss_addr, &pg))) return err;
-
-        const u1 shift = c->icache.page_shift;
-        const u8 pg_size = 1u << shift;
-        const u8 base = (miss_addr >> shift) << shift;
-        if ((err = sl_core_mem_read(c, base, 1, pg_size, pg->buffer))) {
+        if ((err = sl_cache_alloc_page(&c->icache, cur, &pg))) return err;
+        if ((err = sl_core_mem_read(c, cur, 8, pg_size / 8, pg->buffer))) {
             sl_cache_discard_unfilled_page(&c->icache, pg);
             return err;
         }
+        if (type == SL_CACHE_TYPE_INSTRUCTION) {
+            if (prev != NULL) {
+                // complete load of last instruction
+                // last instruction on previous page may be 4 byte instruction at 2 byte offset
+                sl_slac_inst_t *prev_in = sl_cache_page_slac_inst(&c->icache, prev);
+                u4 val = *(u2 *)pg->buffer;
+                // todo: fix for non-host-endian instruction sets
+                prev_in[num_inst - 1].desc.machine_op |= (val << 16);
+            }
+
+            void *b = pg->buffer;
+            sl_slac_inst_t *in = sl_cache_page_slac_inst(&c->icache, pg);
+            u4 i;
+            for (i = 0; i < num_inst - 1; i++) {
+                in[i].raw = SLAC_IN_INVALID;
+                memcpy(&in[i].desc.machine_op, b, 4);
+                // printf("copy %llx: %x\n", cur + (i * 4), in[i].desc.machine_op);
+                b += 2;
+            }
+            // last instruction, 2 bytes available now, 2 from next page
+            in[i].raw = SLAC_IN_INVALID;
+            memcpy(&in[i].desc.machine_op, b, 2);
+        }
+
         sl_cache_fill_page(&c->icache, pg);
+        prev = pg;
     }
+    if (type == SL_CACHE_TYPE_INSTRUCTION) {
+        // fix last instruction in last page
+        const u8 next = end + pg_size;
+        sl_cache_page_t *pg = sl_cache_get_page(&c->icache, next);
+        u2 val;
+        if (pg == NULL) {
+            // no page
+            if ((sl_core_mem_read(c, next, 2, 1, &val))) {
+                // failed to read but not necessarily an error, may be a short instruction and end of page
+                val = 0;
+            }
+        } else {
+            val = *(u2 *)pg->buffer;
+        }
+        sl_slac_inst_t *prev_in = sl_cache_page_slac_inst(&c->icache, prev);
+        // todo: fix for non-host-endian instruction sets
+        prev_in[num_inst - 1].desc.machine_op |= ((u4)val << 16);
+
+    }
+
     return 0;
+}
+
+int sl_core_load_pc(sl_core_t *c, sl_slac_inst_t **inst_out) {
+    // todo extras: check alignment of pc
+
+    sl_slac_inst_t *si;
+    int err = sl_cache_get_instruction(&c->icache, c->pc, &si);
+    if (err == 0) goto out;
+ 
+    if (err != SL_ERR_NOT_FOUND) return err;
+    if ((err = fill_cache_pages(c, c->pc, 4, SL_CACHE_TYPE_INSTRUCTION))) return err;
+    if ((err = sl_cache_get_instruction(&c->icache, c->pc, &si)))
+        return SL_ERR_STATE;    // this shouldn't happen if fill_cache_page did its job
+
+out:
+    *inst_out = si;
+    return 0;
+}
+
+static int eng_op_step(sl_engine_t *e, u8 num) {
+    sl_core_t *c = containerof(e, sl_core_t, engine);
+    return sl_core_step(c, num);
+}
+
+static int eng_op_run(sl_engine_t *e) {
+    sl_core_t *c = containerof(e, sl_core_t, engine);
+    return sl_core_run(c);
 }
 
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
@@ -231,14 +351,16 @@ int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mode = SL_CORE_MODE_32;
     c->prev_len = 0;
     config_set_internal(c, p);
-    sl_cache_init(&c->icache);
+    sl_cache_init(&c->icache, SL_CACHE_TYPE_INSTRUCTION);
     sl_engine_init(&c->engine, "core_eng", NULL);
+    c->engine.ops.step = eng_op_step;
+    c->engine.ops.run = eng_op_run;
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;
 }
 
 void sl_core_shutdown(sl_core_t *c) {
-    c->ops->shutdown(c);
+    c->shutdown(c);
     sl_engine_shutdown(&c->engine);
     sl_cache_shutdown(&c->icache);
 #if WITH_SYMBOLS
@@ -251,7 +373,7 @@ void sl_core_shutdown(sl_core_t *c) {
 }
 
 void sl_core_destroy(sl_core_t *c) {
-    c->ops->destroy(c);
+    c->destroy(c);
 }
 
 void sl_core_print_bus_topology(sl_core_t *c) {

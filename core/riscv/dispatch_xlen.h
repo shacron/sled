@@ -24,13 +24,14 @@ static inline i4 sign_extend32(i4 value, u1 valid_bits) {
 __attribute__((no_sanitize("signed-integer-overflow")))
 static inline sxlen_t mulx_ss(sxlen_t a, sxlen_t b) { return a * b; }
 
+#if 0
 static int XLEN_PREFIX(exec_u_type)(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     const uxlen_t offset = (sxlen_t)(i4)(inst.raw & 0xfffff000);
     uxlen_t result;
 
     if (inst.u.opcode == OP_AUIPC) {
-        RV_TRACE_OPSTR("aiupc");
+        RV_TRACE_OPSTR("auipc");
         result = (uxlen_t)(c->core.pc + offset);    // AUIPC
     } else {
         RV_TRACE_OPSTR("lui");
@@ -330,7 +331,9 @@ static int XLEN_PREFIX(exec_alu_imm)(rv_core_t *c, rv_inst_t inst) {
     }
     return 0;
 }
+#endif
 
+#if 0
 static int XLEN_PREFIX(exec_alu)(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     const uxlen_t u1 = c->core.r[inst.r.rs1];
@@ -467,6 +470,7 @@ static int XLEN_PREFIX(exec_alu)(rv_core_t *c, rv_inst_t inst) {
 undef:
     return rv_undef(c, inst);
 }
+#endif
 
 #if USING_RV64
 // 32-bit instructions in 64-bit mode
@@ -1130,6 +1134,7 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
     c->core.prev_len = 4;
 
     switch (inst.u.opcode) {
+#if 0
     // U-type instructions
     case OP_LUI:  // LUI
     case OP_AUIPC:  // AUIPC
@@ -1170,6 +1175,7 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
     case OP_ALU:  // ADD SUB SLL SLT SLTU XOR SRL SRA OR AND
         err = XLEN_PREFIX(exec_alu)(c, inst);
         break;
+#endif
 
 #if USING_RV64
     case OP_IMM32:
@@ -1200,10 +1206,12 @@ int XLEN_PREFIX(dispatch)(rv_core_t *c, rv_inst_t inst) {
         err = rv_exec_fp_mac(c, inst);
         break;
 
+#if 0
     // Other
     case OP_MISC_MEM:  // FENCE FENCE.I
         err = rv_exec_mem(c, inst);
         break;
+#endif
 
     case OP_SYSTEM:  // ECALL EBREAK CSRRW CSRRS CSRRC CSRRWI CSRRSI CSRRCI
         err = rv_exec_system(c, inst);

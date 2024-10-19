@@ -45,6 +45,10 @@ extern "C" {
 #define SL_ERR_IO_NOMAP     -41 // no valid mapping
 #define SL_ERR_IO_NOATOMIC  -42 // atomic ops not supported
 
+// SLAC errors
+#define SL_ERR_SLAC_UNDECODED   -50 // decoder not yet done
+#define SL_ERR_SLAC_INVALID     -51 // invalid instruction format
+
 
 const char *st_err(int err);
 

@@ -67,9 +67,7 @@ struct rv_core {
     void *ext_private;
 };
 
-int rv_dispatch(rv_core_t *c, u4 instruction);
-
-int rv_exception_enter(sl_core_t *c, u8 cause, u8 addr);
+int rv_dispatch(sl_core_t *c, u4 instruction);
 int rv_exception_return(rv_core_t *c, u1 op);
 
 rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u1 pl);

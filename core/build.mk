@@ -22,6 +22,7 @@ LIB_CSOURCES += \
 	$(SRCDIR)/regview.c \
 	$(SRCDIR)/ringbuffer.c \
 	$(SRCDIR)/riscv/csr.c \
+	$(SRCDIR)/riscv/decode.c \
 	$(SRCDIR)/riscv/dispatch.c \
 	$(SRCDIR)/riscv/dispatch_fp32.c \
 	$(SRCDIR)/riscv/dispatch_fp64.c \
@@ -31,6 +32,12 @@ LIB_CSOURCES += \
 	$(SRCDIR)/riscv/riscv.c \
 	$(SRCDIR)/riscv/rvex.c \
 	$(SRCDIR)/sem.c \
+	$(SRCDIR)/slac4.c \
+	$(SRCDIR)/slac8.c \
 	$(SRCDIR)/sym.c \
 	$(SRCDIR)/worker.c \
+
+DISABLED := \
+	$(SRCDIR)/slac1.c \
+	$(SRCDIR)/slac2.c \
 
