@@ -548,7 +548,7 @@ int rv_decode_sync(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     case 0b001:
         if (inst.i.imm != 0) goto undef;
-        set_opcode(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_MBAR, SLAC_IN_ARG_NONE, "fence.i");
+        set_opcode(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_IBAR, SLAC_IN_ARG_NONE, "fence.i");
         si->desc.print_type = RV_PRINT_TYPE_SINGLE;
         return 0;
 
