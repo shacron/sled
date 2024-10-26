@@ -257,13 +257,6 @@ immediate_set:
 }
 
 static int rv_decode_alu(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
-    // RV_TRACE_DECL_OPSTR;
-    // const uxlen_t u1 = c->core.r[inst.r.rs1];
-    // const uxlen_t u2 = c->core.r[inst.r.rs2];
-    // uxlen_t result;
-    // ux2len_t result_ul;
-    // sx2len_t result_sl;
-
     si->desc.print_type = RV_PRINT_TYPE_DRR;
 
     switch (inst.r.funct7) {
