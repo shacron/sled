@@ -43,7 +43,7 @@ static void rv_fence_op_name(u1 op, char *s) {
     *s = '\0';
 }
 
-static inline void set_opcode(sl_slac_inst_t *si, u1 type, u2 op, u1 arg, const char *str) {
+static inline void slacop(sl_slac_inst_t *si, u1 type, u2 op, u1 arg, const char *str) {
     si->raw = 0;
     si->pred = SLAC_PRED_ALWAYS;
     si->type = type;
@@ -53,6 +53,12 @@ static inline void set_opcode(sl_slac_inst_t *si, u1 type, u2 op, u1 arg, const 
     si->desc.str = str;
 }
 
+static inline void slacop_p(sl_slac_inst_t *si, u1 type, u2 op, u1 arg, const char *str, u1 pt) {
+    si->desc.print_type = pt;
+    slacop(si, type, op, arg, str);
+}
+
+
 static void set_nop(sl_slac_inst_t *si) {
     si->raw = 0;
     si->pred = SLAC_PRED_NEVER;
@@ -61,7 +67,7 @@ static void set_nop(sl_slac_inst_t *si) {
 }
 
 static int rv_slac_undef(rv_core_t *c, sl_slac_inst_t *si) {
-    set_opcode(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_UNDEF, SLAC_IN_ARG_NONE, "undefined");
+    slacop(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_UNDEF, SLAC_IN_ARG_NONE, "undefined");
     return 0;
 }
 
@@ -176,11 +182,11 @@ int rv_slac_print_post(sl_core_t *c, sl_slac_inst_t *si, char *buf, int buflen) 
 static int rv_decode_u_type(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->uimm = (u8)(i4)(inst.raw & 0xfffff000);
     if (inst.u.opcode == OP_LUI) {
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DI, "lui");
+        slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DI, "lui");
     } else { // OP_AUIPC
         // add pc + offset 
         // todo: optimize to MOV if address is known?
-        set_opcode(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_ADR4K, SLAC_IN_ARG_DI, "auipc");
+        slacop(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_ADR4K, SLAC_IN_ARG_DI, "auipc");
     }
     si->d0 = inst.u.rd;
     if (inst.u.rd == 0) set_nop(si);
@@ -203,23 +209,19 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->desc.print_type = RV_PRINT_TYPE_ALUI_X;
 
     switch (inst.i.funct3) {
-    case 0b000: // ADDI
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, "addi");
-        si->desc.print_type = RV_PRINT_TYPE_ALUI_S;
-        break;
+    case 0b000: slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, "addi", RV_PRINT_TYPE_ALUI_S);  break;  // ADDI
 
     case 0b001: // SLLI
         if (func7 != 0) return rv_slac_undef(c, si);
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRI, "slli");
+        slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRI, "slli", RV_PRINT_TYPE_ALUI_S);
         si->uimm = shift;
-        si->desc.print_type = RV_PRINT_TYPE_ALUI_S;
         goto immediate_set;
 
     case 0b101:
         if (func7 == 0) {   // SRLI
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRI, "srli");
+            slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRI, "srli");
         } else if (func7 == 0b0100000) {  //SRAI
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRI, "srai");
+            slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRI, "srai");
         } else {
             return rv_slac_undef(c, si);
         }
@@ -227,31 +229,18 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         si->desc.print_type = RV_PRINT_TYPE_ALUI_S;
         goto immediate_set;
 
-    case 0b010: // SLTI
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELS, SLAC_IN_ARG_DRI, "slti");
-        si->desc.print_type = RV_PRINT_TYPE_ALUI_S;
-        break;
+    case 0b010: slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELS, SLAC_IN_ARG_DRI, "slti", RV_PRINT_TYPE_ALUI_S);    break; // SLTI
 
     case 0b011: // SLTIU
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELU, SLAC_IN_ARG_DRI, "sltiu");
+        slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELU, SLAC_IN_ARG_DRI, "sltiu", RV_PRINT_TYPE_ALUI_S);
         // docs: the immediate is first sign-extended to XLEN bits then treated as an unsigned number
         if (is_rv32) si->uimm = (u4)(((i4)inst.raw) >> 20);  // sign extend immediate
         else         si->uimm = (u8)(i8)(((i4)inst.raw) >> 20);  // sign extend immediate
-        si->desc.print_type = RV_PRINT_TYPE_ALUI_S;
         goto immediate_set;
 
-    case 0b100: // XORI
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_XOR, SLAC_IN_ARG_DRI, "xori");
-        break;
-
-    case 0b110: // ORI
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_OR, SLAC_IN_ARG_DRI, "ori");
-        break;
-
-    case 0b111: // ANDI
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_AND, SLAC_IN_ARG_DRI, "andi");
-        break;
-
+    case 0b100: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_XOR, SLAC_IN_ARG_DRI, "xori");  break; // XORI
+    case 0b110: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_OR, SLAC_IN_ARG_DRI, "ori");    break; // ORI
+    case 0b111: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_AND, SLAC_IN_ARG_DRI, "andi");  break; // ANDI
     default:
         return rv_slac_undef(c, si);
     }
@@ -272,19 +261,16 @@ static int rv64_decode_alu_imm32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t ins
     switch (inst.i.funct3) {
     case 0b000: // ADDIW
         if (inst.i.imm == 0) {
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DR, "sext.w");
-            si->desc.print_type = RV_PRINT_TYPE_DR;
+            slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DR, "sext.w", RV_PRINT_TYPE_DR);
         } else {
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, "addiw");
+            slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, "addiw", RV_PRINT_TYPE_ALUI_S);
             si->simm = SIGN_EXT_IMM12(inst);
-            si->desc.print_type = RV_PRINT_TYPE_ALUI_S;
         }
         break;
 
     case 0b001: // SLLIW
         if (shift > 31) return rv_slac_undef(c, si);
-        si->desc.print_type = RV_PRINT_TYPE_ALUI_X;
-        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRI, "slliw");
+        slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRI, "slliw", RV_PRINT_TYPE_ALUI_X);
         si->uimm = shift;
         break;
 
@@ -295,10 +281,10 @@ static int rv64_decode_alu_imm32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t ins
         const u4 imm = inst.i.imm >> 5;
         si->uimm = shift;
         if (imm == 0) {  // SRLIW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRI, "srliw");
+            slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRI, "srliw");
             break;
         } else if (imm == 0b0100000) {   // SRAIW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRI, "sraiw");
+            slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRI, "sraiw");
             break;
         }
         return rv_slac_undef(c, si);
@@ -322,92 +308,36 @@ static int rv_decode_alu(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     switch (inst.r.funct7) {
     case 0:
         switch (inst.r.funct3) {
-        case 0b000: // ADD
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRR, "add");
-            si->desc.print_type = RV_PRINT_TYPE_DRRS;
-            break;
-
-        case 0b001: // SLL
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRR, "sll");
-            si->desc.print_type = RV_PRINT_TYPE_DRRS;
-            break;
-
-        case 0b010: // SLT
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELS, SLAC_IN_ARG_DRR, "slt");
-            si->desc.print_type = RV_PRINT_TYPE_DRRS;
-            break;
-
-        case 0b011: // SLTU
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELU, SLAC_IN_ARG_DRR, "sltu");
-            break;
-
-        case 0b100: // XOR
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_XOR, SLAC_IN_ARG_DRR, "xor");
-            break;
-
-        case 0b101: // SRL
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRR, "srl");
-            break;
-
-        case 0b110: // OR
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_OR, SLAC_IN_ARG_DRR, "or");
-            break;
-
-        case 0b111: // AND
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_AND, SLAC_IN_ARG_DRR, "and");
-            break;
+        case 0b000: slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRR, "add", RV_PRINT_TYPE_DRRS); break; // ADD
+        case 0b001: slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRR, "sll", RV_PRINT_TYPE_DRRS); break; // SLL
+        case 0b010: slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELS, SLAC_IN_ARG_DRR, "slt", RV_PRINT_TYPE_DRRS); break; // SLT
+        case 0b011: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELU, SLAC_IN_ARG_DRR, "sltu");    break;  // SLTU
+        case 0b100: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_XOR, SLAC_IN_ARG_DRR, "xor");       break;  // XOR
+        case 0b101: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRR, "srl");      break;  // SRL
+        case 0b110: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_OR, SLAC_IN_ARG_DRR, "or");         break;  // OR
+        case 0b111: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_AND, SLAC_IN_ARG_DRR, "and");       break;  // AND
         }
         break;
 
     case 0b0100000:
         switch (inst.r.funct3) {
-        case 0b000: // SUB
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SUB, SLAC_IN_ARG_DRR, "sub");
-            break;
-
-        case 0b101: // SRA
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRR, "sra");
-            break;
-
-        default:
-            goto undef;
+        case 0b000: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SUB, SLAC_IN_ARG_DRR, "sub");       break; // SUB
+        case 0b101: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRR, "sra");      break; // SRA
+        default:  goto undef;
         }
         break;
 
     case 0b0000001: // M extensions
         if (!(c->core.arch_options & SL_RISCV_EXT_M)) goto undef;
         switch (inst.r.funct3) {
-        case 0b000: // MUL
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MUL, SLAC_IN_ARG_DRR, "mul");
-            break;
-
-        case 0b001: // MULH
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MULHSS, SLAC_IN_ARG_DRR, "mulh");
-            break;
-
-        case 0b010: // MULHSU
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MULHSU, SLAC_IN_ARG_DRR, "mulhsu");
-            break;
-
-        case 0b011: // MULHU
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MULHUU, SLAC_IN_ARG_DRR, "mulhu");
-            break;
-
-        case 0b100: // DIV
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVS, SLAC_IN_ARG_DRR, "div");
-            break;
-
-        case 0b101: // DIVU
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVU, SLAC_IN_ARG_DRR, "divu");
-            break;
-
-        case 0b110: // REM
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODS, SLAC_IN_ARG_DRR, "rem");
-            break;
-
-        case 0b111: // REMU
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODU, SLAC_IN_ARG_DRR, "remu");
-            break;
+        case 0b000: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MUL, SLAC_IN_ARG_DRR, "mul");       break; // MUL
+        case 0b001: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MULHSS, SLAC_IN_ARG_DRR, "mulh");   break; // MULH
+        case 0b010: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MULHSU, SLAC_IN_ARG_DRR, "mulhsu"); break; // MULHSU
+        case 0b011: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MULHUU, SLAC_IN_ARG_DRR, "mulhu");  break; // MULHU
+        case 0b100: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVS, SLAC_IN_ARG_DRR, "div");      break; // DIV
+        case 0b101: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVU, SLAC_IN_ARG_DRR, "divu");     break; // DIVU
+        case 0b110: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODS, SLAC_IN_ARG_DRR, "rem");      break; // REM
+        case 0b111: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODU, SLAC_IN_ARG_DRR, "remu");     break; // REMU
         }
         break;
 
@@ -432,71 +362,34 @@ static int rv64_decode_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     switch (inst.r.funct7) {
     case 0b0000000:
         switch (inst.r.funct3) {
-        case 0b000: // ADDW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRR, "addw");
-            si->desc.print_type = RV_PRINT_TYPE_DRRS;
-            break;
-
-        case 0b001: // SLLW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRR, "sllw");
-            si->desc.print_type = RV_PRINT_TYPE_DRRS;
-            break;
-
-        case 0b101: // SRLW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRR, "srlw");
-            break;
-
-        default:
-            goto undef;
+        case 0b000: slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRR, "addw", RV_PRINT_TYPE_DRRS); break; // ADDW
+        case 0b001: slacop_p(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRR, "sllw", RV_PRINT_TYPE_DRRS); break; // SLLW
+        case 0b101: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRR, "srlw");                      break; // SRLW
+        default: goto undef;
         }
         break;
 
     case 0b0100000:
         switch (inst.r.funct3) {
-        case 0b000: // SUBW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SUB, SLAC_IN_ARG_DRR, "subw");
-            break;
-
-        case 0b101: // SRAW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRR, "sraw");
-            break;
-
-        default:
-            goto undef;
+        case 0b000: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SUB, SLAC_IN_ARG_DRR, "subw");      break; // SUBW
+        case 0b101: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRR, "sraw");     break; // SRAW
+        default: goto undef;
         }
         break;
 
     case 0b0000001: // RV64M extensions
         if (!(c->core.arch_options & SL_RISCV_EXT_M)) goto undef;
         switch (inst.r.funct3) {
-        case 0b000: // MULW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MUL, SLAC_IN_ARG_DRR, "mulw");
-            break;
-
-        case 0b100: // DIVW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVS, SLAC_IN_ARG_DRR, "divw");
-            break;
-
-        case 0b101: // DIVUW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVU, SLAC_IN_ARG_DRR, "divuw");
-            break;
-
-
-        case 0b110: // REMW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODS, SLAC_IN_ARG_DRR, "remw");
-            break;
-
-        case 0b111: // REMUW
-            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODU, SLAC_IN_ARG_DRR, "remuw");
-            break;
-
-        default:
-            goto undef;
+        case 0b000: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MUL, SLAC_IN_ARG_DRR, "mulw");      break; // MULW
+        case 0b100: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVS, SLAC_IN_ARG_DRR, "divw");     break; // DIVW
+        case 0b101: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVU, SLAC_IN_ARG_DRR, "divuw");    break; // DIVUW
+        case 0b110: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODS, SLAC_IN_ARG_DRR, "remw");     break; // REMW
+        case 0b111: slacop(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODU, SLAC_IN_ARG_DRR, "remuw");    break; // REMUW
+        default: goto undef;
         }
         break;
 
-    default:
-        goto undef;
+    default:  goto undef;
     }
 
     si->len = SLAC_IN_LEN_4;
@@ -518,9 +411,9 @@ static int rv_decode_jump(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->simm = imm;
 
     if (inst.j.rd == RV_ZERO) {        // J
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_B, SLAC_IN_ARG_I, "j");
+        slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_B, SLAC_IN_ARG_I, "j");
     } else {
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_BL, SLAC_IN_ARG_DI, "jal");
+        slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_BL, SLAC_IN_ARG_DI, "jal");
         si->d0 = inst.j.rd;
     }
     si->desc.print_type = RV_PRINT_TYPE_J;
@@ -534,10 +427,9 @@ static int rv_decode_jalr(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     i4 imm = ((i4)inst.raw) >> 20;
     if (inst.i.rd == RV_ZERO) {
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_B, SLAC_IN_ARG_R1, "ret");
-        si->desc.print_type = RV_PRINT_TYPE_RET;
+        slacop_p(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_B, SLAC_IN_ARG_R1, "ret", RV_PRINT_TYPE_RET);
     } else {
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_BL, SLAC_IN_ARG_DRI, "jalr");
+        slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_BL, SLAC_IN_ARG_DRI, "jalr");
         si->d0 = inst.i.rd;
         si->desc.print_type = RV_PRINT_TYPE_J;
     }
@@ -548,32 +440,13 @@ static int rv_decode_jalr(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
 static int rv_decode_branch(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     switch (inst.b.funct3) {
-    case 0b000: // BEQ
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBEQ, SLAC_IN_ARG_RRI, "beq");
-        break;
-
-    case 0b001: // BNE
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBNE, SLAC_IN_ARG_RRI, "bne");
-        break;
-
-    case 0b100: // BLT
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBLTS, SLAC_IN_ARG_RRI, "blt");
-        break;
-
-    case 0b101: // BGE
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBGES, SLAC_IN_ARG_RRI, "bge");
-        break;
-
-    case 0b110: // BLTU
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBLTU, SLAC_IN_ARG_RRI, "bltu");
-        break;
-
-    case 0b111: // BGEU
-        set_opcode(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBGEU, SLAC_IN_ARG_RRI, "bgeu");
-        break;
-
-    default:
-        return rv_slac_undef(c, si);
+    case 0b000: slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBEQ, SLAC_IN_ARG_RRI, "beq");   break; // BEQ
+    case 0b001: slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBNE, SLAC_IN_ARG_RRI, "bne");   break; // BNE
+    case 0b100: slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBLTS, SLAC_IN_ARG_RRI, "blt");  break; // BLT
+    case 0b101: slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBGES, SLAC_IN_ARG_RRI, "bge");  break; // BGE
+    case 0b110: slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBLTU, SLAC_IN_ARG_RRI, "bltu"); break; // BLTU
+    case 0b111: slacop(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBGEU, SLAC_IN_ARG_RRI, "bgeu"); break; // BGEU
+    default: return rv_slac_undef(c, si);
     }
 
     si->r0 = inst.b.rs1;
@@ -596,36 +469,21 @@ static int rv_decode_load(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     if (si->d0 == 0) si->d0 = SLAC_REG_DISCARD;
 
     switch (inst.i.funct3) {
-    case 0b000: // LB
-        set_opcode(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDBS, SLAC_IN_ARG_DRI, "lb");
-        break;
-
-    case 0b001: // LH
-        set_opcode(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDHS, SLAC_IN_ARG_DRI, "lh");
-        break;
-
-    case 0b010: // LW
-        set_opcode(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDWS, SLAC_IN_ARG_DRI, "lw");
-        break;
-
-    case 0b100: // LBU
-        set_opcode(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDB, SLAC_IN_ARG_DRI, "lbu");
-        break;
-
-    case 0b101: // LHU
-        set_opcode(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDH, SLAC_IN_ARG_DRI, "lhu");
-        break;
-
+    case 0b000: slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDBS, SLAC_IN_ARG_DRI, "lb"); break; // LB
+    case 0b001: slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDHS, SLAC_IN_ARG_DRI, "lh"); break; // LH
+    case 0b010: slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDWS, SLAC_IN_ARG_DRI, "lw"); break; // LW
+    case 0b100: slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDB, SLAC_IN_ARG_DRI, "lbu"); break; // LBU
+    case 0b101: slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDH, SLAC_IN_ARG_DRI, "lhu"); break; // LHU
     case 0b110: // LWU
         if (c->core.mode != SL_CORE_MODE_64)
             return rv_slac_undef(c, si);
-        set_opcode(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDW, SLAC_IN_ARG_DRI, "lwu");
+        slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDW, SLAC_IN_ARG_DRI, "lwu");
         break;
 
     case 0b011: // LD
         if (c->core.mode != SL_CORE_MODE_64)
             return rv_slac_undef(c, si);
-        set_opcode(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDX, SLAC_IN_ARG_DRI, "ld");
+        slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDX, SLAC_IN_ARG_DRI, "ld");
         break;
 
     default:
@@ -641,22 +499,13 @@ static int rv_decode_store(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->d0 = inst.s.rs1;
     si->r0 = inst.s.rs2;
     switch (inst.s.funct3) {
-    case 0b000: // SB
-        set_opcode(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STB, SLAC_IN_ARG_DRI, "sb");
-        break;
-
-    case 0b001: // SH
-        set_opcode(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STH, SLAC_IN_ARG_DRI, "sh");
-        break;
-
-    case 0b010: // SW
-        set_opcode(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STW, SLAC_IN_ARG_DRI, "sw");
-        break;
-
+    case 0b000: slacop(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STB, SLAC_IN_ARG_DRI, "sb"); break; // SB
+    case 0b001: slacop(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STH, SLAC_IN_ARG_DRI, "sh"); break; // SH
+    case 0b010: slacop(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STW, SLAC_IN_ARG_DRI, "sw"); break; // SW
     case 0b011: // SD
         if (c->core.mode != SL_CORE_MODE_64)
             return rv_slac_undef(c, si);
-        set_opcode(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STX, SLAC_IN_ARG_DRI, "sd");
+        slacop(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STX, SLAC_IN_ARG_DRI, "sd");
         break;
 
     default:
@@ -677,7 +526,7 @@ int rv_decode_sync(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         if (pred & (FENCE_W | FENCE_O)) bar |= BARRIER_STORE;
         if (succ & (FENCE_R | FENCE_I)) bar |= BARRIER_LOAD;
         if ((pred & (FENCE_I | FENCE_O)) || (succ & (FENCE_I | FENCE_O))) bar |= BARRIER_SYSTEM;
-        set_opcode(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_MBAR, SLAC_IN_ARG_I, "fence");
+        slacop(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_MBAR, SLAC_IN_ARG_I, "fence");
         si->uimm = bar;
         si->r0 = pred;
         si->r1 = succ;
@@ -687,8 +536,7 @@ int rv_decode_sync(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     case 0b001:
         if (inst.i.imm != 0) goto undef;
-        set_opcode(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_IBAR, SLAC_IN_ARG_NONE, "fence.i");
-        si->desc.print_type = RV_PRINT_TYPE_SINGLE;
+        slacop_p(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_IBAR, SLAC_IN_ARG_NONE, "fence.i", RV_PRINT_TYPE_SINGLE);
         return 0;
 
     default:
@@ -718,58 +566,18 @@ int riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
     switch (inst.u.opcode) {
 
     // U-type instructions
-    case OP_LUI:  // LUI
-    case OP_AUIPC:  // AUIPC
-        err = rv_decode_u_type(c, si, inst);
-        break;
-
-    // J-type instructions
-    case OP_JAL:  // JAL
-        err = rv_decode_jump(c, si, inst);
-        break;
-
-    // B-type
-    case OP_BRANCH:  // BEQ BNE BLT BGE BLTU BGEU
-        err = rv_decode_branch(c, si, inst);
-        break;
-
-    // I-type
-    case OP_JALR:  // JALR
-        err = rv_decode_jalr(c, si, inst);
-        break;
-
-    // I-type
-    case OP_LOAD:  // LB LH LW LBU LHU
-        err = rv_decode_load(c, si, inst);
-        break;
-
-    // S-type
-    case OP_STORE:  // SB SH SW
-        err = rv_decode_store(c, si, inst);
-        break;
-
-    // I-type
-    case OP_IMM:  // ADDI SLTI SLTIU XORI ORI ANDI SLLI SRLI SRAI
-        err = rv_decode_alu_imm(c, si, inst);
-        break;
-
-    // Other
-    case OP_MISC_MEM:  // FENCE FENCE.I
-        err = rv_decode_sync(c, si, inst);
-        break;
-
-    // R-type
-    case OP_ALU:  // ADD SUB SLL SLT SLTU XOR SRL SRA OR AND
-        err = rv_decode_alu(c, si, inst);
-        break;
-
-    case OP_IMM32:
-        err = rv64_decode_alu_imm32(c, si, inst);
-        break;
-
-    case OP_ALU32:
-        err = rv64_decode_alu32(c, si, inst);
-        break;
+    case OP_LUI:                                                           // LUI
+    case OP_AUIPC:      err = rv_decode_u_type(c, si, inst);        break; // AUIPC
+    case OP_JAL:        err = rv_decode_jump(c, si, inst);          break; // JAL
+    case OP_BRANCH:     err = rv_decode_branch(c, si, inst);        break; // BEQ BNE BLT BGE BLTU BGEU
+    case OP_JALR:       err = rv_decode_jalr(c, si, inst);          break; // JALR
+    case OP_LOAD:       err = rv_decode_load(c, si, inst);          break; // LB LH LW LBU LHU
+    case OP_STORE:      err = rv_decode_store(c, si, inst);         break; // SB SH SW
+    case OP_IMM:        err = rv_decode_alu_imm(c, si, inst);       break; // ADDI SLTI SLTIU XORI ORI ANDI SLLI SRLI SRAI
+    case OP_MISC_MEM:   err = rv_decode_sync(c, si, inst);          break; // FENCE FENCE.I
+    case OP_ALU:        err = rv_decode_alu(c, si, inst);           break; // ADD SUB SLL SLT SLTU XOR SRL SRA OR AND
+    case OP_IMM32:      err = rv64_decode_alu_imm32(c, si, inst);   break;
+    case OP_ALU32:      err = rv64_decode_alu32(c, si, inst);       break;
 
 #if 0
     case OP_FP:
