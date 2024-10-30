@@ -56,41 +56,62 @@ call dispatch function based on type (jump table)
 write back
 */
 
+static inline u8 sign_extend8(srlen_t x) { return (u8)(i8)x; }
+
+#if SLAC_RLEN == 4
+#define SX8_EXTEND(a) (si->sx8 ? sign_extend8(a) : (a))
+#else
+#define SX8_EXTEND(a) (a)
+#endif
+
 __attribute__((no_sanitize("signed-integer-overflow")))
 static inline sr2len_t mul_ssl(srlen_t a, srlen_t b) { return (sr2len_t)a * b; }
 
 static int RLEN_PREFIX(exec_alu_di)(sl_core_t *c, sl_slac_inst_t *si) {
     urlen_t result;
     switch(si->op) {
-    case SLAC_IN_OP_MOV:
-        result = si->uimm;
-        break;
+    case SLAC_IN_OP_MOV:    result = si->uimm;          break;
     default:
         return SL_ERR_SLAC_INVALID;
     }
-    c->r[si->d0] = result;
+    c->r[si->d0] = SX8_EXTEND(result);
+    return 0;
+}
+
+static int RLEN_PREFIX(exec_alu_dr)(sl_core_t *c, sl_slac_inst_t *si) {
+    urlen_t result;
+    const urlen_t val = c->r[si->r0];
+    switch(si->op) {
+    case SLAC_IN_OP_MOV:    result = val;       break;
+    default:
+        return SL_ERR_SLAC_INVALID;
+    }
+    c->r[si->d0] = SX8_EXTEND(result);
     return 0;
 }
 
 static int RLEN_PREFIX(exec_alu_dri)(sl_core_t *c, sl_slac_inst_t *si) {
     urlen_t result;
     const urlen_t val = c->r[si->r0];
+    const urlen_t uimm = si->uimm;
     switch(si->op) {
-    case SLAC_IN_OP_ADD:    result = val + si->simm;     break;
-    case SLAC_IN_OP_SUB:    result = val - si->simm;     break;
-    case SLAC_IN_OP_RSUB:   result = si->simm - val;     break;
-    case SLAC_IN_OP_AND:    result = val & si->uimm;     break;
-    case SLAC_IN_OP_OR:     result = val | si->uimm;     break;
-    case SLAC_IN_OP_XOR:    result = val ^ si->uimm;     break;
-    case SLAC_IN_OP_SHL:    result = val << si->uimm;    break;
-    case SLAC_IN_OP_SHRU:   result = val >> si->uimm;    break;
-    case SLAC_IN_OP_SHRS:   result = ((srlen_t)val) >> si->uimm;        break;
-    case SLAC_IN_OP_CSELS:  result = ((srlen_t)val < (srlen_t)si->simm) ? 1 : 0; break;
-    case SLAC_IN_OP_CSELU:  result = (val < (urlen_t)si->uimm) ? 1 : 0;          break;
+    case SLAC_IN_OP_ADD:    result = val + uimm;    break;
+    case SLAC_IN_OP_SUB:    result = val - uimm;    break;
+    case SLAC_IN_OP_RSUB:   result = uimm - val;    break;
+    case SLAC_IN_OP_AND:    result = val & uimm;    break;
+    case SLAC_IN_OP_OR:     result = val | uimm;    break;
+    case SLAC_IN_OP_XOR:    result = val ^ uimm;    break;
+    case SLAC_IN_OP_NOT:    result = ~uimm;         break;
+    case SLAC_IN_OP_SHL:    result = val << uimm;   break;
+    case SLAC_IN_OP_SHRU:   result = val >> uimm;   break;
+    case SLAC_IN_OP_SHRS:   result = ((srlen_t)val) >> uimm;    break;
+    case SLAC_IN_OP_CSELS:  result = ((srlen_t)val < (srlen_t)uimm) ? 1 : 0; break;
+    case SLAC_IN_OP_CSELU:  result = (val < uimm) ? 1 : 0;      break;
     default:
         return SL_ERR_SLAC_INVALID;
     }
-    c->r[si->d0] = result;
+
+    c->r[si->d0] = SX8_EXTEND(result);
     return 0;
 }
 
@@ -110,10 +131,10 @@ static int RLEN_PREFIX(exec_alu_drr)(sl_core_t *c, sl_slac_inst_t *si) {
     case SLAC_IN_OP_SHRU:   result = r0 >> shift;   break;
     case SLAC_IN_OP_SHRS:   result = ((srlen_t)r0) >> shift;                break;
     case SLAC_IN_OP_CSELS:  result = ((srlen_t)r0 < (srlen_t)r1) ? 1 : 0;   break;
-    case SLAC_IN_OP_CSELU:  result = (r0 < r1) ? 1 : 0;             break;
-    case SLAC_IN_OP_MUL:    result = r0 * r1;                       break;
-    case SLAC_IN_OP_MULHSS: result = mul_ssl(r0, r1) >> SLAC_RLEN_BITS;      break;
-    case SLAC_IN_OP_MULHSU: result = ((sr2len_t)r0 * r1) >> SLAC_RLEN_BITS;  break;
+    case SLAC_IN_OP_CSELU:  result = (r0 < r1) ? 1 : 0;                     break;
+    case SLAC_IN_OP_MUL:    result = r0 * r1;                               break;
+    case SLAC_IN_OP_MULHSS: result = mul_ssl(r0, r1) >> SLAC_RLEN_BITS;     break;
+    case SLAC_IN_OP_MULHSU: result = ((sr2len_t)r0 * r1) >> SLAC_RLEN_BITS; break;
     case SLAC_IN_OP_MULHUU: result = (urlen_t)(((ur2len_t)r0 * r1) >> SLAC_RLEN_BITS);  break;
     case SLAC_IN_OP_DIVS:
         if (r1 == 0) result = ~((urlen_t)0);
@@ -135,7 +156,7 @@ static int RLEN_PREFIX(exec_alu_drr)(sl_core_t *c, sl_slac_inst_t *si) {
     default:
         return SL_ERR_SLAC_INVALID;
     }
-    c->r[si->d0] = result;
+    c->r[si->d0] = SX8_EXTEND(result);
     return 0;
 }
 
@@ -143,6 +164,7 @@ static int RLEN_PREFIX(exec_alu)(sl_core_t *c, sl_slac_inst_t *si) {
     // printf("alu %s\n", si->desc.str);
     switch (si->arg) {
     case SLAC_IN_ARG_DI:    return RLEN_PREFIX(exec_alu_di)(c, si);
+    case SLAC_IN_ARG_DR:    return RLEN_PREFIX(exec_alu_dr)(c, si);
     case SLAC_IN_ARG_DRI:   return RLEN_PREFIX(exec_alu_dri)(c, si);
     case SLAC_IN_ARG_DRR:   return RLEN_PREFIX(exec_alu_drr)(c, si);
     }

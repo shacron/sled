@@ -162,18 +162,13 @@ int slac4_dispatch(sl_core_t *c, sl_slac_inst_t *si);
 int slac8_dispatch(sl_core_t *c, sl_slac_inst_t *si);
 
 static int slac_dispatch(sl_core_t *c, sl_slac_inst_t *si) {
-/*
-    switch (si->len) {
+    u1 len = si->len;
+    if (len == SLAC_IN_LEN_MODE) len = c->mode;
+    switch (len) {
     case SLAC_IN_LEN_4:     return slac4_dispatch(c, si);
     case SLAC_IN_LEN_8:     return slac8_dispatch(c, si);
-    case SLAC_IN_LEN_MODE:  break;
+    default:                return SL_ERR_STATE;
     }
-*/
-    switch (c->mode) {
-    case SL_CORE_MODE_32:   return slac4_dispatch(c, si);
-    case SL_CORE_MODE_64:   return slac8_dispatch(c, si);
-    }
-    return SL_ERR_STATE;
 }
 
 int sl_core_step(sl_core_t *c, u8 num) {

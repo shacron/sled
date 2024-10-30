@@ -18,6 +18,7 @@
 enum {
     RV_PRINT_NONE = 0,
     RV_PRINT_TYPE_U,
+    RV_PRINT_TYPE_DR,
     RV_PRINT_TYPE_DRR,
     RV_PRINT_TYPE_DRRS,
     RV_PRINT_TYPE_ALUI_S,
@@ -31,6 +32,8 @@ enum {
 
     RV_PRINT_TYPE_MBAR,
 };
+
+#define SIGN_EXT_IMM12(inst) (((i4)inst.raw) >> 20)
 
 static void rv_fence_op_name(u1 op, char *s) {
     if (op & FENCE_I) *s++ = 'i';
@@ -72,6 +75,10 @@ int rv_slac_print_pre(sl_core_t *c, sl_slac_inst_t *si, char *buf, int buflen) {
     switch (si->desc.print_type) {
     case RV_PRINT_TYPE_U:
         len += snprintf(buf + len, buflen - len, "%s x%u, %#" PRIx64, si->desc.str, si->d0, si->uimm);
+        break;
+
+    case RV_PRINT_TYPE_DR:
+        len += snprintf(buf + len, buflen - len, "%s x%u, x%u", si->desc.str, si->d0, si->r0);
         break;
 
     case RV_PRINT_TYPE_DRR:
@@ -134,6 +141,7 @@ int rv_slac_print_post(sl_core_t *c, sl_slac_inst_t *si, char *buf, int buflen) 
     const u1 d0 = si->d0;
     switch (si->desc.print_type) {
     case RV_PRINT_TYPE_U:
+    case RV_PRINT_TYPE_DR:
     case RV_PRINT_TYPE_DRR:
     case RV_PRINT_TYPE_DRRS:
     case RV_PRINT_TYPE_ALUI_S:
@@ -256,6 +264,58 @@ immediate_set:
     return 0;
 }
 
+// 32-bit instructions in 64-bit mode
+static int rv64_decode_alu_imm32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    if (c->core.mode != SL_CORE_MODE_64) return rv_slac_undef(c, si);
+
+    const u4 shift = inst.i.imm & 63;
+    switch (inst.i.funct3) {
+    case 0b000: // ADDIW
+        if (inst.i.imm == 0) {
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DR, "sext.w");
+            si->desc.print_type = RV_PRINT_TYPE_DR;
+        } else {
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, "addiw");
+            si->simm = SIGN_EXT_IMM12(inst);
+            si->desc.print_type = RV_PRINT_TYPE_ALUI_S;
+        }
+        break;
+
+    case 0b001: // SLLIW
+        if (shift > 31) return rv_slac_undef(c, si);
+        si->desc.print_type = RV_PRINT_TYPE_ALUI_X;
+        set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRI, "slliw");
+        si->uimm = shift;
+        break;
+
+    case 0b101: // SRLIW SRAIW
+    {
+        if (shift > 31) return rv_slac_undef(c, si);
+        si->desc.print_type = RV_PRINT_TYPE_ALUI_X;
+        const u4 imm = inst.i.imm >> 5;
+        si->uimm = shift;
+        if (imm == 0) {  // SRLIW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRI, "srliw");
+            break;
+        } else if (imm == 0b0100000) {   // SRAIW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRI, "sraiw");
+            break;
+        }
+        return rv_slac_undef(c, si);
+    }
+
+    default:
+        return rv_slac_undef(c, si);
+    }
+
+    si->len = SLAC_IN_LEN_4;
+    si->sx8 = 1;            // w instructions always extend their output to 8 bytes
+    si->r0 = inst.i.rs1;
+    si->d0 = inst.i.rd;
+    if (inst.i.rd == RV_ZERO) set_nop(si);
+    return 0;
+}
+
 static int rv_decode_alu(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->desc.print_type = RV_PRINT_TYPE_DRR;
 
@@ -359,6 +419,92 @@ static int rv_decode_alu(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->r1 = inst.r.rs2;
     si->d0 = inst.r.rd;
     if (si->d0 == 0) set_nop(si);
+    return 0;
+
+undef:
+    return rv_slac_undef(c, si);
+}
+
+static int rv64_decode_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    if (c->core.mode != SL_CORE_MODE_64) return rv_slac_undef(c, si);
+
+    si->desc.print_type = RV_PRINT_TYPE_DRR;
+    switch (inst.r.funct7) {
+    case 0b0000000:
+        switch (inst.r.funct3) {
+        case 0b000: // ADDW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRR, "addw");
+            si->desc.print_type = RV_PRINT_TYPE_DRRS;
+            break;
+
+        case 0b001: // SLLW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRR, "sllw");
+            si->desc.print_type = RV_PRINT_TYPE_DRRS;
+            break;
+
+        case 0b101: // SRLW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRR, "srlw");
+            break;
+
+        default:
+            goto undef;
+        }
+        break;
+
+    case 0b0100000:
+        switch (inst.r.funct3) {
+        case 0b000: // SUBW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SUB, SLAC_IN_ARG_DRR, "subw");
+            break;
+
+        case 0b101: // SRAW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRR, "sraw");
+            break;
+
+        default:
+            goto undef;
+        }
+        break;
+
+    case 0b0000001: // RV64M extensions
+        if (!(c->core.arch_options & SL_RISCV_EXT_M)) goto undef;
+        switch (inst.r.funct3) {
+        case 0b000: // MULW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MUL, SLAC_IN_ARG_DRR, "mulw");
+            break;
+
+        case 0b100: // DIVW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVS, SLAC_IN_ARG_DRR, "divw");
+            break;
+
+        case 0b101: // DIVUW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_DIVU, SLAC_IN_ARG_DRR, "divuw");
+            break;
+
+
+        case 0b110: // REMW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODS, SLAC_IN_ARG_DRR, "remw");
+            break;
+
+        case 0b111: // REMUW
+            set_opcode(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MODU, SLAC_IN_ARG_DRR, "remuw");
+            break;
+
+        default:
+            goto undef;
+        }
+        break;
+
+    default:
+        goto undef;
+    }
+
+    si->len = SLAC_IN_LEN_4;
+    si->sx8 = 1;            // w instructions always extend their output to 8 bytes
+    si->r0 = inst.r.rs1;
+    si->r1 = inst.r.rs2;
+    si->d0 = inst.r.rd;
+    if (inst.r.rd == RV_ZERO) set_nop(si);
     return 0;
 
 undef:
@@ -617,17 +763,15 @@ int riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
         err = rv_decode_alu(c, si, inst);
         break;
 
-#if 0
-#if USING_RV64
     case OP_IMM32:
-        err = rv64_exec_alu_imm32(c, inst);
+        err = rv64_decode_alu_imm32(c, si, inst);
         break;
 
     case OP_ALU32:
-        err = rv64_exec_alu32(c, inst);
+        err = rv64_decode_alu32(c, si, inst);
         break;
-#endif
 
+#if 0
     case OP_FP:
         err = rv_exec_fp(c, inst);
         break;

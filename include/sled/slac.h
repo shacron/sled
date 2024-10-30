@@ -61,7 +61,7 @@ extern "C" {
 #define SLAC_IN_ARG_REG_MASK    (3u << 2)   // mask of register count
 #define SLAC_IN_ARG_CC          (1u << 3)   // set condition code
 
-// #define SLAC_IN_ARG_DR          (SLAC_IN_ARG_D | SLAC_IN_ARG_R1)
+#define SLAC_IN_ARG_DR          (SLAC_IN_ARG_D | SLAC_IN_ARG_R1)
 #define SLAC_IN_ARG_DI          (SLAC_IN_ARG_D | SLAC_IN_ARG_I)
 #define SLAC_IN_ARG_DRI         (SLAC_IN_ARG_D | SLAC_IN_ARG_R1 | SLAC_IN_ARG_I)
 #define SLAC_IN_ARG_DRR         (SLAC_IN_ARG_D | SLAC_IN_ARG_R2)
@@ -165,7 +165,8 @@ struct sl_slac_inst {
             u4 arg    : 5;  // 8
             u4 op     : 10; // 13
             u4 len    : 3;  // 23
-            u4 _unused: 6;  // 26
+            u4 sx8    : 1;  // 26
+            u4 _unused: 5;  // 27
         };
     };
 

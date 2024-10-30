@@ -22,58 +22,6 @@
 int rv_fp32_exec_fp(rv_core_t *c, rv_inst_t inst);
 int rv_fp64_exec_fp(rv_core_t *c, rv_inst_t inst);
 
-#if 0
-#define FENCE_W (1u << 0)
-#define FENCE_R (1u << 1)
-#define FENCE_O (1u << 2)
-#define FENCE_I (1u << 3)
-
-#if RV_TRACE
-static void rv_fence_op_name(u1 op, char *s) {
-    if (op & FENCE_I) *s++ = 'i';
-    if (op & FENCE_O) *s++ = 'o';
-    if (op & FENCE_R) *s++ = 'r';
-    if (op & FENCE_W) *s++ = 'w';
-    *s = '\0';
-}
-#endif
-
-int rv_exec_mem(rv_core_t *c, rv_inst_t inst) {
-    if ((inst.i.rd != 0) || (inst.i.rs1 != 0)) goto undef;
-    switch (inst.i.funct3) {
-    case 0b000:
-    { // FENCE
-        const u4 succ = inst.i.imm & 0xf;
-        const u4 pred = (inst.i.imm >> 4) & 0xf;
-        u4 bar = 0;
-        if (pred & (FENCE_W | FENCE_O)) bar |= BARRIER_STORE;
-        if (succ & (FENCE_R | FENCE_I)) bar |= BARRIER_LOAD;
-        if ((pred & (FENCE_I | FENCE_O)) || (succ & (FENCE_I | FENCE_O))) bar |= BARRIER_SYSTEM;
-        sl_core_memory_barrier(&c->core, bar);
-#if RV_TRACE
-        char p[5], s[5];
-        rv_fence_op_name(pred, p);
-        rv_fence_op_name(succ, s);
-        RV_TRACE_PRINT(c, "fence %s, %s", p, s);
-#endif
-        return 0;
-    }
-
-    case 0b001:
-        if (inst.i.imm != 0) goto undef;
-        sl_core_instruction_barrier(&c->core);
-        RV_TRACE_PRINT(c, "fence.i");
-        return 0;
-
-    default:
-        goto undef;
-    }
-
-undef:
-    return rv_undef(c, inst);
-}
-#endif
-
 static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 ord) {
     u8 result;
     int err;
