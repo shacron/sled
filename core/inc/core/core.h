@@ -25,8 +25,8 @@
 #define MONITOR_ARMED32 1
 #define MONITOR_ARMED64 2
 
-#define CORE_INT_ENABLED(s) (s & (1u << SL_CORE_STATE_INTERRUPTS_EN))
-#define CORE_IS_WFI(s) (s & (1u << SL_CORE_STATE_WFI))
+#define CORE_INT_ENABLED(s) (s & SL_CORE_STATE_INTERRUPTS_EN)
+#define CORE_IS_WFI(s) (s & SL_CORE_STATE_WFI)
 
 #define CORE_EV_IRQ     1
 #define CORE_EV_RUNMODE 2

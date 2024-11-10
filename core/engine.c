@@ -39,8 +39,8 @@ static int engine_irq_transition_async(sl_irq_ep_t *ep, u4 num, bool high) {
 }
 
 static void engine_set_wfi(sl_engine_t *e, bool enable) {
-    if (enable) e->state |= (1u << SL_CORE_STATE_WFI);
-    else e->state &= ~(1u << SL_CORE_STATE_WFI);
+    if (enable) e->state |= SL_CORE_STATE_WFI;
+    else e->state &= ~SL_CORE_STATE_WFI;
     sl_worker_set_engine_runnable(e->worker, !enable);
 }
 
@@ -80,9 +80,8 @@ const sl_engine_ops_t * engine_get_ops(sl_engine_t *e) {
 }
 
 void sl_engine_interrupt_set(sl_engine_t *e, bool enable) {
-    u4 bit = (1u << SL_CORE_STATE_INTERRUPTS_EN);
-    if (enable) e->state |= bit;
-    else e->state &= ~bit;
+    if (enable) e->state |= SL_CORE_STATE_INTERRUPTS_EN;
+    else e->state &= ~SL_CORE_STATE_INTERRUPTS_EN;
 }
 
 static int engine_handle_runmode_event(sl_engine_t *e, sl_event_t *ev) {
@@ -110,7 +109,7 @@ static int engine_event_handle(sl_event_ep_t *ep, sl_event_t *ev) {
     switch (ev->type) {
     case CORE_EV_IRQ:
         if ((err = engine_handle_irq_event(e, ev))) break;
-        if (e->state & (1u << SL_CORE_STATE_INTERRUPTS_EN)) err = sl_engine_handle_interrupts(e);
+        if (e->state & SL_CORE_STATE_INTERRUPTS_EN) err = sl_engine_handle_interrupts(e);
         break;
 
     case CORE_EV_RUNMODE:   err = engine_handle_runmode_event(e, ev); break;
