@@ -345,6 +345,7 @@ int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->el = SL_CORE_EL_MONITOR;
     c->mode = SL_CORE_MODE_4;
     c->prev_len = 0;
+    c->monitor_status = MONITOR_UNARMED;
     config_set_internal(c, p);
     sl_cache_init(&c->icache, SL_CACHE_TYPE_INSTRUCTION);
     sl_engine_init(&c->engine, "core_eng", NULL);

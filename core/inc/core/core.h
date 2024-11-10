@@ -21,9 +21,12 @@
 #define BARRIER_SYSTEM  (1u << 2)
 #define BARRIER_SYNC    (1u << 3)
 
-#define MONITOR_UNARMED 0
-#define MONITOR_ARMED32 1
-#define MONITOR_ARMED64 2
+#define MONITOR_UNARMED     0xf
+#define MONITOR_ARMED1      0
+#define MONITOR_ARMED2      1
+#define MONITOR_ARMED4      2
+#define MONITOR_ARMED8      3
+#define MONITOR_ARMED16     4
 
 #define CORE_INT_ENABLED(s) (s & SL_CORE_STATE_INTERRUPTS_EN)
 #define CORE_IS_WFI(s) (s & SL_CORE_STATE_WFI)
