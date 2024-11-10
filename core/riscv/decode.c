@@ -254,7 +254,7 @@ immediate_set:
 }
 
 // 32-bit instructions in 64-bit mode
-static int rv64_decode_alu_imm32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+static int rv64_decode_alu_imm4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     if (c->core.mode != SL_CORE_MODE_8) return rv_slac_undef(c, si);
 
     const u4 shift = inst.i.imm & 63;
@@ -355,7 +355,7 @@ undef:
     return rv_slac_undef(c, si);
 }
 
-static int rv64_decode_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+static int rv64_decode_alu4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     if (c->core.mode != SL_CORE_MODE_8) return rv_slac_undef(c, si);
 
     si->desc.print_type = RV_PRINT_TYPE_DRR;
@@ -576,8 +576,8 @@ int riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
     case OP_IMM:        err = rv_decode_alu_imm(c, si, inst);       break; // ADDI SLTI SLTIU XORI ORI ANDI SLLI SRLI SRAI
     case OP_MISC_MEM:   err = rv_decode_sync(c, si, inst);          break; // FENCE FENCE.I
     case OP_ALU:        err = rv_decode_alu(c, si, inst);           break; // ADD SUB SLL SLT SLTU XOR SRL SRA OR AND
-    case OP_IMM32:      err = rv64_decode_alu_imm32(c, si, inst);   break;
-    case OP_ALU32:      err = rv64_decode_alu32(c, si, inst);       break;
+    case OP_IMM32:      err = rv64_decode_alu_imm4(c, si, inst);    break;
+    case OP_ALU32:      err = rv64_decode_alu4(c, si, inst);        break;
 
 #if 0
     case OP_FP:
