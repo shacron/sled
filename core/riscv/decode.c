@@ -197,7 +197,7 @@ static int rv_decode_u_type(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     u4 shift;
     u4 func7;
-    const bool is_rv32 = c->core.mode == SL_CORE_MODE_32;
+    const bool is_rv32 = c->core.mode == SL_CORE_MODE_4;
     if (is_rv32) {
         shift = inst.i.imm & 31;
         func7 = inst.i.imm >> 5;
@@ -255,7 +255,7 @@ immediate_set:
 
 // 32-bit instructions in 64-bit mode
 static int rv64_decode_alu_imm32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
-    if (c->core.mode != SL_CORE_MODE_64) return rv_slac_undef(c, si);
+    if (c->core.mode != SL_CORE_MODE_8) return rv_slac_undef(c, si);
 
     const u4 shift = inst.i.imm & 63;
     switch (inst.i.funct3) {
@@ -356,7 +356,7 @@ undef:
 }
 
 static int rv64_decode_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
-    if (c->core.mode != SL_CORE_MODE_64) return rv_slac_undef(c, si);
+    if (c->core.mode != SL_CORE_MODE_8) return rv_slac_undef(c, si);
 
     si->desc.print_type = RV_PRINT_TYPE_DRR;
     switch (inst.r.funct7) {
@@ -475,13 +475,13 @@ static int rv_decode_load(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     case 0b100: slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDB, SLAC_IN_ARG_DRI, "lbu"); break; // LBU
     case 0b101: slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDH, SLAC_IN_ARG_DRI, "lhu"); break; // LHU
     case 0b110: // LWU
-        if (c->core.mode != SL_CORE_MODE_64)
+        if (c->core.mode != SL_CORE_MODE_8)
             return rv_slac_undef(c, si);
         slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDW, SLAC_IN_ARG_DRI, "lwu");
         break;
 
     case 0b011: // LD
-        if (c->core.mode != SL_CORE_MODE_64)
+        if (c->core.mode != SL_CORE_MODE_8)
             return rv_slac_undef(c, si);
         slacop(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDX, SLAC_IN_ARG_DRI, "ld");
         break;
@@ -503,7 +503,7 @@ static int rv_decode_store(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     case 0b001: slacop(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STH, SLAC_IN_ARG_DRI, "sh"); break; // SH
     case 0b010: slacop(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STW, SLAC_IN_ARG_DRI, "sw"); break; // SW
     case 0b011: // SD
-        if (c->core.mode != SL_CORE_MODE_64)
+        if (c->core.mode != SL_CORE_MODE_8)
             return rv_slac_undef(c, si);
         slacop(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STX, SLAC_IN_ARG_DRI, "sd");
         break;

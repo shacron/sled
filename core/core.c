@@ -343,7 +343,7 @@ static int eng_op_run(sl_engine_t *e) {
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mapper = m;
     c->el = SL_CORE_EL_MONITOR;
-    c->mode = SL_CORE_MODE_32;
+    c->mode = SL_CORE_MODE_4;
     c->prev_len = 0;
     config_set_internal(c, p);
     sl_cache_init(&c->icache, SL_CACHE_TYPE_INSTRUCTION);
