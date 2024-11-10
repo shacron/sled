@@ -2,6 +2,7 @@
 // Copyright (c) 2024 Shac Ron and The Sled Project
 
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <stdio.h>
 
 #include <core/core.h>
@@ -258,6 +259,37 @@ static int RLEN_PREFIX(exec_store)(sl_core_t *c, sl_slac_inst_t *si) {
     return 0;
 }
 
+static int RLEN_PREFIX(exec_atomic)(sl_core_t *c, sl_slac_inst_t *si) {
+    int err = 0;
+    const urlen_t addr = c->r[si->r0];
+    urlen_t val;
+
+    switch (si->op) {
+    case SLAC_IN_OP_LX: {
+        if (addr & (SLAC_RLEN - 1)) return sl_core_synchronous_exception(c, EX_ABORT_LOAD, addr, SL_ERR_IO_ALIGN);
+
+        if (si->uimm & BARRIER_STORE) atomic_thread_fence(memory_order_release);
+
+        c->monitor_addr = addr;
+        c->monitor_status = MONITOR_UNARMED;
+        if ((err = sl_core_mem_read(c, addr, SLAC_RLEN, 1, &val))) break;
+
+        if (si->uimm & BARRIER_LOAD) atomic_thread_fence(memory_order_acquire);
+
+        c->monitor_value = val;
+        c->monitor_status = si->len;
+        if (si->d0 != SLAC_REG_DISCARD)
+            c->r[si->d0] = val;
+        return 0;
+    }
+
+    default:    return SL_ERR_SLAC_UNDECODED;
+    }
+
+    if (err) return sl_core_synchronous_exception(c, EX_ABORT_LOAD, addr, err);
+    return 0;
+}
+
 static int RLEN_PREFIX(exec_sys)(sl_core_t *c, sl_slac_inst_t *si) {
     urlen_t result;
 
@@ -274,12 +306,9 @@ static int RLEN_PREFIX(exec_sys)(sl_core_t *c, sl_slac_inst_t *si) {
         sl_core_instruction_barrier(c);
         return 0;
 
-    case SLAC_IN_OP_NOP:
-        return 0;
-
+    case SLAC_IN_OP_NOP:    return 0;
     case SLAC_IN_OP_UNDEF:  return SL_ERR_UNDEF;
-    default:
-        return SL_ERR_SLAC_INVALID;
+    default:                return SL_ERR_SLAC_INVALID;
     }
     c->r[si->d0] = result;
     return 0;
@@ -383,11 +412,11 @@ type_dispatch:
     case SLAC_IN_TYPE_ST:   err = RLEN_PREFIX(exec_store)(c, si);   break;
     case SLAC_IN_TYPE_SYS:  err = RLEN_PREFIX(exec_sys)(c, si);     break;
     case SLAC_IN_TYPE_BR:   err = RLEN_PREFIX(exec_br)(c, si);      break;
+    case SLAC_IN_TYPE_ATOMIC: err = RLEN_PREFIX(exec_atomic)(c, si); break;
 
     case SLAC_IN_TYPE_FP:
     case SLAC_IN_TYPE_VEC:
     case SLAC_IN_TYPE_SIMD:
-    case SLAC_IN_TYPE_ATOMIC:
     default:
         return SL_ERR_SLAC_INVALID;
     }

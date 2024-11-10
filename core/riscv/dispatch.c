@@ -70,25 +70,6 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
         if (addr & 3) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, SL_ERR_IO_ALIGN);
 
         switch (op) {
-        case 0b00010: { // LR.W
-            if (inst.r.rs2 != 0) goto undef;
-            // we are faking a monitor by retaining the loaded value and then compare-exchanging with the stored value
-            RV_TRACE_PRINT(c, "lr.w%s x%u, (x%u)", bstr, rd, inst.r.rs1);
-            c->core.monitor_addr = addr;
-            c->core.monitor_status = MONITOR_UNARMED;
-            if (barrier & 1) atomic_thread_fence(memory_order_release);
-            u4 w;
-            if ((err = sl_core_mem_read(&c->core, addr, 4, 1, &w))) break;
-            if (barrier & 2) atomic_thread_fence(memory_order_acquire);
-            c->core.monitor_value = w;
-            c->core.monitor_status = MONITOR_ARMED4;
-            if (rd != RV_ZERO) {
-                c->core.r[rd] = w;
-                RV_TRACE_RD(c, rd, c->core.r[rd]);
-            }
-            break;
-        }
-
         case 0b00011: // SC.W
             RV_TRACE_PRINT(c, "sc.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             if (c->core.monitor_status != MONITOR_ARMED4) {

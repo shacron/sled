@@ -129,6 +129,18 @@ extern "C" {
 // simd
 
 // atomic
+#define SLAC_IN_OP_LX           0x000   // load exclusive
+#define SLAC_IN_OP_SX           0x001   // store exclusive
+#define SLAC_IN_OP_SWP          0x002   // atomic swap
+#define SLAC_IN_OP_CAS          0x003   // atomic compare and swap
+#define SLAC_IN_OP_ATADD        0x004   // atomic add
+#define SLAC_IN_OP_ATAND        0x005   // atomic and
+#define SLAC_IN_OP_ATOR         0x006   // atomic or
+#define SLAC_IN_OP_ATXOR        0x007   // atomic xor
+#define SLAC_IN_OP_ATMINU       0x008   // atomic min unsigned
+#define SLAC_IN_OP_ATMINS       0x009   // atomic min signed
+#define SLAC_IN_OP_ATMAXU       0x00a   // atomic max unsigned
+#define SLAC_IN_OP_ATMAXS       0x00b   // atomic max signed
 
 
 // sys

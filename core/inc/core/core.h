@@ -14,7 +14,6 @@
 #include <sled/core.h>
 
 #define MAX_PHYS_MEM_REGIONS    4
-#define MAX_DEVICES             8 
 
 #define BARRIER_LOAD    (1u << 0)
 #define BARRIER_STORE   (1u << 1)

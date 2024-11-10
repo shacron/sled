@@ -29,11 +29,22 @@ enum {
     RV_PRINT_TYPE_S,
     RV_PRINT_TYPE_RET,
     RV_PRINT_TYPE_SINGLE,
-
+    RV_PRINT_TYPE_LR,
     RV_PRINT_TYPE_MBAR,
 };
 
 #define SIGN_EXT_IMM12(inst) (((i4)inst.raw) >> 20)
+
+static const u2 rv_barrier_map[4] = {
+    0, BARRIER_STORE, BARRIER_LOAD, BARRIER_LOAD | BARRIER_STORE
+};
+
+static const char *rv_barrier_string[4] = {
+    [0]                             = "",
+    [BARRIER_STORE]                 = ".rl",
+    [BARRIER_LOAD]                  = ".aq",
+    [BARRIER_LOAD | BARRIER_STORE]  = ".aqrl"
+};
 
 static void rv_fence_op_name(u1 op, char *s) {
     if (op & FENCE_I) *s++ = 'i';
@@ -126,6 +137,13 @@ int rv_slac_print_pre(sl_core_t *c, sl_slac_inst_t *si, char *buf, int buflen) {
         break;
     }
 
+    case RV_PRINT_TYPE_LR: {
+        u4 dst = si->d0;
+        if (dst == SLAC_REG_DISCARD) dst = 0;
+        len += snprintf(buf + len, buflen - len, "%s%s x%u, (x%u)", si->desc.str, rv_barrier_string[si->uimm], dst, si->r0);
+        break;
+    }
+
     case RV_PRINT_TYPE_MBAR: {
         char p[5], s[5];
         rv_fence_op_name(si->r0, p);
@@ -153,6 +171,7 @@ int rv_slac_print_post(sl_core_t *c, sl_slac_inst_t *si, char *buf, int buflen) 
     case RV_PRINT_TYPE_ALUI_S:
     case RV_PRINT_TYPE_ALUI_X:
     case RV_PRINT_TYPE_L:
+    case RV_PRINT_TYPE_LR:
         len += snprintf(buf, buflen, " %s=%#" PRIx64, rv_name_for_reg(d0), c->r[d0]);
         break;
 
@@ -515,7 +534,46 @@ static int rv_decode_store(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     return 0;
 }
 
-int rv_decode_sync(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+static int rv_decode_atomic(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    if ((c->core.arch_options & SL_RISCV_EXT_A) == 0) goto undef;
+
+    const u1 op = inst.r.funct7 >> 2;
+    const u1 barrier = inst.r.funct7 & 3;   // 1: acquire, 0: release
+    // const u1 ord = ord_index[barrier];
+    // const u1 rd = inst.r.rd;
+    // const u8 addr = c->core.r[inst.r.rs1];
+    // u8 result;
+
+    if (inst.r.funct3 == 0b010) {
+        // if (addr & 3) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, SL_ERR_IO_ALIGN);
+
+        switch (op) {
+        case 0b00010: { // LR.W
+            if (inst.r.rs2 != 0) goto undef;
+
+            slacop(si, SLAC_IN_TYPE_ATOMIC, SLAC_IN_OP_LX, SLAC_IN_ARG_DRI, "lr.w");
+            si->len = SLAC_IN_LEN_4;
+            si->desc.print_type = RV_PRINT_TYPE_LR;
+            si->r0 = inst.r.rs1;
+            si->uimm = rv_barrier_map[barrier];
+            if (inst.r.rd == RV_ZERO) si->d0 = SLAC_REG_DISCARD;
+            else si->d0 = inst.r.rd;
+            return 0;
+        }
+
+        default:
+            // goto undef;
+            return SL_ERR_SLAC_UNDECODED;
+        }
+    }
+
+    return SL_ERR_SLAC_UNDECODED;
+
+undef:
+    return rv_slac_undef(c, si);
+}
+
+static int rv_decode_sync(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     if ((inst.i.rd != 0) || (inst.i.rs1 != 0)) goto undef;
     switch (inst.i.funct3) {
     case 0b000:
@@ -578,6 +636,7 @@ int riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
     case OP_ALU:        err = rv_decode_alu(c, si, inst);           break; // ADD SUB SLL SLT SLTU XOR SRL SRA OR AND
     case OP_IMM32:      err = rv64_decode_alu_imm4(c, si, inst);    break;
     case OP_ALU32:      err = rv64_decode_alu4(c, si, inst);        break;
+    case OP_AMO:        err = rv_decode_atomic(c, si, inst);        break;
 
 #if 0
     case OP_FP:
@@ -593,10 +652,6 @@ int riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
 
     case OP_SYSTEM:  // ECALL EBREAK CSRRW CSRRS CSRRC CSRRWI CSRRSI CSRRCI
         err = rv_exec_system(c, inst);
-        break;
-
-    case OP_AMO:
-        err = rv_exec_atomic(c, inst);
         break;
 #endif
 
