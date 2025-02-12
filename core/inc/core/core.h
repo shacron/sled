@@ -14,7 +14,6 @@
 #include <sled/core.h>
 
 #define MAX_PHYS_MEM_REGIONS    4
-#define MAX_DEVICES             8 
 
 #define BARRIER_LOAD    (1u << 0)
 #define BARRIER_STORE   (1u << 1)
@@ -60,16 +59,15 @@ struct sl_core {
     u1 frm;         // floating point rounding mode
     sl_fp_reg_t f[32];
 
-    uint64_t monitor_addr;
-    uint64_t monitor_value;
-    uint8_t  monitor_status;
+    u8 monitor_addr;
+    u8 monitor_value;
+    u1 monitor_status;
 
     u8 ticks;
     sl_mapper_t *mapper;
     sl_cache_t icache;      // instruction cache
 
     sl_engine_t engine;
-
 
     itrace_t *trace;
     const core_ops_t *ops;
