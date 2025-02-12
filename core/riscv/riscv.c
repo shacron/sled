@@ -85,40 +85,13 @@ static int riscv_interrupt(sl_engine_t *e) {
     return SL_ERR_STATE;
 }
 
-static int riscv_core_step(sl_engine_t *e) {
-    int err = 0;
-    rv_core_t *rc = containerof(e, rv_core_t, core.engine);
-    u4 inst;
-    if ((err = sl_core_load_pc(&rc->core, &inst)))
-        return sl_core_synchronous_exception(&rc->core, EX_ABORT_INST, rc->core.pc, err);
-    rc->core.branch_taken = false;
-    if ((err = rv_dispatch(rc, inst))) return err;
-    rc->core.ticks++;
-    if(!rc->core.branch_taken) sl_core_next_pc(&rc->core);
-    return err;
-}
-
 static void riscv_core_shutdown(sl_core_t *c);
 static void riscv_core_destroy(sl_core_t *c);
-
-int sl_riscv_core_init(rv_core_t *rc, sl_core_params_t *p) {
-    int err = sl_core_init(&rc->core, p, bus_get_mapper(p->bus));
-    if (err) return err;
-
-    rc->core.options |= SL_CORE_OPT_ENDIAN_LITTLE;
-    rc->mhartid = p->id;
-
-    rc->core.engine.ops.step = riscv_core_step;
-    rc->core.engine.ops.interrupt = riscv_interrupt;
-    rc->mimpid = 'sled';
-    rc->ext.name_for_sysreg = rv_name_for_sysreg;
-    return 0;
-}
 
 int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
     rv_core_t *rc = calloc(1, sizeof(*rc));
     if (rc == NULL) return SL_ERR_MEM;
-    int err = sl_riscv_core_init(rc, p);
+    int err = sl_core_init(&rc->core, p, bus_get_mapper(p->bus));
     if (err) {
         free(rc);
         return err;
@@ -129,6 +102,11 @@ int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
     rc->core.shutdown = riscv_core_shutdown;
     rc->core.destroy = riscv_core_destroy;
 
+    rc->core.options |= SL_CORE_OPT_ENDIAN_LITTLE;
+    rc->mhartid = p->id;
+    rc->core.engine.ops.interrupt = riscv_interrupt;
+    rc->mimpid = 'sled';
+    rc->ext.name_for_sysreg = rv_name_for_sysreg;
     return 0;
 }
 

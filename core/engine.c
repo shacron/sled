@@ -129,11 +129,11 @@ int sl_engine_handle_interrupts(sl_engine_t *e) {
 }
 
 int sl_engine_step(sl_engine_t *e, u8 num) {
-    return sl_worker_step(e->worker, num);
+    return e->ops.step(e, num);
 }
 
 int sl_engine_run(sl_engine_t *e) {
-    return sl_worker_run(e->worker);
+    return e->ops.run(e);
 }
 
 int sl_engine_init(sl_engine_t *e, const char *name, const sl_engine_ops_t *ops) {

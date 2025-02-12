@@ -7,8 +7,10 @@
 #include <stdio.h>
 
 #include <core/arch.h>
+#include <core/common.h>
 #include <core/device.h>
 #include <core/core.h>
+#include <core/ex.h>
 #include <core/mapper.h>
 #include <core/sym.h>
 #include <sled/error.h>
@@ -151,12 +153,30 @@ int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d) {
     return id;
 }
 
+// temporary
+int rv_dispatch(sl_core_t *c, u4 instruction);
+
 int sl_core_step(sl_core_t *c, u8 num) {
-    return sl_engine_step(&c->engine, num);
+    for (u8 i = 0; i < num; i++) {
+        int err;
+        if ((err = sl_worker_handle_events(c->engine.worker))) return err;
+
+        u4 inst;
+        if ((err = sl_core_load_pc(c, &inst)))
+            return sl_core_synchronous_exception(c, EX_ABORT_INST, c->pc, err);
+        c->branch_taken = false;
+        if ((err = rv_dispatch(c, inst))) return err;
+        c->ticks++;
+        if(!c->branch_taken) sl_core_next_pc(c);
+    }
+    return 0;
 }
 
 int sl_core_run(sl_core_t *c) {
-    return sl_engine_run(&c->engine);
+    for ( ; ; ) {
+        int err = sl_core_step(c, 0x80000000);
+        if (err) return err;
+    }
 }
 
 void sl_core_set_mode(sl_core_t *c, u1 mode) {
@@ -221,14 +241,27 @@ int sl_core_load_pc(sl_core_t * restrict c, u4 * restrict inst) {
     return 0;
 }
 
+static int eng_op_step(sl_engine_t *e, u8 num) {
+    sl_core_t *c = containerof(e, sl_core_t, engine);
+    return sl_core_step(c, num);
+}
+
+static int eng_op_run(sl_engine_t *e) {
+    sl_core_t *c = containerof(e, sl_core_t, engine);
+    return sl_core_run(c);
+}
+
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->mapper = m;
     c->el = SL_CORE_EL_MONITOR;
     c->mode = SL_CORE_MODE_4;
     c->prev_len = 0;
+    c->monitor_status = MONITOR_UNARMED;
     config_set_internal(c, p);
     sl_cache_init(&c->icache);
     sl_engine_init(&c->engine, "core_eng", NULL);
+    c->engine.ops.step = eng_op_step;
+    c->engine.ops.run = eng_op_run;
     sl_irq_endpoint_set_enabled(&c->engine.irq_ep, SL_IRQ_VEC_ALL);
     return 0;
 }

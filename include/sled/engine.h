@@ -10,7 +10,8 @@ extern "C" {
 #endif
 
 struct sl_engine_ops {
-    int (*step)(sl_engine_t *e);
+    int (*step)(sl_engine_t *e, u8 num);
+    int (*run)(sl_engine_t *e);
     int (*interrupt)(sl_engine_t *e);
 };
 

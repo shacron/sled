@@ -31,6 +31,10 @@ int sl_worker_add_engine(sl_worker_t *w, sl_engine_t *e, u4 *id_out);
 // This is guaranteed to be between engine steps.
 int sl_worker_add_event_endpoint(sl_worker_t *w, sl_event_ep_t *ep, u4 *id_out);
 
+// Handle events incoming to the worker.
+// May block if wait-for-event status is enabled.
+int sl_worker_handle_events(sl_worker_t *w);
+
 // Runs 'num' iterations of the work loop on current thread
 int sl_worker_step(sl_worker_t *w, u8 num);
 
