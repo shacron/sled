@@ -62,7 +62,7 @@ static result64_t rv_status_csr(rv_core_t *c, int op, u8 value) {
         goto fixup;
     }
 
-    if (c->core.mode == SL_CORE_MODE_32)
+    if (c->core.mode == SL_CORE_MODE_4)
         value = ((value & RV_SR_STATUS_SD) << 32) | (value & ~(RV_SR_STATUS_SD));
 
     value = status_for_pl(value, c->core.el);
@@ -102,7 +102,7 @@ static result64_t rv_status_csr(rv_core_t *c, int op, u8 value) {
     }
 
 fixup:
-    if (c->core.mode == SL_CORE_MODE_32)
+    if (c->core.mode == SL_CORE_MODE_4)
         result.value = (u4)(((result.value & RV_SR_STATUS64_SD) >> 32) | (result.value & ~(RV_SR_STATUS64_SD)));
 out:
     return result;
@@ -110,7 +110,7 @@ out:
 
 static result64_t rv_mcause_csr(rv_core_t *c, int op, u8 *reg, u8 value) {
     result64_t result = {};
-    if (c->core.mode == SL_CORE_MODE_32) {
+    if (c->core.mode == SL_CORE_MODE_4) {
         value = ((value & RV_CAUSE32_INT) << 32) | (value & ~RV_CAUSE32_INT);
         result = rv_csr_update(c, op, reg, value);
         result.value = (u4)(((result.value & RV_CAUSE64_INT) >> 32) | (result.value & 0x7fffffff));
@@ -153,7 +153,7 @@ static result64_t rv_csr_pmpcfg(rv_core_t *c, int op, u4 index, u8 value) {
     result64_t result = {};
 
     u8 cfg = c->pmpcfg[index];
-    if (c->core.mode == SL_CORE_MODE_64) {
+    if (c->core.mode == SL_CORE_MODE_8) {
         if (index & 1) {
             result.err = SL_ERR_UNDEF;
             return result;
@@ -166,7 +166,7 @@ static result64_t rv_csr_pmpcfg(rv_core_t *c, int op, u4 index, u8 value) {
 
     // todo: update MPU
 
-    if (c->core.mode == SL_CORE_MODE_64) {
+    if (c->core.mode == SL_CORE_MODE_8) {
         c->pmpcfg[index + 1] = (u4)(cfg >> 32);
     }
     c->pmpcfg[index] = (u4)cfg;
@@ -329,7 +329,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
         case RV_CSR_MCOUNTEREN: result = rv_csr_update(c, op, &r->counteren, value);    goto out;
 
         case RV_CSR_MSTATUSH:
-            if (c->core.mode != SL_CORE_MODE_32) goto undef;
+            if (c->core.mode != SL_CORE_MODE_4) goto undef;
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
@@ -345,14 +345,14 @@ result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
             result.err = SL_ERR_UNIMPLEMENTED;  goto out;
 
         case RV_CSR_MENVCFGH:
-            if (c->core.mode != SL_CORE_MODE_32) goto undef;
+            if (c->core.mode != SL_CORE_MODE_4) goto undef;
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
         case RV_CSR_MSECCFG:    result.err = SL_ERR_UNIMPLEMENTED;      goto out;
 
         case RV_CSR_MSECCFGH:
-            if (c->core.mode != SL_CORE_MODE_32) goto undef;
+            if (c->core.mode != SL_CORE_MODE_4) goto undef;
             result.err = SL_ERR_UNIMPLEMENTED;
             goto out;
 
@@ -447,7 +447,7 @@ result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
         }
 
         // rv32 only
-        if (c->core.mode != SL_CORE_MODE_32) goto undef;
+        if (c->core.mode != SL_CORE_MODE_4) goto undef;
         if ((addr.raw >= 0xc83) && (addr.raw <= 0xc9f)) {
             // hpmcounter3h...31h (URO)
             result.err = SL_ERR_UNIMPLEMENTED;
@@ -514,23 +514,23 @@ result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
     case RV_CSR_CYCLE:      // cycle
     case RV_CSR_INSTRET:    // instret
         result.value = c->core.ticks;
-        if (c->core.mode == SL_CORE_MODE_32) result.value &= 0xffffffff;
+        if (c->core.mode == SL_CORE_MODE_4) result.value &= 0xffffffff;
         goto out;
 
     case RV_CSR_TIME:       // time
         result.value = host_get_clock_ns();
-        if (c->core.mode == SL_CORE_MODE_32) result.value &= 0xffffffff;
+        if (c->core.mode == SL_CORE_MODE_4) result.value &= 0xffffffff;
         goto out;
 
     // rv32 only (URO)
     case RV_CSR_CYCLEH: // cycleh
     case RV_CSR_INSTRETH: // instreth
-        if (c->core.mode != SL_CORE_MODE_32) goto undef;
+        if (c->core.mode != SL_CORE_MODE_4) goto undef;
         result.value = (u4)(c->core.ticks >> 32);
         goto out;
 
     case RV_CSR_TIMEH: // timeh
-        if (c->core.mode != SL_CORE_MODE_32) goto undef;
+        if (c->core.mode != SL_CORE_MODE_4) goto undef;
         result.value = (u4)(host_get_clock_ns() >> 32);
         goto out;
 

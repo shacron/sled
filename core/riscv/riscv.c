@@ -220,14 +220,14 @@ int riscv_decode_attributes(const char *attrib, u4 *arch_options_out) {
     }
 
     if (!strcmp(ex.name, "rv64i")) {
-        options = SL_CORE_MODE_64;
+        options = SL_CORE_MODE_8;
     } else {
         if (strcmp(ex.name, "rv32i")) {
             printf("unexpected arch mode: %s\n", ex.name);
             err = SL_ERR_ARG;
             goto out;
         }
-        options = SL_CORE_MODE_32;
+        options = SL_CORE_MODE_4;
     }
 
     err = SL_ERR_ARG;

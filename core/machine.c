@@ -316,7 +316,7 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
         err = SL_ERR_ARG;
         goto out_err;
     }
-    if (is64) sl_core_set_mode(c, SL_CORE_MODE_64);
+    if (is64) sl_core_set_mode(c, SL_CORE_MODE_8);
     sl_core_set_reg(c, SL_CORE_REG_PC, entry);
     err = 0;
 
