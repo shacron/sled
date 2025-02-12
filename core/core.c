@@ -55,10 +55,6 @@ void sl_core_print_config(sl_core_t *c) {
     printf("  arch_options: %x\n", c->arch_options);
 }
 
-const core_ops_t * core_get_ops(sl_core_t *c) {
-    return c->ops;
-}
-
 u8 sl_core_get_cycles(sl_core_t *c) {
     return c->ticks;
 }
@@ -136,11 +132,11 @@ int sl_core_mem_atomic(sl_core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1,
 }
 
 void sl_core_set_reg(sl_core_t *c, u4 reg, u8 value) {
-    c->ops->set_reg(c, reg, value);
+    c->set_reg(c, reg, value);
 }
 
 u8 sl_core_get_reg(sl_core_t *c, u4 reg) {
-    return c->ops->get_reg(c, reg);
+    return c->get_reg(c, reg);
 }
 
 int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d) {
@@ -238,7 +234,7 @@ int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
 }
 
 void sl_core_shutdown(sl_core_t *c) {
-    c->ops->shutdown(c);
+    c->shutdown(c);
     sl_engine_shutdown(&c->engine);
     sl_cache_shutdown(&c->icache);
 #if WITH_SYMBOLS
@@ -251,7 +247,7 @@ void sl_core_shutdown(sl_core_t *c) {
 }
 
 void sl_core_destroy(sl_core_t *c) {
-    c->ops->destroy(c);
+    c->destroy(c);
 }
 
 void sl_core_print_bus_topology(sl_core_t *c) {

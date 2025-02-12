@@ -40,14 +40,17 @@ typedef union {
     double d;
 } sl_fp_reg_t;
 
-typedef struct core_ops {
+struct sl_core {
+
+    // ----------------------------------------------------------------------------
+    // synchronous functions
+    // ----------------------------------------------------------------------------
+
     void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
     u8 (*get_reg)(sl_core_t *c, u4 reg);
     void (*shutdown)(sl_core_t *c);
     void (*destroy)(sl_core_t *c);
-} core_ops_t;
 
-struct sl_core {
     u1 el;              // exception level
     u1 mode;            // execution mode (register length)
     u1 prev_len;        // length of last instruction
@@ -73,7 +76,6 @@ struct sl_core {
     sl_engine_t engine;
 
     itrace_t *trace;
-    const core_ops_t *ops;
     const arch_ops_t *arch_ops;
 
     u1 arch;
