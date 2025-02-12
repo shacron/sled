@@ -15,7 +15,7 @@ rv_sr_pl_t* rv_get_pl_csrs(rv_core_t *c, u1 pl) {
     return &c->sr_pl[pl - 1];
 }
 
-int rv_exception_enter(sl_core_t *core, u8 cause, u8 addr) {
+int riscv_core_exception_enter(sl_core_t *core, u8 cause, u8 addr) {
     rv_core_t *c = (rv_core_t *)core;
 
     // todo: check medeleg / mideleg for priv level dispatching

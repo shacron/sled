@@ -20,6 +20,10 @@
 #include <sled/error.h>
 #include <sled/riscv/csr.h>
 
+int riscv_core_exception_enter(sl_core_t *core, u8 cause, u8 addr);
+static void riscv_core_shutdown(sl_core_t *c);
+static void riscv_core_destroy(sl_core_t *c);
+
 static void riscv_core_set_reg(sl_core_t *c, u4 reg, u8 value) {
     rv_core_t *rc = (rv_core_t *)c;
 
@@ -80,13 +84,10 @@ static int riscv_interrupt(sl_engine_t *e) {
         const u1 bit = irq_pri[i];
         const u4 num = (1u << bit);
         if (ep->asserted & num)
-            return rv_exception_enter(&rc->core, bit | RV_CAUSE64_INT, 0);
+            return riscv_core_exception_enter(&rc->core, bit | RV_CAUSE64_INT, 0);
     }
     return SL_ERR_STATE;
 }
-
-static void riscv_core_shutdown(sl_core_t *c);
-static void riscv_core_destroy(sl_core_t *c);
 
 int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
     rv_core_t *rc = calloc(1, sizeof(*rc));
@@ -97,6 +98,7 @@ int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
         return err;
     }
     *core_out = &rc->core;
+    rc->core.exception_enter = riscv_core_exception_enter;
     rc->core.set_reg = riscv_core_set_reg;
     rc->core.get_reg = riscv_core_get_reg;
     rc->core.shutdown = riscv_core_shutdown;

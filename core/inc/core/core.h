@@ -45,6 +45,8 @@ struct sl_core {
     // ----------------------------------------------------------------------------
     // synchronous functions
     // ----------------------------------------------------------------------------
+    int (*exception_enter)(sl_core_t *c, u8 ex, u8 value);
+    int (*breakpoint)(sl_core_t *c);
 
     void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
     u8 (*get_reg)(sl_core_t *c, u4 reg);
