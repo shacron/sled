@@ -97,8 +97,11 @@ sl_map_ep_t * sl_mapper_get_ep(sl_mapper_t *m) { return &m->ep; }
 
 static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     sl_mapper_t *m = containerof(ep, sl_mapper_t, ep);
-    if (m->mode == SL_MAP_OP_MODE_BLOCK) return SL_ERR_IO_NOMAP;
-    if (m->mode == SL_MAP_OP_MODE_PASSTHROUGH) return sl_mapper_io(m->next, op);
+    for ( ; ; ) {
+        if (m->mode == SL_MAP_OP_MODE_BLOCK) return SL_ERR_IO_NOMAP;
+        if (m->mode != SL_MAP_OP_MODE_PASSTHROUGH) break;
+        m = m->next;
+    }
 
     int err = 0;
     u8 addr = op->addr;
