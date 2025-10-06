@@ -138,12 +138,28 @@ typedef struct {
 } rv_extension_map_t;
 
 static const rv_extension_map_t ext_map[] = {
-  { "m", SL_RISCV_EXT_M },
-  { "a", SL_RISCV_EXT_A },
-  { "f", SL_RISCV_EXT_F | SL_RISCV_EXT_ZICSR },
-  { "d", SL_RISCV_EXT_D | SL_RISCV_EXT_F | SL_RISCV_EXT_ZICSR },
-  { "c", SL_RISCV_EXT_C },
-  { "zicsr", SL_RISCV_EXT_ZICSR },
+    { "m", SL_RISCV_EXT_M },
+    { "a", SL_RISCV_EXT_A },
+    { "f", SL_RISCV_EXT_F | SL_RISCV_EXT_ZICSR },
+    { "d", SL_RISCV_EXT_D | SL_RISCV_EXT_F | SL_RISCV_EXT_ZICSR },
+    { "c", SL_RISCV_EXT_C },
+    { "zicsr", SL_RISCV_EXT_ZICSR },
+
+    // todo: split extensions into finer-grained sets to support the dumb partical extensions below
+
+    { "zmmul", SL_RISCV_EXT_M },      // zmmull is M without divide instructions. For now treat as M.
+
+    // compressed instructions.
+    { "zca", SL_RISCV_EXT_C },    // Zca - instructions in the C extension that do not include the floating-point loads and stores.
+    { "zcf", SL_RISCV_EXT_C | SL_RISCV_EXT_F }, // Zcf - the existing set of compressed single precision floating point loads and stores: c.flw, c.flwsp, c.fsw, c.fswsp.
+    { "zcd", SL_RISCV_EXT_C | SL_RISCV_EXT_F | SL_RISCV_EXT_D },  // Zcd - existing set of compressed double precision floating point loads and stores: c.fld, c.fldsp, c.fsd, c.fsdsp.
+    { "zcb", SL_RISCV_EXT_C },    // Zcb - simple code-size saving instructions which are easy to implement on all CPUs
+    // Zcmp - a set of instructions which may be executed as a series of existing 32-bit RISC-V instructions (push/pop and double move)
+    // Zcmt - adds the table jump instructions and also adds the JVT CSR
+
+    // atomic instructions
+    { "zaamo", SL_RISCV_EXT_A },    // Zaamo - Atomic Memory Operations Extension
+    { "zalrsc", SL_RISCV_EXT_A },   // Zalrsc - Load-Reserved/Store-conditional Extension
 };
 
 static int parse_attribute(char *s, rv_extension_t *ex) {
