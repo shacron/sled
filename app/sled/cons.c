@@ -81,6 +81,8 @@ static int reg_handler(console_t *c, char *cmd, int argc, char **argv) {
     return 0;
 }
 
+#define LINE_LEN    100
+
 static int mem_handler(console_t *c, char *cmd, int argc, char **argv) {
     int err = 0;
 
@@ -96,8 +98,8 @@ static int mem_handler(console_t *c, char *cmd, int argc, char **argv) {
     u4 size = 0;
     u4 num = 20;
     // u8 value = 0;
-    const u4 line_len = 100;
-    char line[line_len];
+    const u4 line_len = LINE_LEN;
+    char line[LINE_LEN];
 
     const char *op = argv[0];
     if ((op[0] == 'r') || (op[0] == 'w')) {
