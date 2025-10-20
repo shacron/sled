@@ -92,7 +92,7 @@ static int riscv_interrupt(sl_engine_t *e) {
 int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
     rv_core_t *rc = calloc(1, sizeof(*rc));
     if (rc == NULL) return SL_ERR_MEM;
-    int err = sl_core_init(&rc->core, p, bus_get_mapper(p->bus));
+    int err = sl_core_init(&rc->core, p, NULL);
     if (err) {
         free(rc);
         return err;
@@ -255,4 +255,3 @@ out:
     free(at);
     return err;
 }
-

@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include <core/arch.h>
+#include <core/bus.h>
 #include <core/common.h>
 #include <core/device.h>
 #include <core/core.h>
@@ -41,6 +42,7 @@ static void config_set_internal(sl_core_t *c, sl_core_params_t *p) {
     c->arch_options = p->arch_options;
     c->name = p->name;
     c->arch_ops = arch_get_ops(c->arch);
+    c->bus = p->bus;
 }
 
 int sl_core_config_set(sl_core_t *c, sl_core_params_t *p) {
@@ -252,6 +254,8 @@ static int eng_op_run(sl_engine_t *e) {
 }
 
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
+    if (m == NULL)
+        m = bus_get_mapper(p->bus);
     c->mapper = m;
     c->el = SL_CORE_EL_MONITOR;
     c->mode = SL_CORE_MODE_4;

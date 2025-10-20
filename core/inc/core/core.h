@@ -73,6 +73,7 @@ struct sl_core {
 
     u8 ticks;
     sl_mapper_t *mapper;
+    sl_bus_t *bus;
     sl_cache_t icache;      // instruction cache
 
     sl_engine_t engine;
