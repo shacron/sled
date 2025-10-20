@@ -233,8 +233,7 @@ void mapper_print_mappings(sl_mapper_t *m) {
         for (u4 i = 0; i < m->num_ents; i++) {
             sl_dev_t *d;
             map_ent_t *ent = m->list[i];
-            printf("  %#20" PRIx64 " %#20" PRIx64 " %#20" PRIx64 "", ent->pa_base, ent->va_base, ent->va_end - 
-            ent->va_base);
+            printf("  %#20" PRIx64 " %#20" PRIx64 " %#20" PRIx64 "", ent->pa_base, ent->va_base, ent->va_end - ent->va_base);
 
             switch (ent->type) {
             case SL_MAP_TYPE_MEMORY:
