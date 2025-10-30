@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2024 Shac Ron and The Sled Project
+// Copyright (c) 2024-2025 Shac Ron and The Sled Project
 
 #pragma once
 
@@ -11,7 +11,7 @@
 struct sl_cache_page {
     sl_list_node_t node;
     u8 base;
-    u1 buffer[];
+    void *buf;
 };
 
 struct sl_cache {
@@ -29,7 +29,7 @@ void sl_cache_shutdown(sl_cache_t *c);
 int sl_cache_read(sl_cache_t *c, u8 addr, usize size, void *buf);
 int sl_cache_alloc_page(sl_cache_t *c, u8 addr, sl_cache_page_t **pg_out);
 void sl_cache_fill_page(sl_cache_t *c, sl_cache_page_t *pg);
-void sl_cache_discard_unfilled_page(sl_cache_t *c, sl_cache_page_t *pg);
+void sl_cache_release_page(sl_cache_t *c, sl_cache_page_t *pg);
 
 void sl_cache_invalidate_page(sl_cache_t *c, u8 addr);
 void sl_cache_invalidate_all(sl_cache_t *c);

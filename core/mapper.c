@@ -98,27 +98,27 @@ sl_map_ep_t * sl_mapper_get_ep(sl_mapper_t *m) { return &m->ep; }
 static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     sl_mapper_t *m = containerof(ep, sl_mapper_t, ep);
     for ( ; ; ) {
-        if (m->mode == SL_MAP_OP_MODE_BLOCK) return SL_ERR_IO_NOMAP;
-        if (m->mode != SL_MAP_OP_MODE_PASSTHROUGH) break;
+        if (m->mode == SL_MAP_OP_MODE_BLOCK)
+            return SL_ERR_IO_NOMAP;
+        if (m->mode != SL_MAP_OP_MODE_PASSTHROUGH)
+            break;
         m = m->next;
     }
 
-    int err = 0;
-    u8 addr = op->addr;
-
-    if (unlikely(IO_IS_ATOMIC(op->op))) {
+    if ((op->op == IO_OP_RESOLVE) || IO_IS_ATOMIC(op->op)) {
         map_ent_t *e = ent_for_address(m, op->addr);
-        if (e == NULL) return SL_ERR_IO_NOMAP;
-
-        u8 offset = addr - e->va_base;
+        if (e == NULL)
+            return SL_ERR_IO_NOMAP;
+        const u8 offset = op->addr - e->va_base;
         op->addr = e->pa_base + offset;
         return e->ep->io(e->ep, op);
     }
 
+    int err = 0;
+    u8 addr = op->addr;
     const u2 size = op->size;
     u8 len = size * op->count;
     sl_io_op_t subop = *op;
-
     while (len) {
         // todo: check alignment
 
@@ -135,7 +135,8 @@ static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
         subop.addr = e->pa_base + offset;
         subop.count = avail / size;
 
-        if ((err = e->ep->io(e->ep, &subop))) return err;
+        if ((err = e->ep->io(e->ep, &subop)))
+            return err;
         len -= avail;
         addr += avail;
         subop.buf += avail;
@@ -146,6 +147,23 @@ static int mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
 int sl_mapper_io(void *ctx, sl_io_op_t *op) {
     sl_mapper_t *m = ctx;
     return mapper_ep_io(&m->ep, op);
+}
+
+resultptr_t sl_mapper_resolve(sl_mapper_t *m, u8 addr, u8 *len_out) {
+    resultptr_t res;
+    sl_io_op_t op;
+
+    op.addr = addr;
+    op.size = 1;
+    op.op = IO_OP_RESOLVE;
+    op.align = 1;
+    op.count = 1;
+    res.err = mapper_ep_io(&m->ep, &op);
+    if (res.err == 0) {
+        *len_out = op.arg[1];
+        res.value = (void *)op.arg[0];
+    }
+    return res;
 }
 
 int mapper_update(sl_mapper_t *m, sl_event_t *ev) {

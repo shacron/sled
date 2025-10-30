@@ -44,6 +44,7 @@ extern "C" {
 #define SL_ERR_IO_INVALID   -40 // invalid io operation
 #define SL_ERR_IO_NOMAP     -41 // no valid mapping
 #define SL_ERR_IO_NOATOMIC  -42 // atomic ops not supported
+#define SL_ERR_IO_NOCACHE   -43 // caching not allowed (mmio)
 
 
 const char *st_err(int err);

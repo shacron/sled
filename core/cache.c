@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2024 Shac Ron and The Sled Project
+// Copyright (c) 2024-2025 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <stdlib.h>
@@ -33,7 +33,7 @@ static int sl_cache_read_one(sl_cache_t *c, u8 addr, usize size, void *buf) {
     return SL_ERR_NOT_FOUND;
 
 current_page:
-    memcpy(buf, &c->page[hash]->buffer[offset], size);
+    memcpy(buf, c->page[hash]->buf + offset, size);
     return 0;
 }
 
@@ -66,7 +66,7 @@ void sl_cache_fill_page(sl_cache_t *c, sl_cache_page_t *pg) {
     sl_list_add_first(&c->allocated_list, &pg->node);
 }
 
-void sl_cache_discard_unfilled_page(sl_cache_t *c, sl_cache_page_t *pg) {
+void sl_cache_release_page(sl_cache_t *c, sl_cache_page_t *pg) {
     free(pg);
 }
 

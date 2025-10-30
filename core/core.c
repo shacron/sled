@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2024 Shac Ron and The Sled Project
+// Copyright (c) 2022-2025 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <inttypes.h>
@@ -229,15 +229,24 @@ int sl_core_load_pc(sl_core_t * restrict c, u4 * restrict inst) {
 
         sl_cache_page_t *pg;
         const u8 miss_addr = c->icache.miss_addr;
-        if ((err = sl_cache_alloc_page(&c->icache, miss_addr, &pg))) return err;
+        if ((err = sl_cache_alloc_page(&c->icache, miss_addr, &pg)))
+            return err;
 
         const u1 shift = c->icache.page_shift;
         const u8 pg_size = 1u << shift;
         const u8 base = (miss_addr >> shift) << shift;
-        if ((err = sl_core_mem_read(c, base, 1, pg_size, pg->buffer))) {
-            sl_cache_discard_unfilled_page(&c->icache, pg);
-            return err;
+
+        u8 len;
+        resultptr_t result = sl_mapper_resolve(c->mapper, base, &len);
+        if (result.err) {
+            sl_cache_release_page(&c->icache, pg);
+            return result.err;
         }
+
+        pg->buf = result.value;
+        // todo: handle cases where len is less than page size
+        assert(len >= pg_size);
+
         sl_cache_fill_page(&c->icache, pg);
     }
     return 0;

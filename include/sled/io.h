@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2023 Shac Ron and The Sled Project
+// Copyright (c) 2023-2025 Shac Ron and The Sled Project
 
 #pragma once
 
@@ -8,23 +8,32 @@
 #define IO_OP_IN                        0
 #define IO_OP_OUT                       1
 
+#define IO_OP_RESOLVE                   2
+
 // Atomic Ops. These use arg[] instead of buf and order instead of count
-#define IO_OP_ATOMIC_SWAP               2
-#define IO_OP_ATOMIC_CAS                3   // compare and swap
-#define IO_OP_ATOMIC_ADD                4
-#define IO_OP_ATOMIC_SUB                5
-#define IO_OP_ATOMIC_AND                6
-#define IO_OP_ATOMIC_OR                 7
-#define IO_OP_ATOMIC_XOR                8
-#define IO_OP_ATOMIC_SMAX               9
-#define IO_OP_ATOMIC_SMIN               10
-#define IO_OP_ATOMIC_UMAX               11
-#define IO_OP_ATOMIC_UMIN               12
+#define IO_OP_ATOMIC_SWAP               3
+#define IO_OP_ATOMIC_CAS                4   // compare and swap
+#define IO_OP_ATOMIC_ADD                5
+#define IO_OP_ATOMIC_SUB                6
+#define IO_OP_ATOMIC_AND                7
+#define IO_OP_ATOMIC_OR                 8
+#define IO_OP_ATOMIC_XOR                9
+#define IO_OP_ATOMIC_SMAX               10
+#define IO_OP_ATOMIC_SMIN               11
+#define IO_OP_ATOMIC_UMAX               12
+#define IO_OP_ATOMIC_UMIN               13
 
 #define IO_IS_ATOMIC(op) (op >= IO_OP_ATOMIC_SWAP)
 
 typedef struct sl_io_op sl_io_op_t;
 typedef struct sl_io_port sl_io_port_t;
+
+// sl_io_op: an io operation
+// When called with op IO_OP_RESOLVE
+//  'size' and 'count' should be 1, 'buf' is unused
+// On successful return:
+//  arg[0] will contain the host machine pointer to the data
+//  arg[1] will contain the length of the data
 
 struct sl_io_op {
     u8 addr;   // bus address of target data

@@ -66,6 +66,8 @@ int sl_mapper_io(void *ctx, sl_io_op_t *op);
 sl_mapper_t * sl_mapper_get_next(sl_mapper_t *m);
 sl_map_ep_t * sl_mapper_get_ep(sl_mapper_t *m);
 
+resultptr_t sl_mapper_resolve(sl_mapper_t *m, u8 addr, u8 *len_out);
+
 #ifdef __cplusplus
 }
 #endif

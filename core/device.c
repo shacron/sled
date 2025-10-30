@@ -16,15 +16,20 @@
 
 int device_mapper_ep_io(sl_map_ep_t *ep, sl_io_op_t *op) {
     sl_dev_t *d = containerof(ep, sl_dev_t, map_ep);
-    if (op->op == IO_OP_IN) {
-        if (d->ops->read == NULL) return SL_ERR_IO_NORD;
+    switch (op->op) {
+    case IO_OP_IN:
+        if (d->ops->read == NULL)
+            return SL_ERR_IO_NORD;
         return d->ops->read(d->context, op->addr, op->size, op->count, op->buf);
-    }
-    if (op->op == IO_OP_OUT) {
-        if (d->ops->write == NULL) return SL_ERR_IO_NOWR;
+    case IO_OP_OUT:
+        if (d->ops->write == NULL)
+            return SL_ERR_IO_NOWR;
         return d->ops->write(d->context, op->addr, op->size, op->count, op->buf);
+    case IO_OP_RESOLVE:
+        return SL_ERR_IO_NOCACHE;
+    default:
+        return SL_ERR_IO_NOATOMIC;
     }
-    return SL_ERR_IO_NOATOMIC;
 }
 
 void sl_device_set_context(sl_dev_t *d, void *ctx) { d->context = ctx; }
