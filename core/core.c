@@ -220,36 +220,32 @@ void sl_core_next_pc(sl_core_t *c) {
 int sl_core_load_pc(sl_core_t * restrict c, u4 * restrict inst) {
     // todo extras: check alignment of pc
 
-    for (int i = 0; i < 3; i++) {
-        int err = sl_cache_read(&c->icache, c->pc, 4, inst);
-        if (err != SL_ERR_NOT_FOUND) return err;
+    int err = sl_cache_read(&c->icache, c->pc, 4, inst);
+    if (err != SL_ERR_NOT_FOUND)
+        return err;
 
-        // filled in both cache pages, all data should be found
-        if (i == 2) return SL_ERR_STATE;
+    sl_cache_page_t *pg;
+    const u8 miss_addr = c->icache.miss_addr;
+    if ((err = sl_cache_alloc_page(&c->icache, miss_addr, &pg)))
+        return err;
 
-        sl_cache_page_t *pg;
-        const u8 miss_addr = c->icache.miss_addr;
-        if ((err = sl_cache_alloc_page(&c->icache, miss_addr, &pg)))
-            return err;
+    const u1 shift = c->icache.page_shift;
+    const u8 pg_size = 1u << shift;
+    const u8 base = (miss_addr >> shift) << shift;
 
-        const u1 shift = c->icache.page_shift;
-        const u8 pg_size = 1u << shift;
-        const u8 base = (miss_addr >> shift) << shift;
-
-        u8 len;
-        resultptr_t result = sl_mapper_resolve(c->mapper, base, &len);
-        if (result.err) {
-            sl_cache_release_page(&c->icache, pg);
-            return result.err;
-        }
-
-        pg->buf = result.value;
-        // todo: handle cases where len is less than page size
-        assert(len >= pg_size);
-
-        sl_cache_fill_page(&c->icache, pg);
+    u8 len;
+    resultptr_t result = sl_mapper_resolve(c->mapper, base, &len);
+    if (result.err) {
+        sl_cache_release_page(&c->icache, pg);
+        return result.err;
     }
-    return 0;
+
+    pg->buf = result.value;
+    // todo: handle cases where len is less than page size
+    assert(len >= pg_size);
+    sl_cache_fill_page(&c->icache, pg);
+
+    return sl_cache_read(&c->icache, c->pc, 4, inst);
 }
 
 static int eng_op_step(sl_engine_t *e, u8 num) {
