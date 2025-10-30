@@ -765,7 +765,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             const u4 rd = RVC_TO_REG(ci.cl.rd);
             const u4 addr = c->core.r[rs] + imm;
             float val;
-            err = sl_core_mem_read(&c->core, addr, 4, 1, &val);
+            err = sl_core_mem_read_single(&c->core, addr, 4, &val);
             RV_TRACE_RDF(c, rd, val);
             RV_TRACE_PRINT(c, "c.flw f%u, %u(x%u)", rd, imm, rs);
             if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
@@ -993,7 +993,7 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             const u4 imm = CI_IMM_SCALED_4(ci);
             const u4 addr = c->core.r[RV_SP] + imm;
             float val;
-            err = sl_core_mem_read(&c->core, addr, 4, 1, &val);
+            err = sl_core_mem_read_single(&c->core, addr, 4, &val);
             RV_TRACE_RDF(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.flwsp f%u, %u", ci.ci.rsd, imm);
             if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
