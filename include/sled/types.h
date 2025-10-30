@@ -71,6 +71,9 @@ typedef struct {
     int err;
 } resultptr_t;
 
+static inline result64_t result64_with_error(int err) { return (result64_t){ .err = err }; }
+static inline result64_t result64_with_value(u8 value) { return (result64_t){ .err = 0, .value = value }; }
+
 #ifdef __cplusplus
 }
 #endif
