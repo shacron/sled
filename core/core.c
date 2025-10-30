@@ -94,6 +94,42 @@ void sl_core_memory_barrier(sl_core_t *c, u4 type) {
     }
 }
 
+static inline u8 get_page_base(u8 addr, u1 page_shift) {
+    return (addr >> page_shift) << page_shift;
+}
+
+int sl_core_mem_read_single(sl_core_t *c, u8 addr, u1 size, void *buf) {
+    if (addr & (size - 1))
+        return SL_ERR_IO_ALIGN;
+
+    int err = sl_cache_read(&c->dcache, addr, size, buf);
+    if (err == 0)
+        return 0;
+    if (err == SL_ERR_IO_NOCACHE)
+        return sl_core_mem_read(c, addr, size, 1, buf);
+    if (err != SL_ERR_NOT_FOUND)
+        return err;
+
+    sl_cache_page_t *pg;
+    const u8 miss_addr = c->dcache.miss_addr;
+    if ((err = sl_cache_alloc_page(&c->dcache, miss_addr, &pg)))
+        return err;;
+
+    const u8 page_base = get_page_base(addr, c->dcache.page_shift);
+    u8 len;
+    resultptr_t rp = sl_mapper_resolve(c->mapper, page_base, &len);
+    if (rp.err) {
+        sl_cache_release_page(&c->dcache, pg);
+        return rp.err;
+    }
+
+    pg->buf = rp.value;
+    // todo: handle cases where len is less than page size
+    assert(len >= 1u << c->dcache.page_shift);
+    sl_cache_fill_page(&c->dcache, pg);
+    return sl_cache_read(&c->dcache, addr, size, buf);
+}
+
 int sl_core_mem_read(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf) {
     sl_io_op_t op;
     op.addr = addr;
@@ -268,6 +304,7 @@ int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->monitor_status = MONITOR_UNARMED;
     config_set_internal(c, p);
     sl_cache_init(&c->icache);
+    sl_cache_init(&c->dcache);
     sl_engine_init(&c->engine, "core_eng", NULL);
     c->engine.ops.step = eng_op_step;
     c->engine.ops.run = eng_op_run;
@@ -279,6 +316,7 @@ void sl_core_shutdown(sl_core_t *c) {
     c->shutdown(c);
     sl_engine_shutdown(&c->engine);
     sl_cache_shutdown(&c->icache);
+    sl_cache_shutdown(&c->dcache);
 #if WITH_SYMBOLS
     sl_sym_list_t *n = NULL;
     for (sl_sym_list_t *s = c->symbols; s != NULL; s = n) {

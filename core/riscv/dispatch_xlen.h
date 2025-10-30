@@ -143,7 +143,6 @@ static int XLEN_PREFIX(exec_jalr)(rv_core_t *c, rv_inst_t inst) {
 static int XLEN_PREFIX(exec_load)(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     int err;
-
     uxlen_t x;
     u4 w;
     u2 h;
@@ -155,44 +154,44 @@ static int XLEN_PREFIX(exec_load)(rv_core_t *c, rv_inst_t inst) {
     switch (inst.i.funct3) {
     case 0b000: // LB
         RV_TRACE_OPSTR("lb");
-        err = sl_core_mem_read(&c->core, dest, 1, 1, &b);
+        err = sl_core_mem_read_single(&c->core, dest, 1, &b);
         x = (i1)b;
         break;
 
     case 0b001: // LH
         RV_TRACE_OPSTR("lh");
-        err = sl_core_mem_read(&c->core, dest, 2, 1, &h);
+        err = sl_core_mem_read_single(&c->core, dest, 2, &h);
         x = (i2)h;
         break;
 
     case 0b010: // LW
         RV_TRACE_OPSTR("lw");
-        err = sl_core_mem_read(&c->core, dest, 4, 1, &w);
+        err = sl_core_mem_read_single(&c->core, dest, 4, &w);
         x = (i4)w;
         break;
 
     case 0b100: // LBU
         RV_TRACE_OPSTR("lbu");
-        err = sl_core_mem_read(&c->core, dest, 1, 1, &b);
+        err = sl_core_mem_read_single(&c->core, dest, 1, &b);
         x = b;
         break;
 
     case 0b101: // LHU
         RV_TRACE_OPSTR("lhu");
-        err = sl_core_mem_read(&c->core, dest, 2, 1, &h);
+        err = sl_core_mem_read_single(&c->core, dest, 2, &h);
         x = h;
         break;
 
 #if USING_RV64
     case 0b110: // LWU
         RV_TRACE_OPSTR("lwu");
-        err = sl_core_mem_read(&c->core, dest, 4, 1, &w);
+        err = sl_core_mem_read_single(&c->core, dest, 4, &w);
         x = w;
         break;
 
     case 0b011: // LD
         RV_TRACE_OPSTR("ld");
-        err = sl_core_mem_read(&c->core, dest, 8, 1, &x);
+        err = sl_core_mem_read_single(&c->core, dest, 8, &x);
         break;
 #endif
 
@@ -746,12 +745,12 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const u4 rs = RVC_TO_REG(ci.cl.rs);
         const u4 rd = RVC_TO_REG(ci.cl.rd);
         const u8 dest = c->core.r[rs] + imm;
-
         u4 val;
-        err = sl_core_mem_read(&c->core, dest, 4, 1, &val);
+        err = sl_core_mem_read_single(&c->core, dest, 4, &val);
         RV_TRACE_RD(c, rd, val);
         RV_TRACE_PRINT(c, "c.lw x%u, %u(x%u)", rd, imm, rs);
-        if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, dest, err);
+        if (err)
+            return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, dest, err);
         c->core.r[rd] = (i4)val; // sign extend
         break;
     }
@@ -779,12 +778,12 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         const u4 rs = RVC_TO_REG(ci.cl.rs);
         const u4 rd = RVC_TO_REG(ci.cl.rd);
         const u8 addr = c->core.r[rs] + imm;
-
         u8 val;
-        err = sl_core_mem_read(&c->core, addr, 8, 1, &val);
+        err = sl_core_mem_read_single(&c->core, addr, 8, &val);
         RV_TRACE_RD(c, rd, val);
         RV_TRACE_PRINT(c, "c.ld x%u, %u(x%u)", rd, imm, rs);
-        if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
+        if (err)
+            return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
         c->core.r[rd] = val;
         break;
     }
@@ -962,10 +961,11 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             const u4 imm = CI_IMM_SCALED_8(ci);
             const uxlen_t addr = c->core.r[RV_SP] + imm;
             double val;
-            err = sl_core_mem_read(&c->core, addr, 8, 1, &val);
+            err = sl_core_mem_read_single(&c->core, addr, 8, &val);
             RV_TRACE_RDD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.fldsp f%u, %u", ci.ci.rsd, imm);
-            if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
+            if (err)
+                return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
             c->core.f[ci.ci.rsd].d = val;
             break;
         }
@@ -975,12 +975,12 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
         else {
             const u4 imm = CI_IMM_SCALED_4(ci);
             const uxlen_t addr = c->core.r[RV_SP] + imm;
-
             u4 val;
-            err = sl_core_mem_read(&c->core, addr, 4, 1, &val);
+            err = sl_core_mem_read_single(&c->core, addr, 4, &val);
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.lwsp x%u, %u", ci.ci.rsd, imm);
-            if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
+            if (err)
+                return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
             c->core.r[ci.ci.rsd] = val;
             break;
         }
@@ -1007,10 +1007,11 @@ static int XLEN_PREFIX(dispatch16)(rv_core_t *c, rv_inst_t inst) {
             const u4 imm = CI_IMM_SCALED_8(ci);
             const u8 addr = c->core.r[RV_SP] + imm;
             u8 val;
-            err = sl_core_mem_read(&c->core, addr, 8, 1, &val);
+            err = sl_core_mem_read_single(&c->core, addr, 8, &val);
             RV_TRACE_RD(c, ci.ci.rsd, val);
             RV_TRACE_PRINT(c, "c.ldsp x%u, %u", ci.ci.rsd, imm);
-            if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
+            if (err)
+                return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
             c->core.r[ci.ci.rsd] = val;
             break;
         }
