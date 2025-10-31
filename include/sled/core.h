@@ -93,6 +93,7 @@ int sl_core_run(sl_core_t *c);
 void sl_core_set_reg(sl_core_t *c, u4 reg, u8 value);
 u8 sl_core_get_reg(sl_core_t *c, u4 reg);
 int sl_core_mem_read_single(sl_core_t *c, u8 addr, u1 size, void *buf);
+int sl_core_mem_write_single(sl_core_t *c, u8 addr, u1 size, void *buf);
 int sl_core_mem_read(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf);
 int sl_core_mem_write(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf);
 int sl_core_mem_atomic(sl_core_t *c, u8 addr, u4 size, u1 aop, u8 arg0, u8 arg1, u8 *result, u1 ord, u1 ord_fail);
@@ -100,6 +101,8 @@ u8 sl_core_get_cycles(sl_core_t *c);
 int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d);
 void sl_core_dump_state(sl_core_t *c);
 void sl_core_set_mode(sl_core_t *c, u1 mode);
+
+void sl_core_print_cache_stats(sl_core_t *c);
 
 // ----------------------------------------------------------------------------
 // Async control functions

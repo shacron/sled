@@ -454,6 +454,7 @@ int simple_machine(sm_t *sm) {
     // printf("success\n");
 out:
     printf("%" PRIu64 " instructions dispatched\n", sl_core_get_cycles(c));
+    sl_core_print_cache_stats(c);
     err = 0;
 
 out_err_runtime:

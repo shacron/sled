@@ -483,7 +483,7 @@ int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
         RV_TRACE_OPSTR("fsw");
         if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
         val.u4 = c->core.f[inst.s.rs2].u4;
-        err = sl_core_mem_write(&c->core, addr, 4, 1, &val.u4);
+        err = sl_core_mem_write_single(&c->core, addr, 4, &val.u4);
         RV_TRACE_STORE_F(c, addr, inst.s.rs2, val.f);
         break;
 
@@ -491,7 +491,7 @@ int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
         RV_TRACE_OPSTR("fsd");
         if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
         val.u8 = c->core.f[inst.s.rs2].u8;
-        err = sl_core_mem_write(&c->core, addr, 8, 1, &val.u8);
+        err = sl_core_mem_write_single(&c->core, addr, 8, &val.u8);
         RV_TRACE_STORE_D(c, addr, inst.s.rs2, val.d);
         break;
 

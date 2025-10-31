@@ -98,36 +98,55 @@ static inline u8 get_page_base(u8 addr, u1 page_shift) {
     return (addr >> page_shift) << page_shift;
 }
 
+static int fill_cache_for_addr(sl_core_t *c, u8 addr) {
+    const u8 page_base = get_page_base(addr, c->dcache.page_shift);
+    u8 len;
+    resultptr_t rp = sl_mapper_resolve(c->mapper, page_base, &len);
+    if (rp.err)
+        return rp.err;
+
+    // todo: handle cases where len is less than page size
+    // assert(len >= 1u << c->dcache.page_shift);
+    sl_cache_set_page(&c->dcache, page_base, rp.value);
+    return 0;
+}
+
 int sl_core_mem_read_single(sl_core_t *c, u8 addr, u1 size, void *buf) {
     if (addr & (size - 1))
         return SL_ERR_IO_ALIGN;
 
-    int err = sl_cache_read(&c->dcache, addr, size, buf);
+    int err = sl_cache_rw_single(&c->dcache, addr, size, buf, true);
     if (err == 0)
         return 0;
-    if (err == SL_ERR_IO_NOCACHE)
-        return sl_core_mem_read(c, addr, size, 1, buf);
     if (err != SL_ERR_NOT_FOUND)
         return err;
 
-    sl_cache_page_t *pg;
-    const u8 miss_addr = c->dcache.miss_addr;
-    if ((err = sl_cache_alloc_page(&c->dcache, miss_addr, &pg)))
-        return err;;
-
-    const u8 page_base = get_page_base(addr, c->dcache.page_shift);
-    u8 len;
-    resultptr_t rp = sl_mapper_resolve(c->mapper, page_base, &len);
-    if (rp.err) {
-        sl_cache_release_page(&c->dcache, pg);
-        return rp.err;
+    if ((err = fill_cache_for_addr(c, addr))) {
+        if (err == SL_ERR_IO_NOCACHE)
+            return sl_core_mem_read(c, addr, size, 1, buf);
+        return err;
     }
 
-    pg->buf = rp.value;
-    // todo: handle cases where len is less than page size
-    assert(len >= 1u << c->dcache.page_shift);
-    sl_cache_fill_page(&c->dcache, pg);
-    return sl_cache_read(&c->dcache, addr, size, buf);
+    return sl_cache_rw_single(&c->dcache, addr, size, buf, true);
+}
+
+int sl_core_mem_write_single(sl_core_t *c, u8 addr, u1 size, void *buf) {
+    if (addr & (size - 1))
+        return SL_ERR_IO_ALIGN;
+
+    int err = sl_cache_rw_single(&c->dcache, addr, size, buf, false);
+    if (err == 0)
+        return 0;
+    if (err != SL_ERR_NOT_FOUND)
+        return err;
+
+    if ((err = fill_cache_for_addr(c, addr))) {
+        if (err == SL_ERR_IO_NOCACHE)
+            return sl_core_mem_write(c, addr, size, 1, buf);
+        return err;
+    }
+
+    return sl_cache_rw_single(&c->dcache, addr, size, buf, false);
 }
 
 int sl_core_mem_read(sl_core_t *c, u8 addr, u4 size, u4 count, void *buf) {
@@ -260,27 +279,16 @@ int sl_core_load_pc(sl_core_t * restrict c, u4 * restrict inst) {
     if (err != SL_ERR_NOT_FOUND)
         return err;
 
-    sl_cache_page_t *pg;
     const u8 miss_addr = c->icache.miss_addr;
-    if ((err = sl_cache_alloc_page(&c->icache, miss_addr, &pg)))
-        return err;
-
     const u1 shift = c->icache.page_shift;
-    const u8 pg_size = 1u << shift;
     const u8 base = (miss_addr >> shift) << shift;
 
     u8 len;
     resultptr_t result = sl_mapper_resolve(c->mapper, base, &len);
-    if (result.err) {
-        sl_cache_release_page(&c->icache, pg);
+    if (result.err)
         return result.err;
-    }
 
-    pg->buf = result.value;
-    // todo: handle cases where len is less than page size
-    assert(len >= pg_size);
-    sl_cache_fill_page(&c->icache, pg);
-
+    sl_cache_set_page(&c->icache, base, result.value);
     return sl_cache_read(&c->icache, c->pc, 4, inst);
 }
 
@@ -332,6 +340,10 @@ void sl_core_destroy(sl_core_t *c) {
 
 void sl_core_print_bus_topology(sl_core_t *c) {
     mapper_print_mappings(c->mapper);
+}
+
+void sl_core_print_cache_stats(sl_core_t *c) {
+    printf("dcache\n  hash_hit:  %" PRIu64 "\n  hash_miss: %" PRIu64 "\n", c->dcache.hash_hit, c->dcache.hash_miss);
 }
 
 void sl_core_dump_state(sl_core_t *c) {
