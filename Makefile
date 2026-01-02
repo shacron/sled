@@ -44,8 +44,10 @@ LDFLAGS :=
 # Select by choosing BUILD on the command line
 BUILD ?= release
 
-ifeq ($(RV_TRACE),1)
-DEFINES += -DRV_TRACE=1 -DWITH_SYMBOLS=1
+TRACE ?= 1
+
+ifeq ($(TRACE),1)
+DEFINES += -DSLAC_TRACE=1 -DWITH_SYMBOLS=1
 endif
 
 ifeq ($(BUILD),release)

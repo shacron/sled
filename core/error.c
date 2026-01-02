@@ -41,6 +41,8 @@ static const char *err_str[] = {
     ESTR(SL_ERR_IO_NOMAP),
     ESTR(SL_ERR_IO_NOATOMIC),
     ESTR(SL_ERR_IO_NOCACHE),
+    ESTR(SL_ERR_SLAC_UNDECODED),
+    ESTR(SL_ERR_SLAC_INVALID),
 };
 
 const char *st_err(int err) {

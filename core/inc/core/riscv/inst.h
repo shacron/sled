@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <sled/types.h>
 
 // opcodes
 #define OP_ALU          0b0110011   // ALU REG

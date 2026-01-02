@@ -8,40 +8,31 @@
 #include <core/riscv/csr.h>
 #include <core/riscv/rv.h>
 
+#define RV_NAMED_REGISTERS 1
+
 static const char * reg_name[] = {
     [RV_ZERO] = "zero",
-    [RV_RA] = "ra",
-    [RV_SP] = "sp",
-    [RV_GP] = "gp",
-    [RV_TP] = "tp",
-    [RV_T0] = "t0",
-    [RV_T1] = "t1",
-    [RV_T2] = "t2" ,
-    [RV_FP] = "fp" ,
+#if RV_NAMED_REGISTERS
+    [RV_RA] = "ra", [RV_SP] = "sp",   [RV_GP] = "gp",   [RV_TP] = "tp",
+    [RV_T0] = "t0", [RV_T1] = "t1",   [RV_T2] = "t2",   [RV_FP] = "fp",
     // [RV_S0] = "s0" ,  same as fp
-    [RV_S1] = "s1" ,
-    [RV_A0] = "a0" ,
-    [RV_A1] = "a1" ,
-    [RV_A2] = "a2" ,
-    [RV_A3] = "a3" ,
-    [RV_A4] = "a4" ,
-    [RV_A5] = "a5" ,
-    [RV_A6] = "a6" ,
-    [RV_A7] = "a7" ,
-    [RV_S2] = "s2" ,
-    [RV_S3] = "s3" ,
-    [RV_S4] = "s4" ,
-    [RV_S5] = "s5" ,
-    [RV_S6] = "s6" ,
-    [RV_S7] = "s7" ,
-    [RV_S8] = "s8" ,
-    [RV_S9] = "s9" ,
-    [RV_S10] = "s10",
-    [RV_S11] = "s11",
-    [RV_T3] = "t3",
-    [RV_T4] = "t4",
-    [RV_T5] = "t5",
-    [RV_T6] = "t6",
+    [RV_S1] = "s1", [RV_A0] = "a0",   [RV_A1] = "a1",   [RV_A2] = "a2",
+    [RV_A3] = "a3", [RV_A4] = "a4",   [RV_A5] = "a5",   [RV_A6] = "a6",
+    [RV_A7] = "a7", [RV_S2] = "s2",   [RV_S3] = "s3",   [RV_S4] = "s4",
+    [RV_S5] = "s5", [RV_S6] = "s6",   [RV_S7] = "s7",   [RV_S8] = "s8",
+    [RV_S9] = "s9", [RV_S10] = "s10", [RV_S11] = "s11", [RV_T3] = "t3",
+    [RV_T4] = "t4", [RV_T5] = "t5",   [RV_T6] = "t6",
+#else
+    [RV_RA] = "x1",  [RV_SP] = "x2", [RV_GP] = "x3", [RV_TP] = "x4",
+    [RV_T0] = "x5",  [RV_T1] = "x6", [RV_T2] = "x7", [RV_FP] = "x8",
+    // [RV_S0] = "x8",  same as fp
+    [RV_S1] = "x9",  [RV_A0] = "x10",  [RV_A1] = "x11",  [RV_A2] = "x12",
+    [RV_A3] = "x13", [RV_A4] = "x14",  [RV_A5] = "x15",  [RV_A6] = "x16",
+    [RV_A7] = "x17", [RV_S2] = "x18",  [RV_S3] = "x19",  [RV_S4] = "x20",
+    [RV_S5] = "x21", [RV_S6] = "x22",  [RV_S7] = "x23",  [RV_S8] = "x24",
+    [RV_S9] = "x25", [RV_S10] = "x26", [RV_S11] = "x27", [RV_T3] = "x28",
+    [RV_T4] = "x29", [RV_T5] = "x30",  [RV_T6] = "x31",
+#endif
 };
 
 typedef struct {

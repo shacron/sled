@@ -16,6 +16,7 @@
 #include <core/sym.h>
 #include <sled/error.h>
 #include <sled/io.h>
+#include <sled/slac.h>
 
 int sl_core_async_command(sl_core_t *c, u4 cmd, bool wait) {
     return sl_engine_async_command(&c->engine, cmd, wait);
@@ -107,7 +108,7 @@ static int fill_cache_for_addr(sl_core_t *c, u8 addr) {
 
     // todo: handle cases where len is less than page size
     // assert(len >= 1u << c->dcache.page_shift);
-    sl_cache_set_page(&c->dcache, page_base, rp.value);
+    sl_cache_set_data_page(&c->dcache, page_base, rp.value);
     return 0;
 }
 
@@ -210,21 +211,45 @@ int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d) {
     return id;
 }
 
-// temporary
-int rv_dispatch(sl_core_t *c, u4 instruction);
+static int slac_dispatch(sl_core_t *c, sl_slac_inst_t *si) {
+    u1 len = si->len;
+    if (len == SLAC_IN_LEN_MODE) len = c->mode;
+    switch (len) {
+    case SLAC_IN_LEN_4:     return slac4_dispatch(c, si);
+    case SLAC_IN_LEN_8:     return slac8_dispatch(c, si);
+    default:                return SL_ERR_STATE;
+    }
+}
 
 int sl_core_step(sl_core_t *c, u8 num) {
     for (u8 i = 0; i < num; i++) {
         int err;
-        if ((err = sl_worker_handle_events(c->engine.worker))) return err;
+        if ((err = sl_worker_handle_events(c->engine.worker)))
+            return err;
 
-        u4 inst;
-        if ((err = sl_core_load_pc(c, &inst)))
+        sl_slac_inst_t *si;
+        if ((err = sl_core_load_pc(c, &si)))
             return sl_core_synchronous_exception(c, EX_ABORT_INST, c->pc, err);
         c->branch_taken = false;
-        if ((err = rv_dispatch(c, inst))) return err;
+
+        if (si->raw == SLAC_IN_INVALID) {
+            if ((err = c->decode(c, si))) {
+                // temporary until all instructions can be decoded
+                if (err != SL_ERR_SLAC_UNDECODED)
+                    return err;
+                if ((err = c->dispatch(c, si->desc.machine_op)))
+                    return err;
+                goto dispatch_done;
+            }
+        }
+        if ((err = slac_dispatch(c, si))) return err;
+
+dispatch_done:
         c->ticks++;
-        if(!c->branch_taken) sl_core_next_pc(c);
+        if (c->branch_taken)
+            c->prev_len = 4;
+        else
+            sl_core_next_pc(c);
     }
     return 0;
 }
@@ -272,10 +297,10 @@ void sl_core_next_pc(sl_core_t *c) {
     c->prev_len = 4;       // todo: fix me in decoder
 }
 
-int sl_core_load_pc(sl_core_t * restrict c, u4 * restrict inst) {
+int sl_core_load_pc(sl_core_t * restrict c, sl_slac_inst_t ** restrict inst_out) {
     // todo extras: check alignment of pc
 
-    int err = sl_cache_read(&c->icache, c->pc, 4, inst);
+    int err = sl_cache_get_instruction(&c->icache, c->pc, inst_out);
     if (err != SL_ERR_NOT_FOUND)
         return err;
 
@@ -287,9 +312,14 @@ int sl_core_load_pc(sl_core_t * restrict c, u4 * restrict inst) {
     resultptr_t result = sl_mapper_resolve(c->mapper, base, &len);
     if (result.err)
         return result.err;
+    bool overread = false;
+    if (len >= (1u << shift) + 2)
+        overread = true;
+    sl_cache_set_instruction_page(&c->icache, base, result.value, overread);
 
-    sl_cache_set_page(&c->icache, base, result.value);
-    return sl_cache_read(&c->icache, c->pc, 4, inst);
+    if ((err = sl_cache_get_instruction(&c->icache, c->pc, inst_out)))
+        return SL_ERR_STATE;    // this shouldn't happen if fill_cache_page did its job
+    return 0;
 }
 
 static int eng_op_step(sl_engine_t *e, u8 num) {
@@ -303,6 +333,7 @@ static int eng_op_run(sl_engine_t *e) {
 }
 
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
+    int err = 0;
     if (m == NULL)
         m = bus_get_mapper(p->bus);
     c->mapper = m;
@@ -311,8 +342,12 @@ int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     c->prev_len = 0;
     c->monitor_status = MONITOR_UNARMED;
     config_set_internal(c, p);
-    sl_cache_init(&c->icache);
-    sl_cache_init(&c->dcache);
+    if ((err = sl_cache_init(&c->icache, SL_CACHE_TYPE_INSTRUCTION)))
+        return err;
+    if ((err = sl_cache_init(&c->dcache, SL_CACHE_TYPE_DATA))) {
+        sl_cache_shutdown(&c->icache);
+        return err;
+    }
     sl_engine_init(&c->engine, "core_eng", NULL);
     c->engine.ops.step = eng_op_step;
     c->engine.ops.run = eng_op_run;

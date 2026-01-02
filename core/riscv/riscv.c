@@ -20,6 +20,7 @@
 #include <sled/error.h>
 #include <sled/riscv/csr.h>
 
+int riscv_core_decode(sl_core_t *c, sl_slac_inst_t *si);
 int riscv_core_exception_enter(sl_core_t *core, u8 cause, u8 addr);
 static void riscv_core_shutdown(sl_core_t *c);
 static void riscv_core_destroy(sl_core_t *c);
@@ -98,6 +99,8 @@ int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
         return err;
     }
     *core_out = &rc->core;
+    rc->core.decode = riscv_core_decode;
+    rc->core.dispatch = rv_dispatch;
     rc->core.exception_enter = riscv_core_exception_enter;
     rc->core.set_reg = riscv_core_set_reg;
     rc->core.get_reg = riscv_core_get_reg;

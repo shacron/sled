@@ -19,58 +19,8 @@
 #include <sled/error.h>
 #include <sled/io.h>
 
-#define FENCE_W (1u << 0)
-#define FENCE_R (1u << 1)
-#define FENCE_O (1u << 2)
-#define FENCE_I (1u << 3)
-
 int rv_fp32_exec_fp(rv_core_t *c, rv_inst_t inst);
 int rv_fp64_exec_fp(rv_core_t *c, rv_inst_t inst);
-
-#if RV_TRACE
-static void rv_fence_op_name(u1 op, char *s) {
-    if (op & FENCE_I) *s++ = 'i';
-    if (op & FENCE_O) *s++ = 'o';
-    if (op & FENCE_R) *s++ = 'r';
-    if (op & FENCE_W) *s++ = 'w';
-    *s = '\0';
-}
-#endif
-
-int rv_exec_mem(rv_core_t *c, rv_inst_t inst) {
-    if ((inst.i.rd != 0) || (inst.i.rs1 != 0)) goto undef;
-    switch (inst.i.funct3) {
-    case 0b000:
-    { // FENCE
-        const u4 succ = inst.i.imm & 0xf;
-        const u4 pred = (inst.i.imm >> 4) & 0xf;
-        u4 bar = 0;
-        if (pred & (FENCE_W | FENCE_O)) bar |= BARRIER_STORE;
-        if (succ & (FENCE_R | FENCE_I)) bar |= BARRIER_LOAD;
-        if ((pred & (FENCE_I | FENCE_O)) || (succ & (FENCE_I | FENCE_O))) bar |= BARRIER_SYSTEM;
-        sl_core_memory_barrier(&c->core, bar);
-#if RV_TRACE
-        char p[5], s[5];
-        rv_fence_op_name(pred, p);
-        rv_fence_op_name(succ, s);
-        RV_TRACE_PRINT(c, "fence %s, %s", p, s);
-#endif
-        return 0;
-    }
-
-    case 0b001:
-        if (inst.i.imm != 0) goto undef;
-        sl_core_instruction_barrier(&c->core);
-        RV_TRACE_PRINT(c, "fence.i");
-        return 0;
-
-    default:
-        goto undef;
-    }
-
-undef:
-    return rv_undef(c, inst);
-}
 
 static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 ord) {
     u8 result;
@@ -96,7 +46,7 @@ static int rv_atomic_alu64(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 o
     return 0;
 }
 
-int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
+static int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
     if ((c->core.arch_options & SL_RISCV_EXT_A) == 0) goto undef;
 
     const memory_order ord_index[] = {
@@ -120,25 +70,6 @@ int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
         if (addr & 3) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, SL_ERR_IO_ALIGN);
 
         switch (op) {
-        case 0b00010: { // LR.W
-            if (inst.r.rs2 != 0) goto undef;
-            // we are faking a monitor by retaining the loaded value and then compare-exchanging with the stored value
-            RV_TRACE_PRINT(c, "lr.w%s x%u, (x%u)", bstr, rd, inst.r.rs1);
-            c->core.monitor_addr = addr;
-            c->core.monitor_status = MONITOR_UNARMED;
-            if (barrier & 1) atomic_thread_fence(memory_order_release);
-            u4 w;
-            if ((err = sl_core_mem_read(&c->core, addr, 4, 1, &w))) break;
-            if (barrier & 2) atomic_thread_fence(memory_order_acquire);
-            c->core.monitor_value = w;
-            c->core.monitor_status = MONITOR_ARMED4;
-            if (rd != RV_ZERO) {
-                c->core.r[rd] = w;
-                RV_TRACE_RD(c, rd, c->core.r[rd]);
-            }
-            break;
-        }
-
         case 0b00011: // SC.W
             RV_TRACE_PRINT(c, "sc.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             if (c->core.monitor_status != MONITOR_ARMED4) {
@@ -302,7 +233,7 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_exec_fp(rv_core_t *c, rv_inst_t inst) {
+static int rv_exec_fp(rv_core_t *c, rv_inst_t inst) {
     const u1 fmt = inst.r.funct7 & 3;
 
     switch(fmt) {
@@ -324,7 +255,7 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
+static int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     fexcept_t flags;
 
@@ -422,7 +353,7 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst) {
+static int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     int err;
 
@@ -468,7 +399,7 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
+static int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
     RV_TRACE_DECL_OPSTR;
     const i4 imm = (((i4)inst.raw >> 20) & ~(0x1f)) | inst.s.imm1;
     u8 addr = c->core.r[inst.s.rs1] + imm;
@@ -510,7 +441,7 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_exec_ebreak(rv_core_t *c) {
+static int rv_exec_ebreak(rv_core_t *c) {
     if (c->core.options & SL_CORE_OPT_TRAP_BREAKPOINT)
         return SL_ERR_BREAKPOINT;
     // todo: debugger exception
@@ -518,7 +449,7 @@ int rv_exec_ebreak(rv_core_t *c) {
 }
 
 // Format is the same as I type
-int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
+static int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
     int err = 0;
     if (inst.r.funct3 == 0b000) {
         if (inst.r.rd != 0) goto undef;
@@ -658,85 +589,50 @@ undef:
     return rv_undef(c, inst);
 }
 
-int rv_dispatch(rv_core_t *c, u4 instruction) {
+int rv_dispatch(sl_core_t *cc, u4 instruction) {
+    rv_core_t *c = (rv_core_t *)cc;
     rv_inst_t inst;
     inst.raw = instruction;
     int err;
 
-#if RV_TRACE
-    itrace_t tr;
-    tr.pc = c->core.pc;
-    tr.sp = c->core.r[RV_SP];
-    tr.opcode = instruction;
-    tr.options = 0;
-    tr.pl = c->core.el;
-    tr.rd = RV_ZERO;
-    tr.cur = 0;
-    tr.opstr[0] = 0;
-    c->core.trace = &tr;
-#endif
+    // 16 bit compressed instructions unexpected here
+    // they should all have been captured by the slac decoder
+    if ((inst.u.opcode & 3) != 3)
+        return rv_undef(c, inst);
+    c->core.prev_len = 4;
 
-    if (c->core.mode == SL_CORE_MODE_4) err = rv32_dispatch(c, inst);
-    else                         err = rv64_dispatch(c, inst);
+    switch (inst.u.opcode) {
+    case OP_FP:
+        err = rv_exec_fp(c, inst);
+        break;
 
-#if RV_TRACE
-    {
-        #define BUFLEN 256
-        char buf[BUFLEN];
-        static const char pl_char[4] = { 'u', 's', 'h', 'm' };
+    case OP_FP_LOAD:
+        err = rv_exec_fp_load(c, inst);
+        break;
 
-        int len = snprintf(buf, BUFLEN, "[%c] %10" PRIx64 "  ", pl_char[tr.pl], tr.pc);
-        if (tr.options & ITRACE_OPT_INST16)
-            len += snprintf(buf + len, BUFLEN - len, "%04x      ", tr.opcode);
-        else
-            len += snprintf(buf + len, BUFLEN - len, "%08x  ", tr.opcode);
+    case OP_FP_STORE:
+        err = rv_exec_fp_store(c, inst);
+        break;
 
-        len += snprintf(buf + len, BUFLEN - len, "%-30s;", tr.opstr);
-        if ((tr.options & ~ITRACE_OPT_INST16) == 0) {
-            if (tr.rd != RV_ZERO)
-                len += snprintf(buf + len, BUFLEN - len, " %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
-            goto trace_done;
-        }
-        if (tr.options & ITRACE_OPT_INST_STORE) {
-            if (tr.options & ITRACE_OPT_FLOAT)
-                len += snprintf(buf + len, BUFLEN - len, " [%#" PRIx64 "]=%g", tr.addr, tr.f_value);
-            else if (tr.options & ITRACE_OPT_DOUBLE)
-                len += snprintf(buf + len, BUFLEN - len, " [%#" PRIx64 "]=%g", tr.addr, tr.d_value);
-            else
-                len += snprintf(buf + len, BUFLEN - len, " [%#" PRIx64 "]=%#" PRIx64, tr.addr, tr.rd_value);
-            goto trace_done;
-        }
-        if (tr.options & ITRACE_OPT_SYSREG) {
-            if (tr.rd != RV_ZERO)
-                len += snprintf(buf + len, BUFLEN - len, " %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
-            const char *n = c->ext.name_for_sysreg(c, tr.addr);
-            if (n == NULL)
-                len += snprintf(buf + len, BUFLEN - len, " csr(%#x) = %#" PRIx64, (u4)tr.addr, tr.aux_value);
-            else
-                len += snprintf(buf + len, BUFLEN - len, " %s = %#" PRIx64, n, tr.aux_value);
-            goto trace_done;
-        }
-        if (tr.options & ITRACE_OPT_FLOAT) {
-            len += snprintf(buf + len, BUFLEN - len, " f%u=%g", tr.rd, tr.f_value);
-            goto trace_done;
-        } else if (tr.options & ITRACE_OPT_DOUBLE) {
-            len += snprintf(buf + len, BUFLEN - len, " f%u=%g", tr.rd, tr.d_value);
-            goto trace_done;
-        }
+    case OP_FMADD_S:
+    case OP_FMSUB_S:
+    case OP_FNMSUB_S:
+    case OP_FNMADD_S:
+        err = rv_exec_fp_mac(c, inst);
+        break;
 
-trace_done:
-        puts(buf);
-#if WITH_SYMBOLS
-        if (c->core.branch_taken) {
-            sl_sym_entry_t *e = sl_core_get_sym_for_addr(&c->core, c->core.pc);
-            if (e != NULL) {
-                u8 dist = c->core.pc - e->addr;
-                printf("<%s+%#"PRIx64">:\n", e->name, dist);
-            }
-        }
-#endif
+    case OP_SYSTEM:  // ECALL EBREAK CSRRW CSRRS CSRRC CSRRWI CSRRSI CSRRCI
+        err = rv_exec_system(c, inst);
+        break;
+
+    case OP_AMO:
+        err = rv_exec_atomic(c, inst);
+        break;
+
+    default:
+        err = rv_undef(c, inst);
+        break;
     }
-#endif
 
     return err;
 }
