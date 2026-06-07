@@ -691,26 +691,24 @@ int rv_dispatch(rv_core_t *c, u4 instruction) {
         else
             len += snprintf(buf + len, BUFLEN - len, "%08x  ", tr.opcode);
 
-        len += snprintf(buf + len, BUFLEN - len, "%-30s", tr.opstr);
+        len += snprintf(buf + len, BUFLEN - len, "%-30s;", tr.opstr);
         if ((tr.options & ~ITRACE_OPT_INST16) == 0) {
             if (tr.rd != RV_ZERO)
-                len += snprintf(buf + len, BUFLEN - len, "; %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
+                len += snprintf(buf + len, BUFLEN - len, " %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
             goto trace_done;
         }
         if (tr.options & ITRACE_OPT_INST_STORE) {
             if (tr.options & ITRACE_OPT_FLOAT)
-                len += snprintf(buf + len, BUFLEN - len, "; [%#" PRIx64 "] = %g", tr.addr, tr.f_value);
+                len += snprintf(buf + len, BUFLEN - len, " [%#" PRIx64 "]=%g", tr.addr, tr.f_value);
             else if (tr.options & ITRACE_OPT_DOUBLE)
-                len += snprintf(buf + len, BUFLEN - len, "; [%#" PRIx64 "] = %g", tr.addr, tr.d_value);
+                len += snprintf(buf + len, BUFLEN - len, " [%#" PRIx64 "]=%g", tr.addr, tr.d_value);
             else
-                len += snprintf(buf + len, BUFLEN - len, "; [%#" PRIx64 "] = %#" PRIx64, tr.addr, tr.rd_value);
+                len += snprintf(buf + len, BUFLEN - len, " [%#" PRIx64 "]=%#" PRIx64, tr.addr, tr.rd_value);
             goto trace_done;
         }
         if (tr.options & ITRACE_OPT_SYSREG) {
-            if (tr.rd == RV_ZERO)
-                len += snprintf(buf + len, BUFLEN - len, ";");
-            else
-                len += snprintf(buf + len, BUFLEN - len, "; %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
+            if (tr.rd != RV_ZERO)
+                len += snprintf(buf + len, BUFLEN - len, " %s=%#" PRIx64, rv_name_for_reg(tr.rd), tr.rd_value);
             const char *n = c->ext.name_for_sysreg(c, tr.addr);
             if (n == NULL)
                 len += snprintf(buf + len, BUFLEN - len, " csr(%#x) = %#" PRIx64, (u4)tr.addr, tr.aux_value);
@@ -719,7 +717,10 @@ int rv_dispatch(rv_core_t *c, u4 instruction) {
             goto trace_done;
         }
         if (tr.options & ITRACE_OPT_FLOAT) {
-            len += snprintf(buf + len, BUFLEN - len, "; f%u=%g", tr.rd, tr.f_value);
+            len += snprintf(buf + len, BUFLEN - len, " f%u=%g", tr.rd, tr.f_value);
+            goto trace_done;
+        } else if (tr.options & ITRACE_OPT_DOUBLE) {
+            len += snprintf(buf + len, BUFLEN - len, " f%u=%g", tr.rd, tr.d_value);
             goto trace_done;
         }
 
