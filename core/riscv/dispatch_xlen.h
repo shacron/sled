@@ -30,7 +30,7 @@ static int XLEN_PREFIX(exec_u_type)(rv_core_t *c, rv_inst_t inst) {
     uxlen_t result;
 
     if (inst.u.opcode == OP_AUIPC) {
-        RV_TRACE_OPSTR("aiupc");
+        RV_TRACE_OPSTR("auipc");
         result = (uxlen_t)(c->core.pc + offset);    // AUIPC
     } else {
         RV_TRACE_OPSTR("lui");
