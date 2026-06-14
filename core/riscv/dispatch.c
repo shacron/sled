@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2023 Shac Ron and The Sled Project
+// Copyright (c) 2022-2026 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <inttypes.h>
@@ -13,14 +13,10 @@
 #include <core/riscv/dispatch.h>
 #include <core/riscv/inst.h>
 #include <core/riscv/rv.h>
-#include <core/riscv/trace.h>
 #include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/error.h>
 #include <sled/io.h>
-
-int rv_fp32_exec_fp(rv_core_t *c, rv_inst_t inst);
-int rv_fp64_exec_fp(rv_core_t *c, rv_inst_t inst);
 
 static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 ord) {
     u8 result;
@@ -29,7 +25,7 @@ static int rv_atomic_alu32(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 o
     if ((err = sl_core_mem_atomic(&c->core, addr, 4, op, operand, 0, &result, ord, memory_order_relaxed))) return err;
     if (rd != RV_ZERO) {
         c->core.r[rd] = (u4)result;
-        RV_TRACE_RD(c, rd, c->core.r[rd]);
+        // RV_TRACE_RD(c, rd, c->core.r[rd]);
     }
     return 0;
 }
@@ -41,7 +37,7 @@ static int rv_atomic_alu64(rv_core_t *c, u8 addr, u1 op, u4 operand, u1 rd, u1 o
     if ((err = sl_core_mem_atomic(&c->core, addr, 8, op, operand, 0, &result, ord, memory_order_relaxed))) return err;
     if (rd != RV_ZERO) {
         c->core.r[rd] = result;
-        RV_TRACE_RD(c, rd, c->core.r[rd]);
+        // RV_TRACE_RD(c, rd, c->core.r[rd]);
     }
     return 0;
 }
@@ -61,17 +57,12 @@ static int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
     const u8 addr = c->core.r[inst.r.rs1];
     u8 result;
 
-#if RV_TRACE
-    const char *bstr_index[] = { "", ".rl", ".aq", ".aqrl" };
-    const char *bstr = bstr_index[barrier];
-#endif
-
     if (inst.r.funct3 == 0b010) {
         if (addr & 3) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, SL_ERR_IO_ALIGN);
 
         switch (op) {
         case 0b00011: // SC.W
-            RV_TRACE_PRINT(c, "sc.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "sc.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             if (c->core.monitor_status != MONITOR_ARMED4) {
                 c->core.monitor_status = MONITOR_UNARMED;
                 return 0;
@@ -85,53 +76,53 @@ static int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             if ((err = sl_core_mem_atomic(&c->core, addr, 4, IO_OP_ATOMIC_CAS, c->core.r[inst.r.rs2], c->core.monitor_value, &result, ord, ord))) return err;
             if (rd != RV_ZERO) {
                 c->core.r[rd] = (u4)result;
-                RV_TRACE_RD(c, rd, c->core.r[rd]);
+                // RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
             c->core.monitor_status = MONITOR_UNARMED;
             break;
 
         case 0b00001: // AMOSWAP.W
-            RV_TRACE_PRINT(c, "amoswap.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoswap.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SWAP, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b00000: // AMOADD.W
-            RV_TRACE_PRINT(c, "amoadd.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoadd.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_ADD, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b00100: // AMOXOR.W
-            RV_TRACE_PRINT(c, "amoxor.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoxor.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_XOR, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b01100: // AMOAND.W
-            RV_TRACE_PRINT(c, "amoand.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoand.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_AND, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b01000: // AMOOR.W
-            RV_TRACE_PRINT(c, "amoor.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoor.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_OR, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b10000: // AMOMIN.W
-            RV_TRACE_PRINT(c, "amomin.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amomin.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SMIN, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b10100: // AMOMAX.W
-            RV_TRACE_PRINT(c, "amomax.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amomax.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_SMAX, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b11000: // AMOMINU.W
-            RV_TRACE_PRINT(c, "amominu.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amominu.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_UMIN, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b11100: // AMOMAXU.W
-            RV_TRACE_PRINT(c, "amomaxu.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amomaxu.w%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu32(c, addr, IO_OP_ATOMIC_UMAX, c->core.r[inst.r.rs2], rd, ord);
             break;
 
@@ -146,7 +137,7 @@ static int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
         switch (op) {
         case 0b00010: { // LR.D
             if (inst.r.rs2 != 0) goto undef;
-            RV_TRACE_PRINT(c, "lr.d%s x%u, (x%u)", bstr, rd, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "lr.d%s x%u, (x%u)", bstr, rd, inst.r.rs1);
             c->core.monitor_addr = addr;
             c->core.monitor_status = MONITOR_UNARMED;
             if (barrier & 1) atomic_thread_fence(memory_order_release);
@@ -157,13 +148,13 @@ static int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             c->core.monitor_status = MONITOR_ARMED8;
             if (rd != RV_ZERO) {
                 c->core.r[rd] = d;
-                RV_TRACE_RD(c, rd, c->core.r[rd]);
+                // RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
             break;
         }
 
         case 0b00011: // SC.D
-            RV_TRACE_PRINT(c, "sc.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "sc.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             if (c->core.monitor_status != MONITOR_ARMED8) {
                 c->core.monitor_status = MONITOR_UNARMED;
                 return 0;
@@ -175,53 +166,53 @@ static int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
             if ((err = sl_core_mem_atomic(&c->core, addr, 8, IO_OP_ATOMIC_CAS, c->core.r[inst.r.rs2], c->core.monitor_value, &result, ord, ord))) return err;
             if (rd != RV_ZERO) {
                 c->core.r[rd] = result;
-                RV_TRACE_RD(c, rd, c->core.r[rd]);
+                // RV_TRACE_RD(c, rd, c->core.r[rd]);
             }
             c->core.monitor_status = MONITOR_UNARMED;
             break;
 
         case 0b00001: // AMOSWAP.D
-            RV_TRACE_PRINT(c, "amoswap.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoswap.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SWAP, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b00000: // AMOADD.D
-            RV_TRACE_PRINT(c, "amoadd.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoadd.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_ADD, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b00100: // AMOXOR.D
-            RV_TRACE_PRINT(c, "amoxor.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoxor.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_XOR, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b01100: // AMOAND.D
-            RV_TRACE_PRINT(c, "amoand.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoand.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_AND, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b01000: // AMOOR.D
-            RV_TRACE_PRINT(c, "amoor.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amoor.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_OR, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b10000: // AMOMIN.D
-            RV_TRACE_PRINT(c, "amomin.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amomin.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SMIN, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b10100: // AMOMAX.D
-            RV_TRACE_PRINT(c, "amomax.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amomax.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_SMAX, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b11000: // AMOMINU.D
-            RV_TRACE_PRINT(c, "amominu.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amominu.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_UMIN, c->core.r[inst.r.rs2], rd, ord);
             break;
 
         case 0b11100: // AMOMAXU.D
-            RV_TRACE_PRINT(c, "amomaxu.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
+            // RV_TRACE_PRINT(c, "amomaxu.d%s x%u, x%u, (x%u)", bstr, rd, inst.r.rs2, inst.r.rs1);
             err = rv_atomic_alu64(c, addr, IO_OP_ATOMIC_UMAX, c->core.r[inst.r.rs2], rd, ord);
             break;
 
@@ -229,214 +220,6 @@ static int rv_exec_atomic(rv_core_t *c, rv_inst_t inst) {
         }
         return 0;
     }
-undef:
-    return rv_undef(c, inst);
-}
-
-static int rv_exec_fp(rv_core_t *c, rv_inst_t inst) {
-    const u1 fmt = inst.r.funct7 & 3;
-
-    switch(fmt) {
-    case 0b00:  // 32-bit single-precision
-        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
-        return rv_fp32_exec_fp(c, inst);
-
-    case 0b01:
-        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-        return rv_fp64_exec_fp(c, inst);
-
-    case 0b10: // 16-bit half-precision
-    case 0b11: // 128-bit quad-precision
-    default:
-        goto undef;
-    }
-
-undef:
-    return rv_undef(c, inst);
-}
-
-static int rv_exec_fp_mac(rv_core_t *c, rv_inst_t inst) {
-    RV_TRACE_DECL_OPSTR;
-    fexcept_t flags;
-
-    if (inst.r4.fmt == 0b10) {
-        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
-
-        const float rs1 = c->core.f[inst.r4.rs1].f;
-        const float rs2 = c->core.f[inst.r4.rs2].f;
-        const float rs3 = c->core.f[inst.r4.funct5].f;
-        float result;
-
-        feclearexcept(FE_ALL_EXCEPT);
-
-        switch (inst.r4.opcode) {
-        // rs3 00 rs2 rs1 rm rd 1000011 FMADD.S
-        case 0b1000011:
-            RV_TRACE_OPSTR("fmadd.s");
-            result = (rs1 * rs2) + rs3;
-            break;
-
-        // rs3 00 rs2 rs1 rm rd 1000111 FMSUB.S
-        case 0b1000111:
-            RV_TRACE_OPSTR("fmsub.s");
-            result = (rs1 * rs2) - rs3;
-            break;
-
-        // rs3 00 rs2 rs1 rm rd 1001011 FNMSUB.S
-        case 0b1001011:
-            RV_TRACE_OPSTR("fnmsub.s");
-            result = -(rs1 * rs2) + rs3; // yes, fnmsub adds and fnmadd subtracts
-            break;
-
-        // rs3 00 rs2 rs1 rm rd 1001111 FNMADD.S
-        case 0b1001111:
-            RV_TRACE_OPSTR("fnmadd.s");
-            result = -(rs1 * rs2) - rs3;
-            break;
-
-        default:    goto undef;
-        }
-
-        fegetexceptflag(&flags, FE_ALL_EXCEPT);
-        c->core.fexc |= flags;
-        c->core.f[inst.r4.rd].f = result;
-        RV_TRACE_RDF(c, inst.r4.rd, result);
-        RV_TRACE_PRINT(c, "%s f%u, f%u, f%u, f%u", opstr, inst.r4.rd, inst.r4.rs1, inst.r4.rs2, inst.r4.funct5);
-        return 0;
-    } else if (inst.r4.fmt == 0b01) {
-        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-
-        const double rs1 = c->core.f[inst.r4.rs1].d;
-        const double rs2 = c->core.f[inst.r4.rs2].d;
-        const double rs3 = c->core.f[inst.r4.funct5].d;
-        double result;
-
-        feclearexcept(FE_ALL_EXCEPT);
-
-        switch (inst.r4.opcode) {
-        // rs3 00 rs2 rs1 rm rd 1000011 FMADD.D
-        case 0b1000011:
-            RV_TRACE_OPSTR("fmadd.d");
-            result = (rs1 * rs2) + rs3;
-            break;
-
-        // rs3 00 rs2 rs1 rm rd 1000111 FMSUB.D
-        case 0b1000111:
-            RV_TRACE_OPSTR("fmsub.d");
-            result = (rs1 * rs2) - rs3;
-            break;
-
-        // rs3 00 rs2 rs1 rm rd 1001011 FNMSUB.D
-        case 0b1001011:
-            RV_TRACE_OPSTR("fnmsub.d");
-            result = -(rs1 * rs2) + rs3; // yes, fnmsub adds and fnmadd subtracts
-            break;
-
-        // rs3 00 rs2 rs1 rm rd 1001111 FNMADD.D
-        case 0b1001111:
-            RV_TRACE_OPSTR("fnmadd.d");
-            result = -(rs1 * rs2) - rs3;
-            break;
-
-        default:    goto undef;
-        }
-
-        fegetexceptflag(&flags, FE_ALL_EXCEPT);
-        c->core.fexc |= flags;
-        c->core.f[inst.r4.rd].d = result;
-        RV_TRACE_RDD(c, inst.r4.rd, result);
-        RV_TRACE_PRINT(c, "%s f%u, f%u, f%u, f%u", opstr, inst.r4.rd, inst.r4.rs1, inst.r4.rs2, inst.r4.funct5);
-        return 0;
-    }
-
-undef:
-    return rv_undef(c, inst);
-}
-
-static int rv_exec_fp_load(rv_core_t *c, rv_inst_t inst) {
-    RV_TRACE_DECL_OPSTR;
-    int err;
-
-    const i4 imm = ((i4)inst.raw) >> 20;
-    u8 addr = c->core.r[inst.i.rs1] + imm;
-    if (c->core.mode == SL_CORE_MODE_4) addr &= 0xffffffff;
-    sl_fp_reg_t val = {};
-
-    // imm[11:0] rs1 010 rd 0000111 FLW
-    // imm[11:0] rs1 011 rd 0000111 FLD
-    // imm[11:0] rs1 100 rd 0000111 FLQ
-    // imm[11:0] rs1 001 rd 0000111 FLH
-    switch (inst.r.funct3) {
-    case 0b010:
-        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
-        RV_TRACE_OPSTR("flw");
-        err = sl_core_mem_read(&c->core, addr, 4, 1, &val.u4);
-        RV_TRACE_RDF(c, inst.i.rd, val.f);
-        break;
-
-    case 0b011:
-        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-        RV_TRACE_OPSTR("fld");
-        err = sl_core_mem_read(&c->core, addr, 8, 1, &val.u8);
-        RV_TRACE_RDD(c, inst.i.rd, val.d);
-        break;
-
-    case 0b100:
-    case 0b001:
-    default:    goto undef;
-    }
-
-    if (err) {
-        RV_TRACE_PRINT(c, "%s f%u, %d(x%u)            ; [%" PRIx64 "] = %s",
-            opstr, inst.i.rd, imm, inst.i.rs1, addr, st_err(err));
-        return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
-    }
-    c->core.f[inst.i.rd].u8 = val.u8;
-    RV_TRACE_PRINT(c, "%s f%u, %d(x%u)", opstr, inst.i.rd, imm, inst.i.rs1);
-    return 0;
-
-undef:
-    return rv_undef(c, inst);
-}
-
-static int rv_exec_fp_store(rv_core_t *c, rv_inst_t inst) {
-    RV_TRACE_DECL_OPSTR;
-    const i4 imm = (((i4)inst.raw >> 20) & ~(0x1f)) | inst.s.imm1;
-    u8 addr = c->core.r[inst.s.rs1] + imm;
-    if (c->core.mode == SL_CORE_MODE_4) addr &= 0xffffffff;
-    sl_fp_reg_t val;
-    int err = 0;
-
-    //imm[11:5] rs2 rs1 010 imm[4:0] 0100111 FSW
-    //imm[11:5] rs2 rs1 011 imm[4:0] 0100111 FSD
-    switch (inst.s.funct3) {
-    case 0b010:
-        RV_TRACE_OPSTR("fsw");
-        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
-        val.u4 = c->core.f[inst.s.rs2].u4;
-        err = sl_core_mem_write_single(&c->core, addr, 4, &val.u4);
-        RV_TRACE_STORE_F(c, addr, inst.s.rs2, val.f);
-        break;
-
-    case 0b011:
-        RV_TRACE_OPSTR("fsd");
-        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-        val.u8 = c->core.f[inst.s.rs2].u8;
-        err = sl_core_mem_write_single(&c->core, addr, 8, &val.u8);
-        RV_TRACE_STORE_D(c, addr, inst.s.rs2, val.d);
-        break;
-
-    default:    goto undef;
-    }
-
-    if (err) {
-        RV_TRACE_PRINT(c, "%s f%u, %d(x%u)            ; [%" PRIx64 "] = %s",
-            opstr, inst.s.rs2, imm, inst.i.rs1, addr, st_err(err));
-        return sl_core_synchronous_exception(&c->core, EX_ABORT_STORE, addr, err);
-    }
-    RV_TRACE_PRINT(c, "%s f%u, %d(x%u)", opstr, inst.s.rs2, imm, inst.s.rs1);
-    return 0;
-
 undef:
     return rv_undef(c, inst);
 }
@@ -457,33 +240,33 @@ static int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         case 0b0000000:
             if (inst.r.rs1 == 0) {
                 if (inst.r.rs2 == 0) {  // ECALL
-                    RV_TRACE_PRINT(c, "ecall");
+                    // RV_TRACE_PRINT(c, "ecall");
                     return sl_core_synchronous_exception(&c->core, EX_SYSCALL, inst.raw, 0);
                 } else if (inst.r.rs2 == 1) {   // EBREAK
-                    RV_TRACE_PRINT(c, "ebreak");
+                    // RV_TRACE_PRINT(c, "ebreak");
                     return rv_exec_ebreak(c);
                 }
             }
             goto undef;
 
         case 0b0011000: // MRET
-            RV_TRACE_PRINT(c, "mret");
+            // RV_TRACE_PRINT(c, "mret");
             if (c->core.el != SL_CORE_EL_MONITOR) goto undef;
             err = rv_exception_return(c, RV_OP_MRET);
-            if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->core.pc);
+            if (!err) // RV_TRACE_RD(c, SL_CORE_REG_PC, c->core.pc);
             return err;
 
         case 0b0001000:
             if (inst.r.rs2 == 0b00010) {
-                RV_TRACE_PRINT(c, "sret");
+                // RV_TRACE_PRINT(c, "sret");
                 if (c->core.el < SL_CORE_EL_SUPERVISOR) goto undef;
                 err = rv_exception_return(c, RV_OP_SRET);
-                if (!err) RV_TRACE_RD(c, SL_CORE_REG_PC, c->core.pc);
+                if (!err) // RV_TRACE_RD(c, SL_CORE_REG_PC, c->core.pc);
                 return err;
             }
             if (inst.r.rs2 == 0b00101) { // WFI
                 if (c->core.el == SL_CORE_EL_USER) goto undef;
-                RV_TRACE_PRINT(c, "wfi");
+                // RV_TRACE_PRINT(c, "wfi");
                 return sl_engine_wait_for_interrupt(&c->core.engine);
             }
             goto undef;
@@ -516,74 +299,7 @@ static int rv_exec_system(rv_core_t *c, rv_inst_t inst) {
         return err;
     }
 
-    // CSR instruction
-
-    const u4 csr_op = inst.i.funct3;
-    RV_TRACE_DECL_OPSTR;
-
-    switch (csr_op) {
-    case 1: RV_TRACE_OPSTR("csrrw"); break;
-    case 2: RV_TRACE_OPSTR("csrrs"); break;
-    case 3: RV_TRACE_OPSTR("csrrc"); break;
-    case 5: RV_TRACE_OPSTR("csrrwi"); break;
-    case 6: RV_TRACE_OPSTR("csrrsi"); break;
-    case 7: RV_TRACE_OPSTR("csrrci"); break;
-    default: goto undef;
-    }
-
-    u8 value;
-    int op = (csr_op & 3);
-    const bool csr_imm = csr_op & 0b100;
-    if (csr_imm) value = inst.i.rs1; // treat rs1 as immediate value
-    else value = c->core.r[inst.i.rs1];
-
-    if (op == RV_CSR_OP_SWAP) {
-        if (inst.i.rd == 0) op = RV_CSR_OP_WRITE;
-    } else {
-        if (value == 0) op = RV_CSR_OP_READ;
-    }
-
-    const u4 csr_addr = inst.i.imm;
-#ifdef RV_TRACE
-    const char *name = c->ext.name_for_sysreg(c, csr_addr);
-    char namebuf[16];
-    if (name == NULL) {
-        snprintf(namebuf, 16, "%#x", csr_addr);
-        name = namebuf;
-    }
-    if (csr_imm) RV_TRACE_PRINT(c, "%s x%u, %u, %s", opstr, inst.i.rd, inst.i.rs1, name);
-    else RV_TRACE_PRINT(c, "%s x%u, x%u, %s", opstr, inst.i.rd, inst.i.rs1, name);
-#endif
-
-    result64_t result = rv_csr_op(c, op, csr_addr, value);
-    if (result.err == SL_ERR_UNDEF) return rv_undef(c, inst);
-    if (result.err == SL_ERR_UNIMPLEMENTED) {
-        printf("unimplemented CSR access %#x\n", csr_addr);
-        assert(false);
-        return SL_ERR_UNIMPLEMENTED;
-    }
-    if (result.err != 0) {
-        printf("unexpected CSR access error %x: %s\n", csr_addr, st_err(result.err));
-        assert(false);
-        return result.err;
-    }
-
-    if (inst.i.rd != RV_ZERO) {
-        if (c->core.mode == SL_CORE_MODE_4) result.value = (u4)result.value;
-        c->core.r[inst.i.rd] = result.value;
-    }
-
-#ifdef RV_TRACE
-    RV_TRACE_RD(c, inst.i.rd, c->core.r[inst.i.rd]);
-    if (op != RV_CSR_OP_READ) {
-        c->core.trace->options |= ITRACE_OPT_SYSREG;
-        c->core.trace->addr = csr_addr;
-        c->core.trace->aux_value = value;
-    }
-#endif // RV_TRACE
-
-
-    return 0;
+    // CSR ops here: implemented in SLAC decoder
 
 undef:
     return rv_undef(c, inst);
@@ -602,25 +318,6 @@ int rv_dispatch(sl_core_t *cc, u4 instruction) {
     c->core.prev_len = 4;
 
     switch (inst.u.opcode) {
-    case OP_FP:
-        err = rv_exec_fp(c, inst);
-        break;
-
-    case OP_FP_LOAD:
-        err = rv_exec_fp_load(c, inst);
-        break;
-
-    case OP_FP_STORE:
-        err = rv_exec_fp_store(c, inst);
-        break;
-
-    case OP_FMADD_S:
-    case OP_FMSUB_S:
-    case OP_FNMSUB_S:
-    case OP_FNMADD_S:
-        err = rv_exec_fp_mac(c, inst);
-        break;
-
     case OP_SYSTEM:  // ECALL EBREAK CSRRW CSRRS CSRRC CSRRWI CSRRSI CSRRCI
         err = rv_exec_system(c, inst);
         break;

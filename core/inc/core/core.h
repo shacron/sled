@@ -49,7 +49,7 @@ struct sl_core {
     int (*dispatch)(sl_core_t *c, u4 inst);
     int (*exception_enter)(sl_core_t *c, u8 ex, u8 value);
     int (*breakpoint)(sl_core_t *c);
-
+    int (*csr)(sl_core_t *c, sl_slac_inst_t *inst);
     void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
     u8 (*get_reg)(sl_core_t *c, u4 reg);
     void (*shutdown)(sl_core_t *c);

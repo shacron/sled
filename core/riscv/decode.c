@@ -18,19 +18,25 @@
 // result formatting for prints
 #define PR_B        (1u << 0) // print branch if it occured
 #define PR_D        (1u << 1) // print D register
-#define PR_ST       (1u << 2) // store r0 to addr at d0
+#define PR_DF32     (1u << 2) // print fp32 register D
+#define PR_DF64     (1u << 3) // print fp64 register D
+#define PR_ST       (1u << 4) // print store of r0 to addr at d0
 #define PR_SZ1      (0u << 8) // size 1
 #define PR_SZ2      (1u << 8) // size 2
 #define PR_SZ4      (2u << 8) // size 4
 #define PR_SZ8      (3u << 8) // size 8
+#define PR_SZF32    (4u << 8) // size fp32
+#define PR_SZF64    (5u << 8) // size fp64
 
 #define PR_BL       (PR_B | PR_D)
 
-#define PR_SIZE(f)  ((f >> 8) & 0x3)
+#define PR_SIZE(f)  ((f >> 8) & 0x7)
 #define PR_ST1      (PR_ST | PR_SZ1)
 #define PR_ST2      (PR_ST | PR_SZ2)
 #define PR_ST4      (PR_ST | PR_SZ4)
 #define PR_ST8      (PR_ST | PR_SZ8)
+#define PR_STF32    (PR_ST | PR_SZF32)
+#define PR_STF64    (PR_ST | PR_SZF64)
 
 
 #define SIGN_EXT_IMM12(inst) (((i4)inst.raw) >> 20)
@@ -48,6 +54,16 @@ static const u2 rv_barrier_map[4] = {
 
 #if SLAC_TRACE
 
+#if RV_TRACE_EXPAND_C_OPS
+// print C-extension ops the same as the full-length encoding
+#define STRACE_EXPAND(si, ...) STRACE(si, __VA_ARGS__)
+#define STRACE_C(si, ...)
+#else
+// print c.<op> short format
+#define STRACE_EXPAND(...)
+#define STRACE_C(si, ...) STRACE(si, __VA_ARGS__)
+#endif
+
 static const char priv_level_char[4] = { 'u', 's', 'h', 'm' };
 
 static const char *rv_barrier_string[4] = {
@@ -64,27 +80,33 @@ static void rv_fence_op_name(u1 op, char *s) {
     if (op & FENCE_W) *s++ = 'w';
     *s = '\0';
 }
+
+#else
+
+#define STRACE_EXPAND(...)
+#define STRACE_C(si, ...)
+
 #endif // SLAC_TRACE
 
-static inline void slac_in(sl_slac_inst_t *si, u1 type, u2 op, u1 arg, u4 format) {
-    si->type = type;
+static inline void slac_in(sl_slac_inst_t *si, u2 op, u1 arg, u4 format) {
+    si->type = SLAC_TYPE(op);
+    si->func = SLAC_FUNC(op);
     si->arg = arg;
-    si->op = op;
 #if SLAC_TRACE
     si->desc.print_format = format;
 #endif
 }
 
 static void set_nop(sl_slac_inst_t *si) {
-    si->pred = SLAC_PRED_NEVER;
-    si->type = SLAC_IN_TYPE_SYS;
-    si->op = SLAC_IN_OP_NOP;
+    // si->pred = SLAC_PRED_NEVER;
+    si->type = SLAC_TYPE_SYS;
+    si->func = SLAC_FUNC_NOP;
 }
 
 static int rv_slac_undef(rv_core_t *c, sl_slac_inst_t *si) {
-    si->type = SLAC_IN_TYPE_SYS;
+    si->type = SLAC_TYPE_SYS;
+    si->func = SLAC_FUNC_UNDEF;
     si->arg = SLAC_IN_ARG_NONE;
-    si->op = SLAC_IN_OP_UNDEF;
     STRACE(si, "undefined");
     return 0;
 }
@@ -115,15 +137,29 @@ int rv_slac_print_post(sl_core_t *c, sl_slac_inst_t *si, char *buf, int buflen) 
         len += snprintf(buf, buflen, " %s=%#" PRIx64, rv_name_for_reg(reg), c->r[reg]);
         buf += len;
         buflen -= len;
+    } else {
+        if (format & PR_DF32) {
+            reg = si->d0;
+            len += snprintf(buf, buflen, " f%u=%g", reg, c->f[reg].f);
+            buf += len;
+            buflen -= len;
+        } else if (format & PR_DF64) {
+            reg = si->d0;
+            len += snprintf(buf, buflen, " f%u=%g", reg, c->f[reg].d);
+            buf += len;
+            buflen -= len;
+        }
     }
     if (format & PR_ST) {
         const u1 size = PR_SIZE(format);
         const u8 addr = c->r[si->r0] + si->simm;
         switch (size) {
-        case 0:  len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#x", addr, (u1)c->r[si->d0]); break;
-        case 1:  len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#x", addr, (u2)c->r[si->d0]); break;
-        case 2:  len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#x", addr, (u4)c->r[si->d0]); break;
-        default: len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#" PRIx64, addr, c->r[si->d0]); break;
+        case PR_ST1 >> 8:  len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#x", addr, (u1)c->r[si->d0]); break;
+        case PR_ST2 >> 8:  len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#x", addr, (u2)c->r[si->d0]); break;
+        case PR_ST4 >> 8:  len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#x", addr, (u4)c->r[si->d0]); break;
+        case PR_ST8 >> 8:  len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#" PRIx64, addr, c->r[si->d0]); break;
+        case PR_STF32 >> 8: len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#g", addr, c->f[si->d0].f); break;
+        case PR_STF64 >> 8: len += snprintf(buf, buflen, " [%#" PRIx64 "]=%#g", addr, c->f[si->d0].d); break;
         }
         buf += len;
         buflen -= len;
@@ -144,12 +180,12 @@ static int rv_decode_u_type(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 #endif
 
     if (inst.u.opcode == OP_LUI) {
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DI, PR_D);
+        slac_in(si, SLAC_OP_MOVI, SLAC_IN_ARG_DI, PR_D);
         STRACE(si, "lui x%u, %#" PRIx64, si->d0, print_uimm);
     } else { // OP_AUIPC
         // add pc + offset 
         // todo: optimize to MOV if address is known?
-        slac_in(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_ADR4K, SLAC_IN_ARG_DI, PR_D);
+        slac_in(si, SLAC_OP_ADR4K, SLAC_IN_ARG_DI, PR_D);
         STRACE(si, "auipc x%u, %#" PRIx64, si->d0, print_uimm);
     }
     if (si->d0 == 0) set_nop(si);
@@ -170,24 +206,24 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     switch (inst.i.funct3) {
     case 0b000: // ADDI
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
         si->simm = ((i4)inst.raw) >> 20;  // sign extend immediate
         STRACE(si, "addi x%u, x%u, %d", inst.i.rd, inst.i.rs1, (i4)si->simm);
         break;
 
     case 0b001: // SLLI
         if (func7 != 0) return rv_slac_undef(c, si);
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_SHL, SLAC_IN_ARG_DRI, PR_D);
         si->uimm = shift;
         STRACE(si, "slli x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
         break;
 
     case 0b101:
         if (func7 == 0) {   // SRLI
-            slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRI, PR_D);
+            slac_in(si, SLAC_OP_SHR, SLAC_IN_ARG_DRI, PR_D);
             STRACE(si, "srli x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
         } else if (func7 == 0b0100000) {  //SRAI
-            slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRI, PR_D);
+            slac_in(si, SLAC_OP_SHRS, SLAC_IN_ARG_DRI, PR_D);
             STRACE(si, "srai x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
         } else {
             return rv_slac_undef(c, si);
@@ -196,13 +232,13 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         break;
 
     case 0b010: // SLTI
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELS, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_CSELS, SLAC_IN_ARG_DRI, PR_D);
         si->simm = ((i4)inst.raw) >> 20;  // sign extend immediate
         STRACE(si, "slti x%u, x%u, %u", inst.i.rd, inst.i.rs1, (u4)si->simm);
         break;
 
     case 0b011: // SLTIU
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_CSELU, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_CSEL, SLAC_IN_ARG_DRI, PR_D);
         // docs: the immediate is first sign-extended to XLEN bits then treated as an unsigned number
         if (is_rv32) si->uimm = (u4)(((i4)inst.raw) >> 20);  // sign extend immediate
         else         si->uimm = (u8)(i8)(((i4)inst.raw) >> 20);  // sign extend immediate
@@ -210,19 +246,19 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         break;
 
     case 0b100: // XORI
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_XOR, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_XOR, SLAC_IN_ARG_DRI, PR_D);
         si->simm = ((i4)inst.raw) >> 20;  // sign extend immediate
         STRACE(si, "xori x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)si->simm);
         break;
 
     case 0b110: // ORI
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_OR, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_OR, SLAC_IN_ARG_DRI, PR_D);
         si->simm = ((i4)inst.raw) >> 20;  // sign extend immediate
         STRACE(si, "ori x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)si->simm);
         break;
 
     case 0b111: // ANDI
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_AND, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_AND, SLAC_IN_ARG_DRI, PR_D);
         si->simm = ((i4)inst.raw) >> 20;  // sign extend immediate
         STRACE(si, "andi x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)si->simm);
         break;
@@ -245,10 +281,10 @@ static int rv64_decode_alu_imm4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst
     switch (inst.i.funct3) {
     case 0b000: // ADDIW
         if (inst.i.imm == 0) {
-            slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DR, PR_D);
+            slac_in(si, SLAC_OP_MOVR, SLAC_IN_ARG_DR, PR_D);
             STRACE(si, "sext.w x%u, x%u", inst.i.rd, inst.i.rs1);
         } else {
-            slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
+            slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
             si->simm = SIGN_EXT_IMM12(inst);
             STRACE(si, "addiw x%u, x%u, %d", inst.i.rd, inst.i.rs1, (i4)si->simm);
         }
@@ -256,7 +292,7 @@ static int rv64_decode_alu_imm4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst
 
     case 0b001: // SLLIW
         if (shift > 31) return rv_slac_undef(c, si);
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_SHL, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "slliw x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
         si->uimm = shift;
         break;
@@ -267,11 +303,11 @@ static int rv64_decode_alu_imm4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst
         const u4 imm = inst.i.imm >> 5;
         si->uimm = shift;
         if (imm == 0) {  // SRLIW
-            slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRI, PR_D);
+            slac_in(si, SLAC_OP_SHR, SLAC_IN_ARG_DRI, PR_D);
             STRACE(si, "srliw x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
             break;
         } else if (imm == 0b0100000) {   // SRAIW
-            slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRI, PR_D);
+            slac_in(si, SLAC_OP_SHRS, SLAC_IN_ARG_DRI, PR_D);
             STRACE(si, "sraiw x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
             break;
         }
@@ -292,41 +328,41 @@ static int rv64_decode_alu_imm4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst
 
 static int rv_decode_alu(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     STRACE_DECL_OPSTR;
-    si->type = SLAC_IN_TYPE_ALU;
+    si->type = SLAC_TYPE_ALU;
     si->arg = SLAC_IN_ARG_DRR;
     switch (inst.r.funct7) {
     case 0:
         switch (inst.r.funct3) {
         case 0b000: // ADD
-            si->op = SLAC_IN_OP_ADD;
+            si->func = SLAC_FUNC_ADD;
             STRACE_OPSTR("add");
             break;
         case 0b001: // SLL
-            si->op = SLAC_IN_OP_SHL;
+            si->func = SLAC_FUNC_SHL;
             STRACE_OPSTR("sll");
             break;
         case 0b010: // SLT
-            si->op = SLAC_IN_OP_CSELS;
+            si->func = SLAC_FUNC_CSELS;
             STRACE_OPSTR("slt");
             break;
         case 0b011:  // SLTU
-            si->op = SLAC_IN_OP_CSELU;
+            si->func = SLAC_FUNC_CSEL;
             STRACE_OPSTR("sltu");
             break;
         case 0b100:  // XOR
-            si->op = SLAC_IN_OP_XOR;
+            si->func = SLAC_FUNC_XOR;
             STRACE_OPSTR("xor");
             break;
         case 0b101:  // SRL
-            si->op = SLAC_IN_OP_SHRU;
+            si->func = SLAC_FUNC_SHR;
             STRACE_OPSTR("srl");
             break;
         case 0b110:  // OR
-            si->op = SLAC_IN_OP_OR;
+            si->func = SLAC_FUNC_OR;
             STRACE_OPSTR("or");
             break;
         case 0b111:  // AND
-            si->op = SLAC_IN_OP_AND;
+            si->func = SLAC_FUNC_AND;
             STRACE_OPSTR("and");
             break;
         }
@@ -335,11 +371,11 @@ static int rv_decode_alu(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     case 0b0100000:
         switch (inst.r.funct3) {
         case 0b000: // SUB
-            si->op = SLAC_IN_OP_SUB;
+            si->func = SLAC_FUNC_SUB;
             STRACE_OPSTR("sub");
             break;
         case 0b101: // SRA
-            si->op = SLAC_IN_OP_SHRS;
+            si->func = SLAC_FUNC_SHRS;
             STRACE_OPSTR("sra");
             break;
         default:  goto undef;
@@ -350,35 +386,35 @@ static int rv_decode_alu(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         if (!(c->core.arch_options & SL_RISCV_EXT_M)) goto undef;
         switch (inst.r.funct3) {
         case 0b000: // MUL
-            si->op = SLAC_IN_OP_MUL;
+            si->func = SLAC_FUNC_MUL;
             STRACE_OPSTR("mul");
             break;
         case 0b001: // MULH
-            si->op = SLAC_IN_OP_MULHSS;
+            si->func = SLAC_FUNC_MULHSS;
             STRACE_OPSTR("mulh");
             break;
         case 0b010: // MULHSU
-            si->op = SLAC_IN_OP_MULHSU;
+            si->func = SLAC_FUNC_MULHSU;
             STRACE_OPSTR("mulhsu");
             break;
         case 0b011: // MULHU
-            si->op = SLAC_IN_OP_MULHUU;
+            si->func = SLAC_FUNC_MULHUU;
             STRACE_OPSTR("mulhu");
             break;
         case 0b100: // DIV
-            si->op = SLAC_IN_OP_DIVS;
+            si->func = SLAC_FUNC_DIVS;
             STRACE_OPSTR("div");
             break;
         case 0b101: // DIVU
-            si->op = SLAC_IN_OP_DIVU;
+            si->func = SLAC_FUNC_DIV;
             STRACE_OPSTR("divu");
             break;
         case 0b110: // REM
-            si->op = SLAC_IN_OP_MODS;
+            si->func = SLAC_FUNC_MODS;
             STRACE_OPSTR("rem");
             break;
         case 0b111: // REMU
-            si->op = SLAC_IN_OP_MODU;
+            si->func = SLAC_FUNC_MOD;
             STRACE_OPSTR("remu");
             break;
         }
@@ -407,21 +443,24 @@ static int rv64_decode_alu4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     if (c->core.mode != SL_CORE_MODE_8) return rv_slac_undef(c, si);
 
     STRACE_DECL_OPSTR;
-    si->type = SLAC_IN_TYPE_ALU;
+    si->type = SLAC_TYPE_ALU;
     si->arg = SLAC_IN_ARG_DRR;
+#if SLAC_TRACE
+    si->desc.print_format = PR_D;
+#endif
     switch (inst.r.funct7) {
     case 0b0000000:
         switch (inst.r.funct3) {
         case 0b000: // ADDW
-            si->op = SLAC_IN_OP_ADD;
+            si->func = SLAC_FUNC_ADD;
             STRACE_OPSTR("addw");
             break;
         case 0b001: // SLLW
-            si->op = SLAC_IN_OP_SHL;
+            si->func = SLAC_FUNC_SHL;
             STRACE_OPSTR("sllw");
             break;
         case 0b101: // SRLW
-            si->op = SLAC_IN_OP_SHRU;
+            si->func = SLAC_FUNC_SHR;
             STRACE_OPSTR("srlw");
             break;
         default:
@@ -432,11 +471,11 @@ static int rv64_decode_alu4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     case 0b0100000:
         switch (inst.r.funct3) {
         case 0b000: // SUBW
-            si->op = SLAC_IN_OP_SUB;
+            si->func = SLAC_FUNC_SUB;
             STRACE_OPSTR("subw");
             break;
         case 0b101: // SRAW
-            si->op = SLAC_IN_OP_SHRS;
+            si->func = SLAC_FUNC_SHRS;
             STRACE_OPSTR("sraw");
             break;
         default:
@@ -448,23 +487,23 @@ static int rv64_decode_alu4(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         if (!(c->core.arch_options & SL_RISCV_EXT_M)) goto undef;
         switch (inst.r.funct3) {
         case 0b000: // MULW
-            si->op = SLAC_IN_OP_MUL;
+            si->func = SLAC_FUNC_MUL;
             STRACE_OPSTR("mulw");
             break;
         case 0b100: // DIVW
-            si->op = SLAC_IN_OP_DIVS;
+            si->func = SLAC_FUNC_DIVS;
             STRACE_OPSTR("divw");
             break;
         case 0b101: // DIVUW
-            si->op = SLAC_IN_OP_DIVU;
+            si->func = SLAC_FUNC_DIV;
             STRACE_OPSTR("divuw");
             break;
         case 0b110: // REMW
-            si->op = SLAC_IN_OP_MODS;
+            si->func = SLAC_FUNC_MODS;
             STRACE_OPSTR("remw");
             break;
         case 0b111: // REMUW
-            si->op = SLAC_IN_OP_MODU;
+            si->func = SLAC_FUNC_MOD;
             STRACE_OPSTR("remuw");
             break;
         default:
@@ -501,10 +540,10 @@ static int rv_decode_jump(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 #endif
 
     if (inst.j.rd == RV_ZERO) {        // J
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_B, SLAC_IN_ARG_I, PR_B);
+        slac_in(si, SLAC_OP_B, SLAC_IN_ARG_I, PR_B);
         STRACE(si, "j %#" PRIx64, trace_dest);
     } else {
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_BL, SLAC_IN_ARG_DI, PR_BL);
+        slac_in(si, SLAC_OP_BL, SLAC_IN_ARG_DI, PR_BL);
         si->r2 = 4; // pc offset to step
         si->d0 = inst.j.rd;
         STRACE(si, "jal x%u, %#" PRIx64, inst.j.rd, trace_dest);
@@ -520,10 +559,10 @@ static int rv_decode_jalr(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->r0 = inst.i.rs1;
     si->simm = ((i4)inst.raw) >> 20;
     if (inst.i.rd == RV_ZERO) {
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_B, SLAC_IN_ARG_R1, PR_B);
+        slac_in(si, SLAC_OP_B, SLAC_IN_ARG_R1, PR_B);
         STRACE(si, "ret");
     } else {
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_BL, SLAC_IN_ARG_DRI, PR_BL);
+        slac_in(si, SLAC_OP_BL, SLAC_IN_ARG_DRI, PR_BL);
         STRACE(si, "jalr %d(x%u)", (i4)si->simm, inst.i.rs1);
         si->r2 = 4; // pc offset to step
         si->d0 = inst.i.rd;
@@ -536,32 +575,32 @@ static int rv_decode_branch(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     switch (inst.b.funct3) {
     case 0b000: // BEQ
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBEQ, SLAC_IN_ARG_RRI, PR_B);
+        slac_in(si, SLAC_OP_CBEQ, SLAC_IN_ARG_RRI, PR_B);
         STRACE_OPSTR("beq");
         break;
 
     case 0b001: // BNE
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBNE, SLAC_IN_ARG_RRI, PR_B);
+        slac_in(si, SLAC_OP_CBNE, SLAC_IN_ARG_RRI, PR_B);
         STRACE_OPSTR("bne");
         break;
 
     case 0b100: // BLT
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBLTS, SLAC_IN_ARG_RRI, PR_B);
+        slac_in(si, SLAC_OP_CBLTS, SLAC_IN_ARG_RRI, PR_B);
         STRACE_OPSTR("blt");
         break;
 
     case 0b101: // BGE
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBGES, SLAC_IN_ARG_RRI, PR_B);
+        slac_in(si, SLAC_OP_CBGES, SLAC_IN_ARG_RRI, PR_B);
         STRACE_OPSTR("bge");
         break;
 
     case 0b110: // BLTU
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBLTU, SLAC_IN_ARG_RRI, PR_B);
+        slac_in(si, SLAC_OP_CBLTU, SLAC_IN_ARG_RRI, PR_B);
         STRACE_OPSTR("bltu");
         break;
 
     case 0b111: // BGEU
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBGEU, SLAC_IN_ARG_RRI, PR_B);
+        slac_in(si, SLAC_OP_CBGEU, SLAC_IN_ARG_RRI, PR_B);
         STRACE_OPSTR("bgeu");
         break;
 
@@ -590,41 +629,41 @@ static int rv_decode_load(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     switch (inst.i.funct3) {
     case 0b000: // LB
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDBS, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD1S, SLAC_IN_ARG_DRI, PR_D);
         STRACE_OPSTR("lb");
         break;
 
     case 0b001: // LH
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDHS, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD2S, SLAC_IN_ARG_DRI, PR_D);
         STRACE_OPSTR("lh");
         break;
 
     case 0b010: // LW
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDWS, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD4S, SLAC_IN_ARG_DRI, PR_D);
         STRACE_OPSTR("lw");
         break;
 
     case 0b100: // LBU
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDB, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD1, SLAC_IN_ARG_DRI, PR_D);
         STRACE_OPSTR("lbu");
         break;
 
     case 0b101: // LHU
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDH, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD2, SLAC_IN_ARG_DRI, PR_D);
         STRACE_OPSTR("lhu");
         break;
 
     case 0b110: // LWU
         if (c->core.mode != SL_CORE_MODE_8)
             return rv_slac_undef(c, si);
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDW, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD4, SLAC_IN_ARG_DRI, PR_D);
         STRACE_OPSTR("lwu");
         break;
 
     case 0b011: // LD
         if (c->core.mode != SL_CORE_MODE_8)
             return rv_slac_undef(c, si);
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDX, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD8, SLAC_IN_ARG_DRI, PR_D);
         STRACE_OPSTR("ld");
         break;
 
@@ -643,20 +682,20 @@ static int rv_decode_store(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->d0 = inst.s.rs2;
     switch (inst.s.funct3) {
     case 0b000: // SB
-        slac_in(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STB, SLAC_IN_ARG_DRI, PR_ST1);
+        slac_in(si, SLAC_OP_ST1, SLAC_IN_ARG_DRI, PR_ST1);
         STRACE_OPSTR("sb");
         break;
     case 0b001: // SH
-        slac_in(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STH, SLAC_IN_ARG_DRI, PR_ST2);
+        slac_in(si, SLAC_OP_ST2, SLAC_IN_ARG_DRI, PR_ST2);
         STRACE_OPSTR("sh");
         break;
     case 0b010: // SW
-        slac_in(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STW, SLAC_IN_ARG_DRI, PR_ST4);
+        slac_in(si, SLAC_OP_ST4, SLAC_IN_ARG_DRI, PR_ST4);
         STRACE_OPSTR("sw");
         break;
     case 0b011: // SD
         if (c->core.mode != SL_CORE_MODE_8) return rv_slac_undef(c, si); 
-        slac_in(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STX, SLAC_IN_ARG_DRI, PR_ST8);
+        slac_in(si, SLAC_OP_ST8, SLAC_IN_ARG_DRI, PR_ST8);
         STRACE_OPSTR("sd");
         break;
     default:
@@ -678,7 +717,7 @@ static int decode_c_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_cinst_t ci) {
         if (si->uimm == 0) return SL_ERR_UNDEF;
         si->d0 = RVC_TO_REG(ci.cba.rsd);
         si->r0 = si->d0;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRU, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_SHR, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "c.srli x%u, %u", si->d0, (u4)si->uimm);
         return 0;
 
@@ -692,7 +731,7 @@ static int decode_c_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_cinst_t ci) {
         if (si->uimm == 0) return SL_ERR_UNDEF;
         si->d0 = RVC_TO_REG(ci.cba.rsd);
         si->r0 = si->d0;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHRS, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_SHRS, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "c.srai x%u, %u", si->d0, (u4)si->uimm);
         return 0;
 
@@ -700,7 +739,7 @@ static int decode_c_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_cinst_t ci) {
         si->simm = sign_extend32(CBA_IMM(ci), 6);
         si->d0 = RVC_TO_REG(ci.cba.rsd);
         si->r0 = si->d0;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_AND, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_AND, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "c.andi x%u, %#" PRIx64, si->d0, si->simm);
         return 0;
 
@@ -717,29 +756,29 @@ static int decode_c_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_cinst_t ci) {
 
     switch ((ci.cs.imm1 & 4) | ci.cs.imm0) {
     case 0b000: // C.SUB
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SUB, SLAC_IN_ARG_DRR, PR_D);
+        slac_in(si, SLAC_OP_SUB, SLAC_IN_ARG_DRR, PR_D);
         STRACE_OPSTR("c.sub");
         break;
 
     case 0b001: // C.XOR
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_XOR, SLAC_IN_ARG_DRR, PR_D);
+        slac_in(si, SLAC_OP_XOR, SLAC_IN_ARG_DRR, PR_D);
         STRACE_OPSTR("c.xor");
         break;
 
     case 0b010: // C.OR
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_OR, SLAC_IN_ARG_DRR, PR_D);
+        slac_in(si, SLAC_OP_OR, SLAC_IN_ARG_DRR, PR_D);
         STRACE_OPSTR("c.or");
         break;
 
     case 0b011: // C.AND
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_AND, SLAC_IN_ARG_DRR, PR_D);
+        slac_in(si, SLAC_OP_AND, SLAC_IN_ARG_DRR, PR_D);
         STRACE_OPSTR("c.and");
         break;
 
     case 0b100: // C.SUBW
         if (c->core.mode != SL_CORE_MODE_8)
             return SL_ERR_UNDEF;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SUB, SLAC_IN_ARG_DRR, PR_D);
+        slac_in(si, SLAC_OP_SUB, SLAC_IN_ARG_DRR, PR_D);
         STRACE_OPSTR("c.subw");
         si->len = SLAC_IN_LEN_4;
         si->sx8 = 1;
@@ -748,7 +787,7 @@ static int decode_c_alu32(rv_core_t *c, sl_slac_inst_t *si, rv_cinst_t ci) {
     case 0b101: // C.ADDW
         if (c->core.mode != SL_CORE_MODE_8)
             return SL_ERR_UNDEF;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRR, PR_D);
+        slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRR, PR_D);
         STRACE_OPSTR("c.addw");
         si->len = SLAC_IN_LEN_4;
         si->sx8 = 1;
@@ -778,7 +817,7 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         si->uimm = (u4)CIW_IMM(ci);
         si->d0 = RVC_TO_REG(ci.ciw.rd);
         si->r0 = RV_SP;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "c.addi4spn x%u, %u", si->d0, (u4)si->uimm);
         break;
 
@@ -790,54 +829,44 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         si->uimm = CS_IMM_SCALED_4(ci);
         si->d0 = RVC_TO_REG(ci.cl.rd);
         si->r0 = RVC_TO_REG(ci.cl.rs);
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDW, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD4, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "c.lw x%u, %u(x%u)", si->d0, (u4)si->uimm, si->r0);
         break;
 
-#if 0
     case 0b00011:
-#if USING_RV32
-        // C.FLW
-        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
-        else {
+        if (c->core.mode == SL_CORE_MODE_4) {
+            // C.FLW
+            if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
             const u4 imm = CI_IMM_SCALED_4(ci);
-            const u4 rs = RVC_TO_REG(ci.cl.rs);
-            const u4 rd = RVC_TO_REG(ci.cl.rd);
-            const u4 addr = c->core.r[rs] + imm;
-            float val;
-            err = sl_core_mem_read_single(&c->core, addr, 4, &val);
-            RV_TRACE_RDF(c, rd, val);
-            RV_TRACE_PRINT(c, "c.flw f%u, %u(x%u)", rd, imm, rs);
-            if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
-            c->core.f[rd].f = val;
-            break;
+            si->uimm = imm;
+            si->r0 = RVC_TO_REG(ci.cl.rs);
+            si->d0 = RVC_TO_REG(ci.cl.rd);
+            slac_in(si, SLAC_OP_FLD32, SLAC_IN_ARG_DRI, PR_DF32);
+            STRACE_EXPAND(si, "flw f%u, %u(x%u)", si->d0, imm, si->r0);
+            STRACE_C(si, "c.flw f%u, %u(x%u)", si->d0, imm, si->r0);
+        } else {
+            // C.LD
+            const u4 imm = ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1 ) << 3) | ((ci.cl.imm0 & 1) << 6);
+            si->uimm = imm;
+            si->r0 = RVC_TO_REG(ci.cl.rs);
+            si->d0 = RVC_TO_REG(ci.cl.rd);
+            slac_in(si, SLAC_OP_LD8, SLAC_IN_ARG_DRI, PR_D);
+            STRACE_EXPAND(si, "ld x%u, %u(x%u)", si->d0, imm, si->r0);
+            STRACE_C(si, "c.ld x%u, %u(x%u)", si->d0, imm, si->r0);
         }
-#else
-    {   // C.LD
-        const u4 imm = ((ci.cl.imm0 & 2) << 1) | ((ci.cl.imm1 ) << 3) | ((ci.cl.imm0 & 1) << 6);
-        const u4 rs = RVC_TO_REG(ci.cl.rs);
-        const u4 rd = RVC_TO_REG(ci.cl.rd);
-        const u8 addr = c->core.r[rs] + imm;
-        u8 val;
-        err = sl_core_mem_read_single(&c->core, addr, 8, &val);
-        RV_TRACE_RD(c, rd, val);
-        RV_TRACE_PRINT(c, "c.ld x%u, %u(x%u)", rd, imm, rs);
-        if (err)
-            return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
-        c->core.r[rd] = val;
         break;
-    }
-#endif
 
     case 0b00100: goto undef;   // reserved
-    case 0b00101: goto undef;   // C.FSD
-#endif
+
+    case 0b00101:
+        // todo: implement me
+        goto undef;   // C.FSD
 
     case 0b00110:   // C.SW
         si->uimm = CS_IMM_SCALED_4(ci);
         si->r0 = RVC_TO_REG(ci.cs.rs1);
         si->d0 = RVC_TO_REG(ci.cs.rs2);
-        slac_in(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STW, SLAC_IN_ARG_DRI, PR_ST4);
+        slac_in(si, SLAC_OP_ST4, SLAC_IN_ARG_DRI, PR_ST4);
         STRACE(si, "c.sw x%u, %u(x%u)", si->d0, (u4)si->uimm, si->r0);
         break;
 
@@ -849,15 +878,15 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
             si->uimm = CS_IMM_SCALED_8(ci);
             si->d0 = RVC_TO_REG(ci.cs.rs2);
             si->r0 = RVC_TO_REG(ci.cs.rs1);
-            slac_in(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STX, SLAC_IN_ARG_DRI, PR_ST8);
+            slac_in(si, SLAC_OP_ST8, SLAC_IN_ARG_DRI, PR_ST8);
             STRACE(si, "c.sd x%u, %u(x%u)" PRIx64, si->d0, (u4)si->uimm, si->r0);
             break;
         }
 
     case 0b01000:
         if (inst.raw == 1) { // C.NOP
-            slac_in(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_NOP, SLAC_IN_ARG_NONE, 0);
-            si->pred = SLAC_PRED_NEVER;
+            slac_in(si, SLAC_OP_NOP, SLAC_IN_ARG_NONE, 0);
+            // si->pred = SLAC_PRED_NEVER;
             STRACE(si, "c.nop");
             break;
         }
@@ -866,7 +895,7 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         si->simm = sign_extend32(CI_IMM(ci), 6);
         si->r0 = ci.ci.rsd;
         si->d0 = ci.ci.rsd;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "c.addi x%u, %d", ci.ci.rsd, (i4)si->simm);
         break;
 
@@ -876,7 +905,7 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
             si->simm = sign_extend32(CJ_IMM(ci), 12);
             si->d0 = RV_RA;
             si->r2 = 2; // pc offset to step
-            slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_BL, SLAC_IN_ARG_DI, PR_BL);
+            slac_in(si, SLAC_OP_BL, SLAC_IN_ARG_DI, PR_BL);
             STRACE(si, "c.jal %d", (i4)si->simm);   // todo: make this absolute address
         } else {
             // C.ADDIW
@@ -885,10 +914,10 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
             si->r0 = ci.ci.rsd;
             si->d0 = ci.ci.rsd;
             if (si->simm == 0) {
-                slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
+                slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
                 STRACE(si, "c.sext.w x%u", ci.ci.rsd);
             } else {
-                slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
+                slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
                 STRACE(si, "c.addiw x%u, %d", ci.ci.rsd, (i4)si->simm);
             }
             si->len = SLAC_IN_LEN_4;
@@ -900,7 +929,7 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         if (ci.ci.rsd == 0) goto undef;
         si->simm = sign_extend32(CI_IMM(ci), 6);
         si->d0 = ci.ci.rsd;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DI, PR_D);
+        slac_in(si, SLAC_OP_MOVI, SLAC_IN_ARG_DI, PR_D);
         STRACE(si, "c.li x%u, %d", ci.ci.rsd, (i4)si->simm);
         break;
 
@@ -910,13 +939,13 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
             si->simm = sign_extend32((CI_ADDI16SP_IMM(ci)), 10);
             si->r0 = RV_SP;
             si->d0 = RV_SP;
-            slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
+            slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
             STRACE(si, "c.addi16sp %d", (i4)si->simm);
         } else {    // C.LUI
             si->simm = sign_extend32((CI_IMM(ci) << 12), 18);
             if (si->simm == 0) goto undef;
             si->d0 = ci.ci.rsd;
-            slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DI, PR_D);
+            slac_in(si, SLAC_OP_MOVI, SLAC_IN_ARG_DI, PR_D);
             STRACE(si, "c.lui x%u, %#x", ci.ci.rsd, (u4)si->simm);
         }
         break;
@@ -932,7 +961,7 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     case 0b01101:   // C.J
         si->simm = sign_extend32(CJ_IMM(ci), 12);
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_B, SLAC_IN_ARG_I, PR_B);
+        slac_in(si, SLAC_OP_B, SLAC_IN_ARG_I, PR_B);
         STRACE(si, "c.j %#" PRIx64, c->core.pc + si->simm);
         break;
 
@@ -940,7 +969,7 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         si->simm = sign_extend32(CB_IMM(ci), 9);
         si->r0 = RVC_TO_REG(ci.cb.rs);
         si->r1 = RV_ZERO;
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBEQ, SLAC_IN_ARG_RRI, PR_B);
+        slac_in(si, SLAC_OP_CBEQ, SLAC_IN_ARG_RRI, PR_B);
         STRACE(si, "c.beqz x%u, %#" PRIx64, si->r0, si->simm + c->core.pc);
         break;
 
@@ -948,7 +977,7 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         si->simm = sign_extend32(CB_IMM(ci), 9);
         si->r0 = RVC_TO_REG(ci.cb.rs);
         si->r1 = RV_ZERO;
-        slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_CBNE, SLAC_IN_ARG_RRI, PR_B);
+        slac_in(si, SLAC_OP_CBNE, SLAC_IN_ARG_RRI, PR_B);
         STRACE(si, "c.bnez x%u, %#" PRIx64, si->r0, si->simm + c->core.pc);
         break;
 
@@ -963,26 +992,19 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         if (si->uimm == 0) goto undef;
         si->r0 = ci.ci.rsd;
         si->d0 = ci.ci.rsd;
-        slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_SHL, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_SHL, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "c.slli x%u, %u", ci.ci.rsd, (u4)si->uimm);
         break;
 
-#if 0
     case 0b10001:   // C.FLDSP
         if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-        else {
-            const u4 imm = CI_IMM_SCALED_8(ci);
-            const uxlen_t addr = c->core.r[RV_SP] + imm;
-            double val;
-            err = sl_core_mem_read_single(&c->core, addr, 8, &val);
-            RV_TRACE_RDD(c, ci.ci.rsd, val);
-            RV_TRACE_PRINT(c, "c.fldsp f%u, %u", ci.ci.rsd, imm);
-            if (err)
-                return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
-            c->core.f[ci.ci.rsd].d = val;
-            break;
-        }
-#endif
+        si->uimm = CI_IMM_SCALED_8(ci);
+        si->d0 = ci.ci.rsd;
+        si->r0 = RV_SP;
+        slac_in(si, SLAC_OP_FLD64, SLAC_IN_ARG_DRI, PR_DF64);
+        STRACE_C(si, "c.fldsp f%u, %u", si->d0, (u4)si->uimm);
+        STRACE_EXPAND(si, "fld f%u, %u(sp)", si->d0, (u4)si->uimm);
+        break;
 
     case 0b10010:   // C.LWSP
         if (ci.ci4.rd == RV_ZERO)
@@ -990,36 +1012,31 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         si->uimm = CI_IMM_SCALED_4(ci);
         si->d0 = ci.ci.rsd;
         si->r0 = RV_SP;
-        slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDW, SLAC_IN_ARG_DRI, PR_D);
+        slac_in(si, SLAC_OP_LD4, SLAC_IN_ARG_DRI, PR_D);
         STRACE(si, "c.lwsp x%u, %u", ci.ci.rsd, (u4)si->uimm);
         break;
 
     case 0b10011:
         if (c->core.mode == SL_CORE_MODE_4) {
-            goto undef;
-        // // C.FLWSP
-        // if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
-        // else {
-        //     const u4 imm = CI_IMM_SCALED_4(ci);
-        //     const u4 addr = c->core.r[RV_SP] + imm;
-        //     float val;
-        //     err = sl_core_mem_read_single(&c->core, addr, 4, &val);
-        //     RV_TRACE_RDF(c, ci.ci.rsd, val);
-        //     RV_TRACE_PRINT(c, "c.flwsp f%u, %u", ci.ci.rsd, imm);
-        //     if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_LOAD, addr, err);
-        //     c->core.f[ci.ci.rsd].f = val;
-        //     break;
-        // }
+            // C.FLWSP
+            if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+            const u4 imm = CI_IMM_SCALED_4(ci);
+            si->uimm = imm;
+            si->d0 = ci.ci.rsd;
+            si->r0 = RV_SP;
+            slac_in(si, SLAC_OP_FLD32, SLAC_IN_ARG_DRI, PR_DF32);
+            STRACE_EXPAND(si, "flw f%u, %u(sp)", si->d0, imm);
+            STRACE_C(si, "c.flwsp f%u, %u", si->d0, imm);
         } else {
             if (ci.ci.rsd == RV_ZERO) goto undef;
             // C.LDSP
             si->uimm = CI_IMM_SCALED_8(ci);
             si->d0 = ci.ci.rsd;
             si->r0 = RV_SP;
-            slac_in(si, SLAC_IN_TYPE_LD, SLAC_IN_OP_LDX, SLAC_IN_ARG_DRI, PR_D);
+            slac_in(si, SLAC_OP_LD8, SLAC_IN_ARG_DRI, PR_D);
             STRACE(si, "c.ldsp x%u, %u", ci.ci.rsd, (u4)si->uimm);
-            break;
         }
+        break;
 
     case 0b10100:   // C.JR C.MV C.EBREAK C.JALR C.ADD
         if (ci.cr.funct4 == 0) {
@@ -1029,13 +1046,13 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
                 // C.JR
                 si->d0 = ci.cr.rsd;
                 si->r0 = ci.cr.rsd;
-                slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_B, SLAC_IN_ARG_R1, PR_B);
+                slac_in(si, SLAC_OP_B, SLAC_IN_ARG_R1, PR_B);
                 STRACE(si, "c.jr x%u", ci.ci.rsd);
             } else {
                 // C.MV
                 si->r0 = ci.cr.rs2;
                 si->d0 = ci.cr.rsd;
-                slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_MOV, SLAC_IN_ARG_DR, PR_D);
+                slac_in(si, SLAC_OP_MOVR, SLAC_IN_ARG_DR, PR_D);
                 STRACE(si, "c.mv x%u, x%u", ci.ci.rsd, ci.cr.rs2);
                 if ((si->d0 == RV_ZERO) || (si->d0 == si->r0))
                     set_nop(si);
@@ -1044,13 +1061,13 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
             if (ci.cr.rs2 == 0) {
                 if (ci.cr.rsd == 0) {
                     // C.EBREAK
-                    slac_in(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_BREAK, 0, 0);
+                    slac_in(si, SLAC_OP_BREAK, 0, 0);
                     STRACE(si, "c.ebreak");
                 } else {
                     // C.JALR
                     si->r0 = ci.cr.rsd;
                     si->d0 = ci.cr.rsd;
-                    slac_in(si, SLAC_IN_TYPE_BR, SLAC_IN_OP_BL, SLAC_IN_ARG_DR, PR_BL);
+                    slac_in(si, SLAC_OP_BL, SLAC_IN_ARG_DR, PR_BL);
                     STRACE(si, "c.jalr x%u", ci.ci.rsd);
                 }
             } else {
@@ -1061,53 +1078,48 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
                 // note that this flips r0 and r1 for the convenience of the print format
                 si->r0 = ci.cr.rs2;
                 si->r1 = ci.cr.rsd;
-                slac_in(si, SLAC_IN_TYPE_ALU, SLAC_IN_OP_ADD, SLAC_IN_ARG_DRR, PR_D);
+                slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRR, PR_D);
                 STRACE(si, "c.add x%u, x%u", ci.ci.rsd, ci.cr.rs2);
             }
         }
         break;
 
-#if 0
     case 0b10101:   // C.FSDSP
-    {
         if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-        const u4 imm = CSS_IMM_SCALED_8(ci);
-        const u8 addr = c->core.r[RV_SP] + imm;
-        u8 val = c->core.f[ci.css.rs2].u8;
-        RV_TRACE_STORE_D(c, addr, ci.css.rs2, c->core.f[ci.css.rs2].d);
-        err = sl_core_mem_write_single(&c->core, addr, 8, &val);
-        RV_TRACE_PRINT(c, "c.fsdsp x%u, %u", ci.css.rs2, imm);
-        if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_STORE, addr, err);
+        si->uimm = CSS_IMM_SCALED_8(ci);;
+        si->d0 = ci.css.rs2;    // d0 is the data source register
+        si->r0 = RV_SP;         // r0 is the address register
+        slac_in(si, SLAC_OP_FST64, SLAC_IN_ARG_DRI, PR_STF64);
+        STRACE_EXPAND(si, "fsd f%u, %u(sp)", si->d0, imm);
+        STRACE_C(si, "c.fsdsp f%u, %u", si->d0, (u4)si->uimm);
         break;
-    }
-#endif
 
     case 0b10110:   // C.SWSP
         si->uimm = CSS_IMM_SCALED_4(ci);
         si->d0 = ci.css.rs2;
         si->r0 = RV_SP;
-        slac_in(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STW, SLAC_IN_ARG_DRI, PR_ST4);
+        slac_in(si, SLAC_OP_ST4, SLAC_IN_ARG_DRI, PR_ST4);
         STRACE(si, "c.swsp x%u, %u", ci.css.rs2, (u4)si->uimm);
         break;
 
     case 0b10111:
         if (c->core.mode == SL_CORE_MODE_4) {
-            goto undef;
-            // // C.FSWSP
-            // const u4 imm = CSS_IMM_SCALED_4(ci);
-            // const u4 addr = c->core.r[RV_SP] + imm;
-            // u4 val = c->core.f[ci.css.rs2].u4;
-            // RV_TRACE_STORE_F(c, addr, ci.css.rs2, c->core.f[ci.css.rs2].f);
-            // err = sl_core_mem_write_single(&c->core, addr, 4, &val);
-            // RV_TRACE_PRINT(c, "c.fswsp f%u, %u", ci.css.rs2, imm);
-            // if (err) return sl_core_synchronous_exception(&c->core, EX_ABORT_STORE, addr, err);
-            // break;
+            // C.FSWSP
+            if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+            const u4 imm = CSS_IMM_SCALED_4(ci);
+            si->uimm = imm;
+            si->d0 = ci.css.rs2;    // d0 is the data source register
+            si->r0 = RV_SP;         // r0 is the address register
+            slac_in(si, SLAC_OP_FST32, SLAC_IN_ARG_DRI, PR_STF32);
+            STRACE_EXPAND(si, "fsw f%u, %u(sp)", si->d0, imm);
+            STRACE_C(si, "c.fswsp f%u, %u", si->d0, imm);
+            break;
         } else {
             // C.SDSP
             si->uimm = CSS_IMM_SCALED_8(ci);
             si->d0 = ci.css.rs2;
             si->r0 = RV_SP;
-            slac_in(si, SLAC_IN_TYPE_ST, SLAC_IN_OP_STX, SLAC_IN_ARG_DRI, PR_ST8);
+            slac_in(si, SLAC_OP_ST8, SLAC_IN_ARG_DRI, PR_ST8);
             STRACE(si, "c.sdsp x%u, %u", ci.css.rs2, (u4)si->uimm);
             break;
         }
@@ -1123,6 +1135,648 @@ undef:
     return rv_slac_undef(c, si);
 }
 
+static int rv_decode_fp_load(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    const i4 imm = ((i4)inst.raw) >> 20;
+    si->d0 = inst.i.rd;
+    si->r0 = inst.i.rs1;
+    si->simm = imm;
+
+    // imm[11:0] rs1 010 rd 0000111 FLW
+    // imm[11:0] rs1 011 rd 0000111 FLD
+    // imm[11:0] rs1 100 rd 0000111 FLQ
+    // imm[11:0] rs1 001 rd 0000111 FLH
+    switch (inst.r.funct3) {
+    case 0b010:
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        slac_in(si, SLAC_OP_FLD32, SLAC_IN_ARG_DRI, PR_DF32);
+        STRACE(si, "flw f%u, %d(x%u)", inst.i.rd, imm, inst.i.rs1);
+        break;
+
+    case 0b011:
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+        slac_in(si, SLAC_OP_FLD64, SLAC_IN_ARG_DRI, PR_DF64);
+        STRACE(si, "fld f%u, %d(x%u)", inst.i.rd, imm, inst.i.rs1);
+        break;
+
+    case 0b100:
+    case 0b001:
+    default:    goto undef;
+    }
+
+    return 0;
+
+undef:
+    return rv_slac_undef(c, si);
+}
+
+static int rv_decode_fp_store(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    const i4 imm = (((i4)inst.raw >> 20) & ~(0x1f)) | inst.s.imm1;
+    si->d0 = inst.s.rs2;    // d0 is the data source register
+    si->r0 = inst.i.rs1;    // r0 is the address register
+    si->simm = imm;
+
+    //imm[11:5] rs2 rs1 010 imm[4:0] 0100111 FSW
+    //imm[11:5] rs2 rs1 011 imm[4:0] 0100111 FSD
+    switch (inst.s.funct3) {
+    case 0b010:
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        slac_in(si, SLAC_OP_FST32, SLAC_IN_ARG_DRI, PR_STF32);
+        STRACE(si, "fsw f%u, %d(x%u)", si->d0, imm, si->r0);
+        break;
+
+    case 0b011:
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        slac_in(si, SLAC_OP_FST64, SLAC_IN_ARG_DRI, PR_STF64);
+        STRACE(si, "fsd f%u, %d(x%u)", si->d0, imm, si->r0);
+        break;
+
+    default:    goto undef;
+    }
+    return 0;
+
+undef:
+    return rv_slac_undef(c, si);
+
+}
+
+static int rv_decode_fp32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    si->d0 = inst.r.rd;
+    si->r0 = inst.r.rs1;
+
+    switch (inst.r.funct7 >> 2) {
+    // 0000000 rs2     rs1  rm   rd  1010011  FADD.S
+    case 0b00000:
+        slac_in(si, SLAC_OP_FADD32, SLAC_IN_ARG_DRR, PR_DF32);
+        si->r1 = inst.r.rs2;
+        STRACE(si, "fadd.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+        break;
+
+    // 0000100 rs2     rs1  rm   rd  1010011  FSUB.S
+    case 0b00001:
+        slac_in(si, SLAC_OP_FSUB32, SLAC_IN_ARG_DRR, PR_DF32);
+        si->r1 = inst.r.rs2;
+        STRACE(si, "fsub.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+        break;
+
+    // 0001000 rs2     rs1  rm   rd  1010011  FMUL.S
+    case 0b00010:
+        slac_in(si, SLAC_OP_FMUL32, SLAC_IN_ARG_DRR, PR_DF32);
+        si->r1 = inst.r.rs2;
+        STRACE(si, "fmul.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+        break;
+
+    // 0001100 rs2     rs1  rm   rd  1010011  FDIV.S
+    case 0b00011:
+        slac_in(si, SLAC_OP_FDIV32, SLAC_IN_ARG_DRR, PR_DF32);
+        si->r1 = inst.r.rs2;
+        STRACE(si, "fdiv.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+        break;
+
+    // 01011 size 00000   rs1  rm   rd  1010011  FSQRT.S
+    case 0b01011:
+        slac_in(si, SLAC_OP_FSQRT32, SLAC_IN_ARG_DR, PR_DF32);
+        STRACE(si, "fsqrt.s f%u, f%u", si->d0, si->r0);
+        break;
+
+    // 00100 size rs2     rs1  000  rd  1010011  FSGNJ.S
+    // 00100 size rs2     rs1  001  rd  1010011  FSGNJN.S
+    // 00100 size rs2     rs1  010  rd  1010011  FSGNJX.S
+    case 0b00100:
+        si->r1 = inst.r.rs2;
+        switch (inst.r.funct3) {
+        case 0b000:
+            slac_in(si, SLAC_OP_FS32, SLAC_IN_ARG_DRR, PR_DF32);
+            STRACE(si, "fsgnj.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        case 0b001:
+            slac_in(si, SLAC_OP_FSN32, SLAC_IN_ARG_DRR, PR_DF32);
+            STRACE(si, "fsgnjn.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        case 0b010:
+            slac_in(si, SLAC_OP_FSX32, SLAC_IN_ARG_DRR, PR_DF32);
+            STRACE(si, "fsgnjx.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    // 00101 size rs2     rs1  000  rd  1010011  FMIN.S
+    // 00101 size rs2     rs1  001  rd  1010011  FMAX.S
+    case 0b00101:
+        switch (inst.r.funct3) {
+        case 0b000:
+            slac_in(si, SLAC_OP_FMIN32, SLAC_IN_ARG_DRR, PR_DF32);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "fmin.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        case 0b001:
+            slac_in(si, SLAC_OP_FMAX32, SLAC_IN_ARG_DRR, PR_DF32);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "fmax.s f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    case 0b11000:
+        // todo: set correct rounding mode
+        switch (inst.r.funct3) {
+        // 11000 size 00000   rs1  rm   rd  1010011  FCVT.W.S/D
+        case 0b00000:
+            slac_in(si, SLAC_OP_FCVT_S4_TO_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fcvt.w.s f%u, x%u", si->d0, si->r0);
+            // todo: replace with fmov immediate if r0 = zero
+            break;
+
+        // 11000 size 00001   rs1  rm   rd  1010011  FCVT.WU.S
+        case 0b00001:
+            slac_in(si, SLAC_OP_FCVT_U4_TO_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fcvt.wu.s f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11000 size 00010   rs1  rm   rd  1010011  FCVT.L.S/D
+        case 0b00010:
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_FCVT_S8_TO_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fcvt.l.s f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11000 size 00011   rs1  rm   rd  1010011  FCVT.LU.S/D
+        case 0b11000:
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_FCVT_U8_TO_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fcvt.lu.s f%u, x%u", si->d0, si->r0);
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    // 10100 size rs2     rs1  010  rd  1010011  FEQ.S
+    // 10100 size rs2     rs1  001  rd  1010011  FLT.S
+    // 10100 size rs2     rs1  000  rd  1010011  FLE.S
+    case 0b10100:
+        switch (inst.r.funct3) {
+        case 0b010:
+            slac_in(si, SLAC_OP_FEQ32, SLAC_IN_ARG_DRR, PR_DF32);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "feq.s x%u, f%u, f%u", si->d0, si->r0, si->r1);
+            if (si->d0 == RV_ZERO)
+                si->d0 = SLAC_REG_DISCARD;
+            break;
+
+        case 0b001:
+            slac_in(si, SLAC_OP_FLT32, SLAC_IN_ARG_DRR, PR_D);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "flt.s x%u, f%u, f%u", si->d0, si->r0, si->r1);
+            if (si->d0 == RV_ZERO)
+                si->d0 = SLAC_REG_DISCARD;
+            break;
+
+        case 0b000:
+            slac_in(si, SLAC_OP_FLE32, SLAC_IN_ARG_DRR, PR_DF32);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "fle.s x%u, f%u, f%u", si->d0, si->r0, si->r1);
+            if (si->d0 == RV_ZERO)
+                si->d0 = SLAC_REG_DISCARD;
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    case 0b11100:
+        switch (inst.r.funct3) {
+        case 0b000:
+            // 11100 size 00000   rs1  000  rd  1010011  FMV.X.W
+            // move to register from float
+            slac_in(si, SLAC_OP_MOV_RF32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fmv.x.w x%u, f%u", si->d0, si->r0);
+            if (si->d0 == RV_ZERO)
+                set_nop(si);
+            break;
+
+        // 11100 size 00000   rs1  001  rd  1010011  FCLASS.S/D
+        case 0b001: {
+            if (si->d0 == RV_ZERO) {
+                set_nop(si);
+                break;
+            }
+            slac_in(si, SLAC_OP_FCLASS_F32, SLAC_IN_ARG_DR, PR_D);
+            STRACE(si, "fclass.s x%u, f%u", si->d0, si->r0);
+            break;
+        }
+        default:    goto undef;
+        }
+        break;
+
+    case 0b11010:
+        switch (inst.r.rs2) {
+        // 11010 00 00000   rs1  rm   rd  1010011  FCVT.S.W
+        // 11010 01 00000   rs1  rm   rd  1010011  FCVT.D.W
+        case 0b00000:
+            slac_in(si, SLAC_OP_FCVT_F32_TO_S4, SLAC_IN_ARG_DR, PR_D);
+            STRACE(si, "fcvt.s.w f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11010 size 00001   rs1  rm   rd  1010011  FCVT.S.WU
+        // 11010 size 00001   rs1  rm   rd  1010011  FCVT.D.WU
+        case 0b00001:
+            slac_in(si, SLAC_OP_FCVT_U4_TO_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fcvt.s.wu f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11010 size 00010   rs1  rm   rd  1010011  FCVT.S.L
+        case 0b00010:
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_FCVT_S8_TO_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fcvt.s.l f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11010 size 00011   rs1  rm   rd  1010011  FCVT.S.LU
+        case 0b00011:
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_FCVT_U8_TO_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fcvt.s.lu f%u, x%u", si->d0, si->r0);
+            break;
+
+        default:
+            goto undef;
+        }
+        break;
+
+// TODO verify this encoding. This doesn't seem like it makes sense.
+//     case 0b01000: {
+//         // the following instructions abuse the size field. Both require the D ext.
+// #if USING_FP32 // i.e. size = 0
+//         if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+//         // 01000 00 00001 rs1 rm rd 1010011 FCVT.S.D
+//         if (inst.r.rs2 != 1) goto undef;
+//         result.f = c->core.f[inst.r.rs1].d;
+//         // RV_TRACE_PRINT(c, "fcvt.s.d f%u, f%u", rd, inst.r.rs1);
+//         set_opts = set_result_and_flags;
+// #else
+//         // 01000 01 00000 rs1 rm rd 1010011 FCVT.D.S
+//         if (inst.r.rs2 != 0) goto undef;
+//         result.d = c->core.f[inst.r.rs1].f;
+//         // RV_TRACE_PRINT(c, "fcvt.d.s f%u, f%u", rd, inst.r.rs1);
+//         set_opts = set_result;
+// #endif
+//         break;
+//     }
+
+    case 0b11110:
+        if (inst.r.funct3 != 000) goto undef;
+        // 11110 size 00000   rs1  000  rd  1010011  FMV.W.X
+        slac_in(si, SLAC_OP_MOV_FR32, SLAC_IN_ARG_DR, PR_DF32);
+        STRACE(si, "fmv.w.x f%u, x%u", si->d0, si->r0);
+        break;
+
+    default:    goto undef;
+    }
+
+    return 0;
+
+undef:
+    return rv_slac_undef(c, si);
+}
+
+static int rv_decode_fp64(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    si->d0 = inst.r.rd;
+    si->r0 = inst.r.rs1;
+
+    switch (inst.r.funct7 >> 2) {
+    // 0000000 rs2     rs1  rm   rd  1010011  FADD.S
+    case 0b00000:
+        slac_in(si, SLAC_OP_FADD64, SLAC_IN_ARG_DRR, PR_DF64);
+        si->r1 = inst.r.rs2;
+        STRACE(si, "fadd.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+        break;
+
+    // 0000100 rs2     rs1  rm   rd  1010011  FSUB.S
+    case 0b00001:
+        slac_in(si, SLAC_OP_FSUB64, SLAC_IN_ARG_DRR, PR_DF64);
+        si->r1 = inst.r.rs2;
+        STRACE(si, "fsub.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+        break;
+
+    // 0001000 rs2     rs1  rm   rd  1010011  FMUL.S
+    case 0b00010:
+        slac_in(si, SLAC_OP_FMUL64, SLAC_IN_ARG_DRR, PR_DF64);
+        si->r1 = inst.r.rs2;
+        STRACE(si, "fmul.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+        break;
+
+    // 0001100 rs2     rs1  rm   rd  1010011  FDIV.S
+    case 0b00011:
+        slac_in(si, SLAC_OP_FDIV64, SLAC_IN_ARG_DRR, PR_DF64);
+        si->r1 = inst.r.rs2;
+        STRACE(si, "fdiv.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+        break;
+
+    // 01011 size 00000   rs1  rm   rd  1010011  FSQRT.S
+    case 0b01011:
+        slac_in(si, SLAC_OP_FSQRT64, SLAC_IN_ARG_DR, PR_DF64);
+        STRACE(si, "fsqrt.d f%u, f%u", si->d0, si->r0);
+        break;
+
+    // 00100 size rs2     rs1  000  rd  1010011  FSGNJ.S
+    // 00100 size rs2     rs1  001  rd  1010011  FSGNJN.S
+    // 00100 size rs2     rs1  010  rd  1010011  FSGNJX.S
+    case 0b00100:
+        si->r1 = inst.r.rs2;
+        switch (inst.r.funct3) {
+        case 0b000:
+            slac_in(si, SLAC_OP_FS64, SLAC_IN_ARG_DRR, PR_DF64);
+            STRACE(si, "fsgnj.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        case 0b001:
+            slac_in(si, SLAC_OP_FSN64, SLAC_IN_ARG_DRR, PR_DF64);
+            STRACE(si, "fsgnjn.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        case 0b010:
+            slac_in(si, SLAC_OP_FSX64, SLAC_IN_ARG_DRR, PR_DF64);
+            STRACE(si, "fsgnjx.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    // 00101 size rs2     rs1  000  rd  1010011  FMIN.S
+    // 00101 size rs2     rs1  001  rd  1010011  FMAX.S
+    case 0b00101:
+        switch (inst.r.funct3) {
+        case 0b000:
+            slac_in(si, SLAC_OP_FMIN64, SLAC_IN_ARG_DRR, PR_DF64);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "fmin.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        case 0b001:
+            slac_in(si, SLAC_OP_FMAX64, SLAC_IN_ARG_DRR, PR_DF64);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "fmax.d f%u, f%u, f%u", si->d0, si->r0, si->r1);
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    case 0b11000:
+        // todo: set correct rounding mode
+        switch (inst.r.funct3) {
+        // 11000 size 00000   rs1  rm   rd  1010011  FCVT.W.S/D
+        case 0b00000:
+            slac_in(si, SLAC_OP_FCVT_S4_TO_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fcvt.w.d f%u, x%u", si->d0, si->r0);
+            // todo: replace with fmov immediate if r0 = zero
+            break;
+
+        // 11000 size 00001   rs1  rm   rd  1010011  FCVT.WU.S
+        case 0b00001:
+            slac_in(si, SLAC_OP_FCVT_U4_TO_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fcvt.wu.d f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11000 size 00010   rs1  rm   rd  1010011  FCVT.L.S/D
+        case 0b00010:
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_FCVT_S8_TO_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fcvt.l.d f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11000 size 00011   rs1  rm   rd  1010011  FCVT.LU.S/D
+        case 0b11000:
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_FCVT_U8_TO_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fcvt.lu.d f%u, x%u", si->d0, si->r0);
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    // 10100 size rs2     rs1  010  rd  1010011  FEQ.S
+    // 10100 size rs2     rs1  001  rd  1010011  FLT.S
+    // 10100 size rs2     rs1  000  rd  1010011  FLE.S
+    case 0b10100:
+        switch (inst.r.funct3) {
+        case 0b010:
+            slac_in(si, SLAC_OP_FEQ64, SLAC_IN_ARG_DRR, PR_DF64);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "feq.d x%u, f%u, f%u", si->d0, si->r0, si->r1);
+            if (si->d0 == RV_ZERO)
+                si->d0 = SLAC_REG_DISCARD;
+            break;
+
+        case 0b001:
+            slac_in(si, SLAC_OP_FLT64, SLAC_IN_ARG_DRR, PR_D);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "flt.d x%u, f%u, f%u", si->d0, si->r0, si->r1);
+            if (si->d0 == RV_ZERO)
+                si->d0 = SLAC_REG_DISCARD;
+            break;
+
+        case 0b000:
+            slac_in(si, SLAC_OP_FLE64, SLAC_IN_ARG_DRR, PR_DF64);
+            si->r1 = inst.r.rs2;
+            STRACE(si, "fle.d x%u, f%u, f%u", si->d0, si->r0, si->r1);
+            if (si->d0 == RV_ZERO)
+                si->d0 = SLAC_REG_DISCARD;
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    case 0b11100:
+        switch (inst.r.funct3) {
+        case 0b000:
+            // 11100 size 00000   rs1  000  rd  1010011  FMV.X.D
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_MOV_RF64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fmv.x.d x%u, f%u", si->d0, si->r0);
+            if (si->d0 == RV_ZERO)
+                set_nop(si);
+            break;
+
+        // 11100 size 00000   rs1  001  rd  1010011  FCLASS.S/D
+        case 0b001: {
+            if (si->d0 == RV_ZERO) {
+                set_nop(si);
+                break;
+            }
+            slac_in(si, SLAC_OP_FCLASS_F64, SLAC_IN_ARG_DR, PR_D);
+            STRACE(si, "fclass.d x%u, f%u", si->d0, si->r0);
+            break;
+        }
+        default:    goto undef;
+        }
+        break;
+
+    case 0b11010:
+        switch (inst.r.rs2) {
+        // 11010 00 00000   rs1  rm   rd  1010011  FCVT.S.W
+        // 11010 01 00000   rs1  rm   rd  1010011  FCVT.D.W
+        case 0b00000:
+            slac_in(si, SLAC_OP_FCVT_F64_TO_S4, SLAC_IN_ARG_DR, PR_D);
+            STRACE(si, "fcvt.d.w f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11010 size 00001   rs1  rm   rd  1010011  FCVT.S.WU
+        // 11010 size 00001   rs1  rm   rd  1010011  FCVT.D.WU
+        case 0b00001:
+            slac_in(si, SLAC_OP_FCVT_U4_TO_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fcvt.d.wu f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11010 size 00010   rs1  rm   rd  1010011  FCVT.S.L
+        case 0b00010:
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_FCVT_S8_TO_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fcvt.d.l f%u, x%u", si->d0, si->r0);
+            break;
+
+        // 11010 size 00011   rs1  rm   rd  1010011  FCVT.S.LU
+        case 0b00011:
+            if (c->core.mode != SL_CORE_MODE_8) goto undef;
+            slac_in(si, SLAC_OP_FCVT_U8_TO_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fcvt.d.lu f%u, x%u", si->d0, si->r0);
+            break;
+
+        default:    goto undef;
+        }
+        break;
+
+    case 0b01000:
+        // the following instructions abuse the size field. Both require the D ext.
+        // 01000 01 00000 rs1 rm rd 1010011 FCVT.D.S
+        if (inst.r.rs2 != 0) goto undef;
+        slac_in(si, SLAC_OP_FCVT_F32_TO_F64, SLAC_IN_ARG_DR, PR_DF64);
+        STRACE(si, "fcvt.d.s f%u, f%u", si->d0, si->r0);
+        break;
+
+    case 0b11110:
+        // 11110 size 00000   rs1  000  rd  1010011  FMV.D.X
+        if (c->core.mode != SL_CORE_MODE_8) goto undef;
+        if (inst.r.funct3 != 000) goto undef;
+        slac_in(si, SLAC_OP_MOV_FR64, SLAC_IN_ARG_DR, PR_DF64);
+        STRACE(si, "fmv.d.x f%u, x%u", si->d0, si->r0);
+        break;
+
+    default:    goto undef;
+    }
+
+    return 0;
+
+undef:
+    return rv_slac_undef(c, si);
+}
+
+static int rv_decode_fp(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    const u1 fmt = inst.r.funct7 & 3;
+
+    switch(fmt) {
+    case 0b00:  // 32-bit single-precision
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        return rv_decode_fp32(c, si, inst);
+
+    case 0b01:
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+        return rv_decode_fp64(c, si, inst);
+
+    case 0b10: // 16-bit half-precision
+    case 0b11: // 128-bit quad-precision
+    default:
+        goto undef;
+    }
+
+undef:
+    return rv_slac_undef(c, si);
+}
+
+static int rv_decode_fp_mac(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    // fexcept_t flags;
+
+    si->d0 = inst.r4.rd;
+    si->r0 = inst.r4.rs1;
+    si->r1 = inst.r4.rs2;
+    si->r2 = inst.r4.funct5;
+
+    if (inst.r4.fmt == 0b10) {
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+        switch (inst.r4.opcode) {
+        // rs3 00 rs2 rs1 rm rd 1000011 FMADD.S
+        case 0b1000011:
+            slac_in(si, SLAC_OP_FMADD_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fmadd.s f%u, f%u, f%u, f%u", si->d0, si->r0, si->r1, si->r2);
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1000111 FMSUB.S
+        case 0b1000111:
+            slac_in(si, SLAC_OP_FMSUB_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fmsub.s f%u, f%u, f%u, f%u", si->d0, si->r0, si->r1, si->r2);
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1001011 FNMSUB.S
+        case 0b1001011:
+            slac_in(si, SLAC_OP_FNMADD_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fnmsub.s f%u, f%u, f%u, f%u", si->d0, si->r0, si->r1, si->r2);
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1001111 FNMADD.S
+        case 0b1001111:
+            slac_in(si, SLAC_OP_FNMSUB_F32, SLAC_IN_ARG_DR, PR_DF32);
+            STRACE(si, "fnmadd.s f%u, f%u, f%u, f%u", si->d0, si->r0, si->r1, si->r2);
+            break;
+
+        default:    goto undef;
+        }
+        return 0;
+    } else if (inst.r4.fmt == 0b01) {
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+        switch (inst.r4.opcode) {
+        // rs3 00 rs2 rs1 rm rd 1000011 FMADD.D
+        case 0b1000011:
+            slac_in(si, SLAC_OP_FMADD_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fmadd.d f%u, f%u, f%u, f%u", si->d0, si->r0, si->r1, si->r2);
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1000111 FMSUB.D
+        case 0b1000111:
+            slac_in(si, SLAC_OP_FMSUB_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fmsub.d f%u, f%u, f%u, f%u", si->d0, si->r0, si->r1, si->r2);
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1001011 FNMSUB.D
+        case 0b1001011:
+            slac_in(si, SLAC_OP_FNMADD_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fnmsub.d f%u, f%u, f%u, f%u", si->d0, si->r0, si->r1, si->r2);
+            break;
+
+        // rs3 00 rs2 rs1 rm rd 1001111 FNMADD.D
+        case 0b1001111:
+            slac_in(si, SLAC_OP_FNMSUB_F64, SLAC_IN_ARG_DR, PR_DF64);
+            STRACE(si, "fnmadd.d f%u, f%u, f%u, f%u", si->d0, si->r0, si->r1, si->r2);
+            break;
+
+        default:    goto undef;
+        }
+        return 0;
+    }
+
+undef:
+    return rv_slac_undef(c, si);
+}
+
 static int rv_decode_atomic(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     if ((c->core.arch_options & SL_RISCV_EXT_A) == 0) goto undef;
 
@@ -1133,7 +1787,7 @@ static int rv_decode_atomic(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         switch (op) {
         case 0b00010: { // LR.W
             if (inst.r.rs2 != 0) goto undef;
-            slac_in(si, SLAC_IN_TYPE_ATOMIC, SLAC_IN_OP_LX, SLAC_IN_ARG_DRI, PR_D);
+            slac_in(si, SLAC_OP_LX, SLAC_IN_ARG_DRI, PR_D);
             STRACE(si, "lr.w %s", rv_barrier_string[barrier]);
             si->len = SLAC_IN_LEN_4;
             si->uimm = rv_barrier_map[barrier];
@@ -1165,7 +1819,7 @@ static int rv_decode_sync(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         if (pred & (FENCE_W | FENCE_O)) bar |= BARRIER_STORE;
         if (succ & (FENCE_R | FENCE_I)) bar |= BARRIER_LOAD;
         if ((pred & (FENCE_I | FENCE_O)) || (succ & (FENCE_I | FENCE_O))) bar |= BARRIER_SYSTEM;
-        slac_in(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_MBAR, SLAC_IN_ARG_I, 0);
+        slac_in(si, SLAC_OP_MBAR, SLAC_IN_ARG_I, 0);
 #if SLAC_TRACE
         char p[5], s[5];
         rv_fence_op_name(pred, p);
@@ -1180,13 +1834,152 @@ static int rv_decode_sync(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     case 0b001:
         if (inst.i.imm != 0) goto undef;
-        slac_in(si, SLAC_IN_TYPE_SYS, SLAC_IN_OP_IBAR, SLAC_IN_ARG_NONE, 0);
+        slac_in(si, SLAC_OP_IBAR, SLAC_IN_ARG_NONE, 0);
         STRACE(si, "fence.i");
         return 0;
 
     default:
         goto undef;
     }
+
+undef:
+    return rv_slac_undef(c, si);
+}
+
+static int rv_decode_sys(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
+    if (inst.r.funct3 == 0b000) {
+/*
+        if (inst.r.rd != 0) goto undef;
+        switch (inst.r.funct7) {
+            case 0b0000000:
+            if (inst.r.rs1 == 0) {
+                if (inst.r.rs2 == 0) {  // ECALL
+                    // RV_TRACE_PRINT(c, "ecall");
+                    return sl_core_synchronous_exception(&c->core, EX_SYSCALL, inst.raw, 0);
+                } else if (inst.r.rs2 == 1) {   // EBREAK
+                    // RV_TRACE_PRINT(c, "ebreak");
+                    return rv_exec_ebreak(c);
+                }
+            }
+            goto undef;
+
+        case 0b0011000: // MRET
+            // RV_TRACE_PRINT(c, "mret");
+            if (c->core.el != SL_CORE_EL_MONITOR) goto undef;
+            err = rv_exception_return(c, RV_OP_MRET);
+            if (!err) // RV_TRACE_RD(c, SL_CORE_REG_PC, c->core.pc);
+            return err;
+
+        case 0b0001000:
+            if (inst.r.rs2 == 0b00010) {
+                // RV_TRACE_PRINT(c, "sret");
+                if (c->core.el < SL_CORE_EL_SUPERVISOR) goto undef;
+                err = rv_exception_return(c, RV_OP_SRET);
+                if (!err) // RV_TRACE_RD(c, SL_CORE_REG_PC, c->core.pc);
+                return err;
+            }
+            if (inst.r.rs2 == 0b00101) { // WFI
+                if (c->core.el == SL_CORE_EL_USER) goto undef;
+                // RV_TRACE_PRINT(c, "wfi");
+                return sl_engine_wait_for_interrupt(&c->core.engine);
+            }
+            goto undef;
+
+        case 0b0001001: // SFENCE.VMA
+        case 0b0001011: // SINVAL.VMA
+        case 0b0001100: // SFENCE.W.INVAL SFENCE.INVAL.IR
+            err = SL_ERR_UNIMPLEMENTED;
+            break;
+
+        default:
+            goto undef;
+        }
+        return err;
+*/
+        return SL_ERR_SLAC_UNDECODED;
+    }
+    if (inst.r.funct3 == 0b100) {
+/*
+        switch (inst.r.funct7) {
+        case 0b0110000: // HLV.B HLV.BU
+        case 0b0110010: // HLV.H HLV.HU HLVX.HU
+        case 0b0110100: // HLV.W HLVX.WU
+        case 0b0110001: // HSV.B
+        case 0b0110011: // HSV.H
+        case 0b0110101: // HSV.W
+            err = SL_ERR_UNIMPLEMENTED;
+            break;
+
+        default:
+            goto undef;
+        }
+        return err;
+*/
+        return SL_ERR_SLAC_UNDECODED;
+    }
+
+    // CSR instruction
+
+    // inst.i.rd == 0 : write-only instruction, no destination GPR
+    // inst.i.funct3 : csr op
+    // inst.i.imm : csr
+
+    si->type = SLAC_TYPE_SYS;
+    si->d0 = inst.i.rd;     // destination register. If 0 then no writeback
+    si->r0 = inst.i.rs1;    // r0 = source register or 8-bit immediate value
+    const u2 csr_addr = inst.i.imm;
+    si->uimm = csr_addr; // uimm = the target csr
+    si->arg = PR_D;
+    STRACE_FORMAT(si, PR_D);    // todo, print csr value
+
+    switch (inst.i.funct3) {
+    case 1:
+        if (inst.i.rd == 0) {
+            si->func = SLAC_FUNC_CSRWR;
+            STRACE_FORMAT(si, 0);
+        } else
+            si->func = SLAC_FUNC_CSRSWP;
+        si->arg = SLAC_IN_ARG_DR;
+        STRACE(si, "csrrw x%u, x%u, %s", inst.i.rd, inst.i.rs1, c->ext.name_for_sysreg(c, csr_addr));
+        break;
+    case 2:
+        si->func = SLAC_FUNC_CSROR;
+        si->arg = SLAC_IN_ARG_DR;
+        STRACE(si, "csrrs x%u, x%u, %s", inst.i.rd, inst.i.rs1, c->ext.name_for_sysreg(c, csr_addr));
+        break;
+    case 3:
+        si->func = SLAC_FUNC_CSRCLR;
+        si->arg = SLAC_IN_ARG_DR;
+        STRACE(si, "csrrc x%u, x%u, %s", inst.i.rd, inst.i.rs1, c->ext.name_for_sysreg(c, csr_addr));
+        break;
+    case 5:
+        if (inst.i.rd == 0) {
+            si->func = SLAC_FUNC_CSRWR;
+            STRACE_FORMAT(si, 0);
+        } else
+            si->func = SLAC_FUNC_CSRSWP;
+        si->arg = SLAC_IN_ARG_DI;
+        STRACE(si, "csrrwi x%u, %#x, %s", inst.i.rd, inst.i.rs1, c->ext.name_for_sysreg(c, csr_addr));
+        break;
+    case 6:
+        if (inst.i.rs1 == 0)
+            si->func = SLAC_FUNC_CSRRD;
+        else
+            si->func = SLAC_FUNC_CSROR;
+        si->arg = SLAC_IN_ARG_DI;
+        STRACE(si, "csrrsi x%u, %#x, %s", inst.i.rd, inst.i.rs1, c->ext.name_for_sysreg(c, csr_addr));
+        break;
+    case 7:
+        if (inst.i.rs1 == 0)
+            si->func = SLAC_FUNC_CSRRD;
+        else
+            si->func = SLAC_FUNC_CSRCLR;
+        si->arg = SLAC_IN_ARG_DI;
+        STRACE(si, "csrrci x%u, %#x, %s", inst.i.rd, inst.i.rs1, c->ext.name_for_sysreg(c, csr_addr));
+        break;
+    default: goto undef;
+    }
+    return 0;
 
 undef:
     return rv_slac_undef(c, si);
@@ -1230,23 +2023,16 @@ int riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
     case OP_IMM32:      err = rv64_decode_alu_imm4(c, si, inst);    break;
     case OP_ALU32:      err = rv64_decode_alu4(c, si, inst);        break;
     case OP_AMO:        err = rv_decode_atomic(c, si, inst);        break;
+    case OP_SYSTEM:     err = rv_decode_sys(c, si, inst);           break; // ECALL EBREAK CSRRW CSRRS CSRRC CSRRWI CSRRSI CSRRCI
 
-#if 0
-    case OP_FP:
-        err = rv_exec_fp(c, inst);
-        break;
+    case OP_FP:         err = rv_decode_fp(c, si, inst);            break;
+    case OP_FP_LOAD:    err = rv_decode_fp_load(c, si, inst);       break;
+    case OP_FP_STORE:   err = rv_decode_fp_store(c, si, inst);      break;
 
     case OP_FMADD_S:
     case OP_FMSUB_S:
     case OP_FNMSUB_S:
-    case OP_FNMADD_S:
-        err = rv_exec_fp_mac(c, inst);
-        break;
-
-    case OP_SYSTEM:  // ECALL EBREAK CSRRW CSRRS CSRRC CSRRWI CSRRSI CSRRCI
-        err = rv_exec_system(c, inst);
-        break;
-#endif
+    case OP_FNMADD_S:   err = rv_decode_fp_mac(c, si, inst);        break;
 
     default:
         // err = rv_dec_unknown(dec, inst);

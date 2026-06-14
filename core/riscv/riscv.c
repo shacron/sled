@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT License
-// Copyright (c) 2022-2024 Shac Ron and The Sled Project
+// Copyright (c) 2022-2026 Shac Ron and The Sled Project
 
 #include <assert.h>
 #include <ctype.h>
@@ -19,6 +19,7 @@
 #include <sled/arch.h>
 #include <sled/error.h>
 #include <sled/riscv/csr.h>
+#include <sled/slac.h>
 
 int riscv_core_decode(sl_core_t *c, sl_slac_inst_t *si);
 int riscv_core_exception_enter(sl_core_t *core, u8 cause, u8 addr);
@@ -72,6 +73,50 @@ static u8 riscv_core_get_reg(sl_core_t *c, u4 reg) {
     }
 }
 
+static int riscv_core_csr(sl_core_t *c, sl_slac_inst_t *si) {
+    const u4 csr_addr = si->uimm;
+    u8 value = 0;
+    if (si->func != SLAC_OP_CSRRD) {
+        if (si->arg & SLAC_IN_ARG_I)
+            value = si->r0;     // immediate ops keep the immediate value in r0
+        else
+            value = c->r[si->r0];
+    }
+
+    // todo: get rid of this unnecessary remapping
+    int op;
+    switch (si->func) {
+    case SLAC_FUNC_CSRRD:   op = RV_CSR_OP_READ;        break;
+    case SLAC_FUNC_CSRWR:   op = RV_CSR_OP_WRITE;       break;
+    case SLAC_FUNC_CSRSWP:  op = RV_CSR_OP_SWAP;        break;
+    case SLAC_FUNC_CSROR:   op = RV_CSR_OP_READ_SET;    break;
+    case SLAC_FUNC_CSRCLR:  op = RV_CSR_OP_READ_CLEAR;  break;
+    default:
+        return sl_core_synchronous_exception(c, EX_UNDEFINDED, si->desc.machine_op, 0);
+    }
+
+    result64_t result = rv_csr_op((rv_core_t *)c, op, csr_addr, value);
+    if (result.err == SL_ERR_UNDEF)
+        return sl_core_synchronous_exception(c, EX_UNDEFINDED, si->desc.machine_op, 0);
+    if (result.err == SL_ERR_UNIMPLEMENTED) {
+        printf("unimplemented CSR access %#x\n", csr_addr);
+        assert(false);
+        return SL_ERR_UNIMPLEMENTED;
+    }
+    if (result.err != 0) {
+        printf("unexpected CSR access error %x: %s\n", csr_addr, st_err(result.err));
+        assert(false);
+        return result.err;
+    }
+
+    if (si->arg & SLAC_IN_ARG_D) {
+        if (c->mode == SL_CORE_MODE_4)
+            result.value = (u4)result.value;
+        c->r[si->d0] = result.value;
+    }
+    return 0;
+}
+
 // Synchronous irq handler - invokes an exception before the next instruction is dispatched.
 static int riscv_interrupt(sl_engine_t *e) {
     sl_irq_ep_t *ep = &e->irq_ep;
@@ -102,6 +147,7 @@ int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
     rc->core.decode = riscv_core_decode;
     rc->core.dispatch = rv_dispatch;
     rc->core.exception_enter = riscv_core_exception_enter;
+    rc->core.csr = riscv_core_csr;
     rc->core.set_reg = riscv_core_set_reg;
     rc->core.get_reg = riscv_core_get_reg;
     rc->core.shutdown = riscv_core_shutdown;
