@@ -16,7 +16,7 @@
     i1 typedef srlen_t;
     u2 typedef ur2len_t;
     i2 typedef sr2len_t;
-    result8_t typedef resultrlen_t;
+    result1_t typedef resultrlen_t;
     #define RLEN_PREFIX(name) slac1_ ## name
     #define PRIRLENx PRIx8
 #elif SLAC_RLEN == 2
@@ -24,7 +24,7 @@
     i2 typedef srlen_t;
     u4 typedef ur2len_t;
     i4 typedef sr2len_t;
-    result16_t typedef resultrlen_t;
+    result2_t typedef resultrlen_t;
     #define RLEN_PREFIX(name) slac2_ ## name
     #define PRIRLENx PRIx16
 #elif SLAC_RLEN == 4
@@ -32,7 +32,7 @@
     i4 typedef srlen_t;
     u8 typedef ur2len_t;
     i8 typedef sr2len_t;
-    result32_t typedef resultrlen_t;
+    result4_t typedef resultrlen_t;
     #define RLEN_PREFIX(name) slac4_ ## name
     #define PRIRLENx PRIx32
 #else // SLAC_RLEN == 8
@@ -40,7 +40,7 @@
     i8 typedef srlen_t;
     __uint128_t typedef ur2len_t;
     __int128_t  typedef sr2len_t;
-    result64_t  typedef resultrlen_t;
+    result8_t  typedef resultrlen_t;
     #define RLEN_PREFIX(name) slac8_ ## name
     #define PRIRLENx PRIx64
 #endif

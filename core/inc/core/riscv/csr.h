@@ -119,7 +119,7 @@ typedef union {
     } f;
 } csr_addr_t;
 
-result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value);
-result64_t rv_csr_update(rv_core_t *c, int op, u8 *reg, u8 update_value);
+result8_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value);
+result8_t rv_csr_update(rv_core_t *c, int op, u8 *reg, u8 update_value);
 
 const char *rv_name_for_sysreg(rv_core_t *c, u2 num);

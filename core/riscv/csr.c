@@ -31,8 +31,8 @@ sstatus64 SD ------------------ UXL[1:0] ------------ MXR SUM ---- XS[1:0] FS[1:
      RV_SR_STATUS64_SD)
 
 // plain register modification with no side effects
-result64_t rv_csr_update(rv_core_t *c, int op, u8 *reg, u8 value) {
-    result64_t result = {};
+result8_t rv_csr_update(rv_core_t *c, int op, u8 *reg, u8 value) {
+    result8_t result = {};
     switch (op) {
     case RV_CSR_OP_WRITE:       *reg = value;                            break;
     case RV_CSR_OP_READ:        result.value = *reg;                     break;
@@ -53,8 +53,8 @@ static u8 status_for_pl(u8 s, u1 pl) {
     }
 }
 
-static result64_t rv_status_csr(rv_core_t *c, int op, u8 value) {
-    result64_t result = {};
+static result8_t rv_status_csr(rv_core_t *c, int op, u8 value) {
+    result8_t result = {};
     u8 s = status_for_pl(c->status, c->core.el);
 
     if (op == RV_CSR_OP_READ) {
@@ -108,8 +108,8 @@ out:
     return result;
 }
 
-static result64_t rv_mcause_csr(rv_core_t *c, int op, u8 *reg, u8 value) {
-    result64_t result = {};
+static result8_t rv_mcause_csr(rv_core_t *c, int op, u8 *reg, u8 value) {
+    result8_t result = {};
     if (c->core.mode == SL_CORE_MODE_4) {
         value = ((value & RV_CAUSE32_INT) << 32) | (value & ~RV_CAUSE32_INT);
         result = rv_csr_update(c, op, reg, value);
@@ -120,8 +120,8 @@ static result64_t rv_mcause_csr(rv_core_t *c, int op, u8 *reg, u8 value) {
     return result;
 }
 
-static result64_t rv_tick_csr(rv_core_t *c, int op, i8 *offset, u8 value) {
-    result64_t result = {};
+static result8_t rv_tick_csr(rv_core_t *c, int op, i8 *offset, u8 value) {
+    result8_t result = {};
     u8 ticks = c->core.ticks;
 
     switch (op) {
@@ -149,8 +149,8 @@ static result64_t rv_tick_csr(rv_core_t *c, int op, i8 *offset, u8 value) {
     return result;
 }
 
-static result64_t rv_csr_pmpcfg(rv_core_t *c, int op, u4 index, u8 value) {
-    result64_t result = {};
+static result8_t rv_csr_pmpcfg(rv_core_t *c, int op, u4 index, u8 value) {
+    result8_t result = {};
 
     u8 cfg = c->pmpcfg[index];
     if (c->core.mode == SL_CORE_MODE_8) {
@@ -199,8 +199,8 @@ static void rv_set_fcsr(rv_core_t *c, u4 value) {
     c->core.fexc = rv_host_fexc_from_fflags(value);
 }
 
-static result64_t rv_csr_fflags(rv_core_t *c, int op, u8 value) {
-    result64_t result = {};
+static result8_t rv_csr_fflags(rv_core_t *c, int op, u8 value) {
+    result8_t result = {};
 
     if (op == RV_CSR_OP_WRITE) {
         c->core.fexc = rv_host_fexc_from_fflags(value);
@@ -232,8 +232,8 @@ static result64_t rv_csr_fflags(rv_core_t *c, int op, u8 value) {
     return result;
 }
 
-static result64_t rv_csr_frm(rv_core_t *c, int op, u8 value) {
-    result64_t result = {};
+static result8_t rv_csr_frm(rv_core_t *c, int op, u8 value) {
+    result8_t result = {};
 
     u1 v = value & 7;
     if (op == RV_CSR_OP_WRITE) {
@@ -264,8 +264,8 @@ static result64_t rv_csr_frm(rv_core_t *c, int op, u8 value) {
 }
 
 
-static result64_t rv_csr_fcsr(rv_core_t *c, int op, u8 value) {
-    result64_t result = {};
+static result8_t rv_csr_fcsr(rv_core_t *c, int op, u8 value) {
+    result8_t result = {};
 
     if (op == RV_CSR_OP_WRITE) {
         rv_set_fcsr(c, value);
@@ -298,8 +298,8 @@ static result64_t rv_csr_fcsr(rv_core_t *c, int op, u8 value) {
     return result;
 }
 
-result64_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
-    result64_t result = {};
+result8_t rv_csr_op(rv_core_t *c, int op, u4 csr, u8 value) {
+    result8_t result = {};
     csr_addr_t addr;
     addr.raw = csr;
 

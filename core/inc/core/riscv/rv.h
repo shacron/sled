@@ -34,7 +34,7 @@ typedef struct {
 } rv_sr_pl_t;
 
 typedef struct {
-    result64_t (*csr_op)(rv_core_t *c, int op, u4 csr, u8 value);
+    result8_t (*csr_op)(rv_core_t *c, int op, u4 csr, u8 value);
     const char *(*name_for_sysreg)(rv_core_t *c, u2 num);
     void (*destroy)(void *ext_private);
 } rv_isa_extension_t;

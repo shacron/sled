@@ -62,30 +62,30 @@ typedef struct sl_worker sl_worker_t;
 typedef struct {
     u1 value;
     int err;
-} result8_t;
+} result1_t;
 
 typedef struct {
     u2 value;
     int err;
-} result16_t;
+} result2_t;
 
 typedef struct {
     u4 value;
     int err;
-} result32_t;
+} result4_t;
 
 typedef struct {
     u8 value;
     int err;
-} result64_t;
+} result8_t;
 
 typedef struct {
     void *value;
     int err;
 } resultptr_t;
 
-static inline result64_t result64_with_error(int err) { return (result64_t){ .err = err }; }
-static inline result64_t result64_with_value(u8 value) { return (result64_t){ .err = 0, .value = value }; }
+static inline result8_t result8_with_error(int err) { return (result8_t){ .err = err }; }
+static inline result8_t result8_with_value(u8 value) { return (result8_t){ .err = 0, .value = value }; }
 
 #ifdef __cplusplus
 }

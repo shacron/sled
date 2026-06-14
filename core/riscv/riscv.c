@@ -95,7 +95,7 @@ static int riscv_core_csr(sl_core_t *c, sl_slac_inst_t *si) {
         return sl_core_synchronous_exception(c, EX_UNDEFINDED, si->desc.machine_op, 0);
     }
 
-    result64_t result = rv_csr_op((rv_core_t *)c, op, csr_addr, value);
+    result8_t result = rv_csr_op((rv_core_t *)c, op, csr_addr, value);
     if (result.err == SL_ERR_UNDEF)
         return sl_core_synchronous_exception(c, EX_UNDEFINDED, si->desc.machine_op, 0);
     if (result.err == SL_ERR_UNIMPLEMENTED) {
