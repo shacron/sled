@@ -268,28 +268,26 @@ static int RLEN_PREFIX(exec_atomic)(sl_core_t *c, sl_slac_inst_t *si) {
 }
 
 static int RLEN_PREFIX(exec_sys)(sl_core_t *c, sl_slac_inst_t *si) {
-    urlen_t result;
-
     switch (si->func) {
     case SLAC_FUNC_MOVR:
         c->r[si->d0] = c->r[si->r0];
-        return 0;
+        break;
 
     case SLAC_FUNC_MOVI:
         c->r[si->d0] = si->uimm;
-        return 0;
+        break;
 
     case SLAC_FUNC_ADR4K:
-        result = c->pc + si->simm;
+        c->r[si->d0] = (urlen_t)(c->pc + si->simm);
         break;
 
     case SLAC_FUNC_MBAR:
         sl_core_memory_barrier(c, si->uimm);
-        return 0;
+        break;
 
     case SLAC_FUNC_IBAR:
         sl_core_instruction_barrier(c);
-        return 0;
+        break;
 
     case SLAC_FUNC_CSRRD:
     case SLAC_FUNC_CSRWR:
@@ -302,7 +300,6 @@ static int RLEN_PREFIX(exec_sys)(sl_core_t *c, sl_slac_inst_t *si) {
     case SLAC_FUNC_UNDEF:  return SL_ERR_UNDEF;
     default:               return SL_ERR_SLAC_INVALID;
     }
-    c->r[si->d0] = result;
     return 0;
 }
 
