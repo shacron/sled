@@ -355,7 +355,13 @@ int slac_exec_fp64(sl_core_t *c, sl_slac_inst_t *si) {
         c->r[si->d0] = (u8)c->f[si->r0].d;
         break;
 
+    case SLAC_FUNC_FCVT_F64_TO_F32:
+        // todo: use proper rounding mode
+        result.f = (float)c->f[si->r0].d;
+        break;
+
     case SLAC_FUNC_FCVT_F32_TO_F64:
+        // no rounding, always accurate
         result.d = (double)c->f[si->r0].f;
         break;
 

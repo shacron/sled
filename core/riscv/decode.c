@@ -1421,25 +1421,18 @@ static int rv_decode_fp32(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         }
         break;
 
-// TODO verify this encoding. This doesn't seem like it makes sense.
-//     case 0b01000: {
-//         // the following instructions abuse the size field. Both require the D ext.
-// #if USING_FP32 // i.e. size = 0
-//         if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
-//         // 01000 00 00001 rs1 rm rd 1010011 FCVT.S.D
-//         if (inst.r.rs2 != 1) goto undef;
-//         result.f = c->core.f[inst.r.rs1].d;
-//         // RV_TRACE_PRINT(c, "fcvt.s.d f%u, f%u", rd, inst.r.rs1);
-//         set_opts = set_result_and_flags;
-// #else
-//         // 01000 01 00000 rs1 rm rd 1010011 FCVT.D.S
-//         if (inst.r.rs2 != 0) goto undef;
-//         result.d = c->core.f[inst.r.rs1].f;
-//         // RV_TRACE_PRINT(c, "fcvt.d.s f%u, f%u", rd, inst.r.rs1);
-//         set_opts = set_result;
-// #endif
-//         break;
-//     }
+
+    case 0b01000:
+        // the encoding for this instruction is an idiotic hack
+        // if fmt = 0 (normally implies fp32) and rs2 = 1 then this is FCVT.S.D
+        // this instruction requires both F and D extensions
+        // see FCVT.D.S for the inverse of this.
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+        // 01000 00 00001 rs1 rm rd 1010011 FCVT.S.D
+        if (inst.r.rs2 != 1) goto undef;
+        slac_in(si, SLAC_OP_FCVT_F64_TO_F32, SLAC_IN_ARG_DRR, PR_DF32);
+        STRACE(si, "fcvt.s.d f%u, f%u", si->d0, si->r0);
+        break;
 
     case 0b11110:
         if (inst.r.funct3 != 000) goto undef;
@@ -1668,7 +1661,11 @@ static int rv_decode_fp64(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         break;
 
     case 0b01000:
-        // the following instructions abuse the size field. Both require the D ext.
+        // the encoding for this instruction is an idiotic hack
+        // if fmt = 1 (normally implies fp64) and rs2 = 0 then this is FCVT.D.S
+        // this instruction requires both F and D extensions
+        // see FCVT.S.D for the inverse of this.
+        if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
         // 01000 01 00000 rs1 rm rd 1010011 FCVT.D.S
         if (inst.r.rs2 != 0) goto undef;
         slac_in(si, SLAC_OP_FCVT_F32_TO_F64, SLAC_IN_ARG_DR, PR_DF64);

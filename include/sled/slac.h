@@ -152,18 +152,19 @@ extern "C" {
 #define SLAC_FUNC_FCVT_F_TO_S8  0x013   // convert from float to signed int8
 #define SLAC_FUNC_FCVT_F_TO_U8  0x014   // convert from float to unsigned int8
 #define SLAC_FUNC_FCVT_F32_TO_F64 0x015 // convert from float to double
-#define SLAC_FUNC_FCLASS        0x016   // classify float type
+#define SLAC_FUNC_FCVT_F64_TO_F32 0x016 // convert from double to float
+#define SLAC_FUNC_FCLASS        0x017   // classify float type
 
-#define SLAC_FUNC_FMADD         0x017   // multiply and add
-#define SLAC_FUNC_FMSUB         0x018   // multiply and subtract
-#define SLAC_FUNC_FNMADD        0x019   // multiply, negate, and add
-#define SLAC_FUNC_FNMSUB        0x01a   // multiply, negate, and subtract
+#define SLAC_FUNC_FMADD         0x018   // multiply and add
+#define SLAC_FUNC_FMSUB         0x019   // multiply and subtract
+#define SLAC_FUNC_FNMADD        0x01a   // multiply, negate, and add
+#define SLAC_FUNC_FNMSUB        0x01b   // multiply, negate, and subtract
 
-#define SLAC_FUNC_FMOV_F_TO_R   0x01b   // move from float to register
-#define SLAC_FUNC_FMOV_R_TO_F   0x01c   // move from register to float
+#define SLAC_FUNC_FMOV_F_TO_R   0x01c   // move from float to register
+#define SLAC_FUNC_FMOV_R_TO_F   0x01d   // move from register to float
 
-#define SLAC_FUNC_FLD           0x01d   // load float
-#define SLAC_FUNC_FST           0x01e   // store float
+#define SLAC_FUNC_FLD           0x01e   // load float
+#define SLAC_FUNC_FST           0x01f   // store float
 
 // vec
 
@@ -282,7 +283,6 @@ extern "C" {
 #define SLAC_OP_FLD32       SLAC_OP(SLAC_TYPE_FP32, SLAC_FUNC_FLD)
 #define SLAC_OP_FST32       SLAC_OP(SLAC_TYPE_FP32, SLAC_FUNC_FST)
 
-
 // fp64
 #define SLAC_OP_FADD64      SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FADD)
 #define SLAC_OP_FSUB64      SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FSUB)
@@ -305,7 +305,10 @@ extern "C" {
 #define SLAC_OP_FCVT_F64_TO_U4  SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FCVT_F_TO_U4)
 #define SLAC_OP_FCVT_F64_TO_S8  SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FCVT_F_TO_S8)
 #define SLAC_OP_FCVT_F64_TO_U8  SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FCVT_F_TO_U8)
+
 #define SLAC_OP_FCVT_F32_TO_F64 SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FCVT_F32_TO_F64)
+#define SLAC_OP_FCVT_F64_TO_F32 SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FCVT_F64_TO_F32)
+
 #define SLAC_OP_FCLASS_F64      SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FCLASS)
 #define SLAC_OP_FMADD_F64       SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FMADD)
 #define SLAC_OP_FMSUB_F64       SLAC_OP(SLAC_TYPE_FP64, SLAC_FUNC_FMSUB)
