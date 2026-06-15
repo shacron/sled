@@ -98,7 +98,7 @@ Sled is not a VM and does not rely on any virtualization framework. It is purely
 
 In some ways this project is similar to QEMU, but is intended to serve a different purpose. QEMU will be significantly faster in almost all cases. Sled is intended to make whole system introspection and debugging possible, not to perform at maximum speed.
 
-That being said, sled is not that slow. At last test it could execute 39 million instructions per second on an emulated rv32 core when benchmarked on an Apple M1 processor. Scaling for multiple emulated cores should be fairly linear as long as there is a similar number of physical cores in the host machine. For maximum speed, compile with `BLD_HOST_USE_SANITIZERS=0`, which is not the default.
+That being said, sled is not that slow. At last test it could execute 45 million instructions per second on an emulated rv32 core when benchmarked on an Apple M1 processor. Scaling for multiple emulated cores should be fairly linear as long as there is a similar number of physical cores in the host machine. For maximum speed, compile with `BLD_HOST_USE_SANITIZERS=0`, which is not the default.
 
 
 ## Building
@@ -119,9 +119,9 @@ The following build options are for people developing sled, and should be define
 
 Build the project in debug mode for a better debugging experience.
 
-    RV_TRACE=1
+    TRACE=1
 
-Enable RISCV instruction tracing. Running sled will print an instruction trace for every instruction dispatched. This significantly slows down execution.
+Enable instruction tracing. Running sled will print an instruction trace for every instruction dispatched. This significantly slows down execution.
 
 ## Usage
 
@@ -163,7 +163,7 @@ Original code contributions must include a copyright assignment to The Sled Proj
 
 ## License
 
-Sled is Copyright (c) 2022-2023, Shac Ron and The Sled Project.
+Sled is Copyright (c) 2022-2026, Shac Ron and The Sled Project.
 
 Unless otherwise stated, all code is licensed under the MIT License. The short version is that you can use this code for any purpose, but should retain the copyright notice in the source.
 
