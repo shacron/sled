@@ -20,6 +20,10 @@ SILENT ?= @
 # don't delete some intermediate files
 .SECONDARY:
 
+# disable implicit rules
+MAKEFLAGS += -r
+.SUFFIXES:
+
 BLD_HOST_CC ?= clang
 BLD_HOST_CXX ?= clang++
 BLD_HOST_AS ?= clang
