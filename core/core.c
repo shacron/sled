@@ -334,8 +334,12 @@ static int eng_op_run(sl_engine_t *e) {
 
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     int err = 0;
-    if (m == NULL)
-        m = bus_get_mapper(p->bus);
+    if (m == NULL) {
+        if (p->bus != NULL)
+            m = bus_get_mapper(p->bus);
+        // note: this can create a core with no bus. This should only happen for cores that will not
+        // be used to execute code.
+    }
     c->mapper = m;
     c->el = SL_CORE_EL_MONITOR;
     c->mode = SL_CORE_MODE_4;
