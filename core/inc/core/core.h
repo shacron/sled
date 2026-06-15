@@ -104,7 +104,6 @@ struct sl_core {
 
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m);
 void sl_core_shutdown(sl_core_t *c);
-void sl_core_destroy(sl_core_t *c);
 
 void sl_core_config_get(sl_core_t *c, sl_core_params_t *p);
 int sl_core_config_set(sl_core_t *c, sl_core_params_t *p);

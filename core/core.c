@@ -18,6 +18,11 @@
 #include <sled/io.h>
 #include <sled/slac.h>
 
+// core creators for architecture
+// todo: make dynamic
+int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out);
+
+
 int sl_core_async_command(sl_core_t *c, u4 cmd, bool wait) {
     return sl_engine_async_command(&c->engine, cmd, wait);
 }
@@ -371,6 +376,16 @@ void sl_core_shutdown(sl_core_t *c) {
         sym_free(s);
     }
 #endif
+}
+
+int sl_core_create(sl_core_params_t *params, sl_core_t **c_out) {
+    switch (params->arch) {
+    case SL_ARCH_RISCV:
+        return sl_riscv_core_create(params, c_out);
+
+    default:
+        return SL_ERR_ARG;
+    }
 }
 
 void sl_core_destroy(sl_core_t *c) {

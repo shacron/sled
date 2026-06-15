@@ -136,7 +136,7 @@ int sl_machine_add_device_prefab(sl_machine_t *m, u8 base, sl_dev_t *d) {
     return err;
 }
 
-int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
+int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *params) {
     if (m->core_count >= MACHINE_MAX_CORES) return SL_ERR_FULL;
 
     machine_core_t *mc = &m->mc[m->core_count];
@@ -149,21 +149,10 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
         return err;
     }
 
-    opts->bus = m->bus;
-    if (opts->name == NULL) opts->name = "core";
+    params->bus = m->bus;
+    if (params->name == NULL) params->name = "core";
 
-    switch (opts->arch) {
-    case SL_ARCH_RISCV:
-        err = sl_riscv_core_create(opts, &mc->core);
-        break;
-
-    default:
-        fprintf(stderr, "sl_machine_add_core: unsupported architecture\n");
-        err = SL_ERR_ARG;
-        goto out_err;
-    }
-
-    if (err) {
+    if ((err = sl_core_create(params, &mc->core))) {
         fprintf(stderr, "core create failed: %s\n", st_err(err));
         goto out_err;
     }
@@ -173,7 +162,7 @@ int sl_machine_add_core(sl_machine_t *m, sl_core_params_t *opts) {
         goto out_err;
     }
 
-    opts->id = m->core_count;
+    params->id = m->core_count;
     if (m->intc != NULL) {
         sl_irq_ep_t *ep = sled_intc_get_irq_ep(m->intc);
         sl_irq_endpoint_set_client(ep, &mc->core->engine.irq_ep, 11); // todo: get proper irq number

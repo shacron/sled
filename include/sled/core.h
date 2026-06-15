@@ -86,6 +86,10 @@ int sl_core_step(sl_core_t *c, u8 num);
 // Run dispatch loop on current thread - enter async execution mode
 int sl_core_run(sl_core_t *c);
 
+// Only to be used for cores not owned by a machine
+int sl_core_create(sl_core_params_t *params, sl_core_t **c_out);
+void sl_core_destroy(sl_core_t *c);
+
 // ----------------------------------------------------------------------------
 // Synchronous accessor functions
 // ----------------------------------------------------------------------------
