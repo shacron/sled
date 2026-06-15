@@ -44,7 +44,7 @@ LDFLAGS :=
 # Select by choosing BUILD on the command line
 BUILD ?= release
 
-TRACE ?= 1
+TRACE ?= 0
 
 ifeq ($(TRACE),1)
 DEFINES += -DSLAC_TRACE=1 -DWITH_SYMBOLS=1
