@@ -858,9 +858,14 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     case 0b00100: goto undef;   // reserved
 
-    case 0b00101:
-        // todo: implement me
-        goto undef;   // C.FSD
+    case 0b00101:   // C.FSD
+        if ((c->core.arch_options & SL_RISCV_EXT_D) == 0) goto undef;
+        si->uimm = CS_IMM_SCALED_8(ci);
+        si->d0 = RVC_TO_REG(ci.cs.rs2);
+        si->r0 = RVC_TO_REG(ci.cs.rs1);
+        slac_in(si, SLAC_OP_FST64, SLAC_IN_ARG_DRI, PR_STF64);
+        STRACE(si, "c.fsd f%u, %u(x%u)" PRIx64, si->d0, (u4)si->uimm, si->r0);
+        break;
 
     case 0b00110:   // C.SW
         si->uimm = CS_IMM_SCALED_4(ci);
@@ -872,7 +877,13 @@ static int rv_decode_c(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     case 0b00111:
         if (c->core.mode == SL_CORE_MODE_4) {
-            goto undef; // C.FSW
+            // C.FSW
+            if ((c->core.arch_options & SL_RISCV_EXT_F) == 0) goto undef;
+            si->uimm = CS_IMM_SCALED_4(ci);
+            si->d0 = RVC_TO_REG(ci.cs.rs2);
+            si->r0 = RVC_TO_REG(ci.cs.rs1);
+            slac_in(si, SLAC_OP_FST32, SLAC_IN_ARG_DRI, PR_STF32);
+            STRACE(si, "c.fsw f%u, %u(x%u)" PRIx64, si->d0, (u4)si->uimm, si->r0);
         } else {
             // C.SD
             si->uimm = CS_IMM_SCALED_8(ci);
