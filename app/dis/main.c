@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -19,7 +20,23 @@ typedef struct {
     void *buf;
 } bin_file_t;
 
-int dis(char *name) {
+static int dis_region(sl_core_t *c, u8 base, void *buf, usize length) {
+    for (usize i = 0; i < length; ) {
+        char s[128];
+
+        u4 inst;
+        u4 step;
+        memcpy(&inst, buf + i, 4);
+        int err = sl_core_disassemble(c, inst, s, 128, &step);
+        if (err)
+            return err;
+        printf("%#16" PRIx64 ": %s\n", base + i, s);
+        i += step;
+    }
+    return 0;
+}
+
+static int dis(char *name) {
     sl_elf_obj_t *elf = NULL;
     sl_core_t *c = NULL;
     // sl_sym_list_t *sl = NULL;
@@ -52,6 +69,7 @@ int dis(char *name) {
         Elf64_Xword memsz, filesz;
         Elf64_Addr vaddr;
         Elf64_Off offset;
+        Elf64_Word flags;
         if (is64) {
             Elf64_Phdr *ph = vph;
             type = ph->p_type;
@@ -59,6 +77,7 @@ int dis(char *name) {
             vaddr = ph->p_vaddr;
             offset = ph->p_offset;
             filesz = ph->p_filesz;
+            flags = ph->p_flags;
         } else {
             Elf32_Phdr *ph = vph;
             type = ph->p_type;
@@ -66,20 +85,21 @@ int dis(char *name) {
             vaddr = ph->p_vaddr;
             offset = ph->p_offset;
             filesz = ph->p_filesz;
+            flags = ph->p_flags;
         }
 
-        // load PT_LOAD with X|W|R flags
+        // load PT_LOAD with X flags
         if (type != PT_LOAD) continue;
+        if ((flags & PF_X) == 0) continue;
         if (memsz == 0) continue;
-        // void *p = sl_elf_pointer_for_offset(elf, offset);
+        void *p = sl_elf_pointer_for_offset(elf, offset);
 
         printf("section %u: vaddr=%#" PRIx64 ", filesz=%#" PRIx64 "\n", i, vaddr, filesz);
 
-        // if ((err = sl_core_mem_write(c, vaddr, 1, filesz, p))) {
-        //     fprintf(stderr, "failed to load core memory: %s\n", st_err(err));
-        //     fprintf(stderr, "  vaddr=%#" PRIx64 ", filesz=%#" PRIx64 "\n", vaddr, filesz);
-        //     goto out_err;
-        // }
+        if ((err = dis_region(c, vaddr, p, memsz))) {
+            fprintf(stderr, "diassembly failed for %s\n", name);
+            goto out_err;
+        }
     }
 
     // sl = calloc(1, sizeof(*sl));
