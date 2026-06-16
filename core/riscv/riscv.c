@@ -15,14 +15,13 @@
 #include <core/common.h>
 #include <core/riscv.h>
 #include <core/riscv/csr.h>
-#include <core/riscv/inst.h>
 #include <core/riscv/rv.h>
 #include <sled/arch.h>
 #include <sled/error.h>
 #include <sled/riscv/csr.h>
 #include <sled/slac.h>
 
-int riscv_core_decode(sl_core_t *c, sl_slac_inst_t *si);
+result4_t riscv_core_decode(sl_core_t *c, sl_slac_inst_t *si);
 int riscv_core_exception_enter(sl_core_t *core, u8 cause, u8 addr);
 static void riscv_core_shutdown(sl_core_t *c);
 static void riscv_core_destroy(sl_core_t *c);
@@ -137,32 +136,26 @@ static int riscv_interrupt(sl_engine_t *e) {
 }
 
 static int riscv_core_disassemble(sl_core_t *c, u4 inst, char *str, usize len, u4 *step) {
-    rv_inst_t rvi;
-    rvi.raw = inst;
-    if ((rvi.u.opcode & 3) != 3)
-        *step = 2;
-    else
-        *step = 4;
-
-#if SLAC_TRACE
     sl_slac_inst_t si = {};
     si.desc.machine_op = inst;
-    int err = riscv_core_decode(c, &si);
-    if (err == 0) {
+    result4_t result = riscv_core_decode(c, &si);
+    if (result.err == 0) {
         // '[m]          0  '
         // lazy: cut string preamble
+        *step = result.value;
+#if SLAC_TRACE
         snprintf(str, len, "%s", si.desc.s + 16);
+#else
+        snprintf(str, len, "unavailable");
+#endif
         return 0;
     }
-    if (err == SL_ERR_SLAC_UNDECODED) {
+    if (result.err == SL_ERR_SLAC_UNDECODED) {
+        *step = result.value;
         snprintf(str, len, "UNDECODED");
         return 0;
     }
-    return err;
-#else
-    snprintf(str, len, "unavailable");
-    return 0;
-#endif
+    return result.err;
 }
 
 int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {

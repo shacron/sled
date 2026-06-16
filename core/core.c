@@ -238,14 +238,17 @@ int sl_core_step(sl_core_t *c, u8 num) {
         c->branch_taken = false;
 
         if (si->raw == SLAC_IN_INVALID) {
-            if ((err = c->decode(c, si))) {
+            result4_t result = c->decode(c, si);
+            if (result.err) {
                 // temporary until all instructions can be decoded
+                err = result.err;
                 if (err != SL_ERR_SLAC_UNDECODED)
                     return err;
                 if ((err = c->dispatch(c, si->desc.machine_op)))
                     return err;
                 goto dispatch_done;
             }
+            c->prev_len = result.value;
         }
         if ((err = slac_dispatch(c, si))) return err;
 

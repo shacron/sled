@@ -1993,24 +1993,26 @@ undef:
     return rv_slac_undef(c, si);
 }
 
-int riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
+result4_t riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
     rv_core_t *c = (rv_core_t *)core;
     rv_inst_t inst;
     inst.raw = si->desc.machine_op;
     int err = 0;
+    result4_t result = {};
 
     si->raw = 0;
     si->len = SLAC_IN_LEN_MODE;
 
     // 16 bit compressed instructions
     if ((inst.u.opcode & 3) != 3) {
-        c->core.prev_len = 2;
+        result.value = 2;
 #if SLAC_TRACE
         si->desc.len = snprintf(si->desc.s, SLAC_BUF_LEN, "[%c] %10" PRIx64 "      %04x  ", priv_level_char[c->core.el], c->core.pc, (u2)si->desc.machine_op);
 #endif
-        return rv_decode_c(c, si, inst);
+        result.err = rv_decode_c(c, si, inst);
+        return result;
     }
-    c->core.prev_len = 4;
+    result.value = 4;
 #if SLAC_TRACE
     si->desc.len = snprintf(si->desc.s, SLAC_BUF_LEN, "[%c] %10" PRIx64 "  %08x  ", priv_level_char[c->core.el], c->core.pc, si->desc.machine_op);
 #endif
@@ -2047,7 +2049,8 @@ int riscv_core_decode(sl_core_t *core, sl_slac_inst_t *si) {
         err = SL_ERR_SLAC_UNDECODED;
         break;
     }
-    return err;
+    result.err = err;
+    return result;
 }
 
 
