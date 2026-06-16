@@ -15,6 +15,7 @@
 #include <core/common.h>
 #include <core/riscv.h>
 #include <core/riscv/csr.h>
+#include <core/riscv/inst.h>
 #include <core/riscv/rv.h>
 #include <sled/arch.h>
 #include <sled/error.h>
@@ -135,6 +136,35 @@ static int riscv_interrupt(sl_engine_t *e) {
     return SL_ERR_STATE;
 }
 
+static int riscv_core_disassemble(sl_core_t *c, u4 inst, char *str, usize len, u4 *step) {
+    rv_inst_t rvi;
+    rvi.raw = inst;
+    if ((rvi.u.opcode & 3) != 3)
+        *step = 2;
+    else
+        *step = 4;
+
+#if SLAC_TRACE
+    sl_slac_inst_t si = {};
+    si.desc.machine_op = inst;
+    int err = riscv_core_decode(c, &si);
+    if (err == 0) {
+        // '[m]          0  '
+        // lazy: cut string preamble
+        snprintf(str, len, "%s", si.desc.s + 16);
+        return 0;
+    }
+    if (err == SL_ERR_SLAC_UNDECODED) {
+        snprintf(str, len, "UNDECODED");
+        return 0;
+    }
+    return err;
+#else
+    snprintf(str, len, "unavailable");
+    return 0;
+#endif
+}
+
 int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
     rv_core_t *rc = calloc(1, sizeof(*rc));
     if (rc == NULL) return SL_ERR_MEM;
@@ -150,6 +180,7 @@ int sl_riscv_core_create(sl_core_params_t *p, sl_core_t **core_out) {
     rc->core.csr = riscv_core_csr;
     rc->core.set_reg = riscv_core_set_reg;
     rc->core.get_reg = riscv_core_get_reg;
+    rc->core.disassemble = riscv_core_disassemble;
     rc->core.shutdown = riscv_core_shutdown;
     rc->core.destroy = riscv_core_destroy;
 

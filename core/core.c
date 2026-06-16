@@ -337,6 +337,11 @@ static int eng_op_run(sl_engine_t *e) {
     return sl_core_run(c);
 }
 
+int sl_core_disassemble(sl_core_t *c, u4 inst, char *str, usize len, u4 *step) {
+    str[0] = '\0';
+    return c->disassemble(c, inst, str, len, step);
+}
+
 int sl_core_init(sl_core_t *c, sl_core_params_t *p, sl_mapper_t *m) {
     int err = 0;
     if (m == NULL) {

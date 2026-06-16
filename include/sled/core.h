@@ -128,6 +128,9 @@ u4 sl_core_get_reg_count(sl_core_t *c, int type);
 void sl_core_print_bus_topology(sl_core_t *c);
 void sl_core_print_config(sl_core_t *c);
 
+// disassembly an instruction without running it
+int sl_core_disassemble(sl_core_t *c, u4 inst, char *str, usize len, u4 *step);
+
 #ifdef __cplusplus
 }
 #endif

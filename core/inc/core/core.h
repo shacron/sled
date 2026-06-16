@@ -52,6 +52,7 @@ struct sl_core {
     int (*csr)(sl_core_t *c, sl_slac_inst_t *inst);
     void (*set_reg)(sl_core_t *c, u4 reg, u8 value);
     u8 (*get_reg)(sl_core_t *c, u4 reg);
+    int (*disassemble)(sl_core_t *c, u4 inst, char *str, usize len, u4 *step);
     void (*shutdown)(sl_core_t *c);
     void (*destroy)(sl_core_t *c);
 
