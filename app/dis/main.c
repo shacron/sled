@@ -20,7 +20,7 @@ typedef struct {
     void *buf;
 } bin_file_t;
 
-static int dis_region(sl_core_t *c, u8 base, void *buf, usize length) {
+static int dis_region(sl_core_t *c, u8 base, void *buf, usize length, bool is_long) {
     for (usize i = 0; i < length; ) {
         char s[128];
 
@@ -30,7 +30,10 @@ static int dis_region(sl_core_t *c, u8 base, void *buf, usize length) {
         int err = sl_core_disassemble(c, inst, s, 128, &step);
         if (err)
             return err;
-        printf("%#16" PRIx64 ": %s\n", base + i, s);
+        if (is_long)
+            printf("%#16" PRIx64 ": %s\n", base + i, s);
+        else
+            printf("%#8x: %s\n", (u4)(base + i), s);
         i += step;
     }
     return 0;
@@ -96,7 +99,7 @@ static int dis(char *name) {
 
         printf("section %u: vaddr=%#" PRIx64 ", filesz=%#" PRIx64 "\n", i, vaddr, filesz);
 
-        if ((err = dis_region(c, vaddr, p, memsz))) {
+        if ((err = dis_region(c, vaddr, p, memsz, is64))) {
             fprintf(stderr, "diassembly failed for %s\n", name);
             goto out_err;
         }
