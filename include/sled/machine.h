@@ -23,6 +23,9 @@ int sl_machine_create_device(sl_machine_t *m, u4 type, const char *name, sl_dev_
 int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *obj, bool configure);
 int sl_machine_load_core_raw(sl_machine_t *m, u4 id, u8 addr, void *buf, u8 size);
 
+// load symbols only
+int sl_machine_load_core_symbols(sl_core_t *c, sl_elf_obj_t *o);
+
 sl_dev_t * sl_machine_get_device_for_name(sl_machine_t *m, const char *name);
 sl_core_t * sl_machine_get_core(sl_machine_t *m, u4 id);
 int sl_machine_set_interrupt(sl_machine_t *m, u4 irq, bool high);

@@ -211,6 +211,24 @@ void sl_machine_destroy(sl_machine_t *m) {
     free(m);
 }
 
+int sl_machine_load_core_symbols(sl_core_t *c, sl_elf_obj_t *o) {
+#if WITH_SYMBOLS
+    sl_sym_list_t *sl = calloc(1, sizeof(*sl));
+    if (sl == NULL) {
+        printf("failed to allocate symbol list\n");
+        return SL_ERR_MEM;
+    }
+    int err = elf_read_symbols(o, sl);
+    if (err) {
+        sym_free(sl);
+        printf("failed to read symbols: %s\n", st_err(err));
+        return err;
+    }
+    sl_core_add_symbols(c, sl);
+#endif
+    return 0;
+}
+
 int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure) {
     sl_core_t *c = sl_machine_get_core(m, id);
     if (c == NULL) {
@@ -220,9 +238,6 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
 
     int err;
     const bool is64 = sl_elf_is_64bit(o);
-#if WITH_SYMBOLS
-    sl_sym_list_t *sl = NULL;
-#endif
 
     for (u4 i = 0; ; i++) {
         void *vph = sl_elf_get_program_header(o, i);
@@ -259,19 +274,10 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
         }
     }
 
-#if WITH_SYMBOLS
-    sl = calloc(1, sizeof(*sl));
-    if (sl == NULL) {
-        printf("failed to allocate symbol list\n");
+    if ((err = sl_machine_load_core_symbols(c, o))) {
+        printf("sl_machine_load_core_symbols failed: %s\n", st_err(err));
         goto out_err;
     }
-    if ((err = elf_read_symbols(o, sl))) {
-        printf("failed to read symbols\n");
-        goto out_err;
-    }
-
-    sl_core_add_symbols(c, sl);
-#endif
 
     err = 0;
     if (!configure) goto out_err;
@@ -310,9 +316,6 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
     err = 0;
 
 out_err:
-#if WITH_SYMBOLS
-    if (err) sym_free(sl);
-#endif
     return err;
 }
 
