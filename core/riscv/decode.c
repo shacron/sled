@@ -43,6 +43,9 @@
 
 #define RVC_TO_REG(r) ((r) + 8)
 
+#define ABS(v) ((v) < 0 ? -(v) : (v))
+#define SIGNSTR(v) ((v) < 0 ? "-" : "")
+
 static inline i4 sign_extend32(i4 value, u1 valid_bits) {
     const u1 shift = (32 - valid_bits);
     return ((i4)((u4)value << shift) >> shift);
@@ -53,6 +56,11 @@ static const u2 rv_barrier_map[4] = {
 };
 
 #if SLAC_TRACE
+
+
+// these defines enable pretty printing for disassembly
+// they make the instructions more conformant to the recommended aliases
+#define RV_PRETTY_PRINT 1
 
 #if RV_TRACE_EXPAND_C_OPS
 // print C-extension ops the same as the full-length encoding
@@ -208,7 +216,16 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     case 0b000: // ADDI
         slac_in(si, SLAC_OP_ADD, SLAC_IN_ARG_DRI, PR_D);
         si->simm = ((i4)inst.raw) >> 20;  // sign extend immediate
+#if RV_PRETTY_PRINT
+        if (inst.i.rs1 == RV_ZERO)
+            STRACE(si, "li x%u, %s0x%x", inst.i.rd, SIGNSTR((i4)si->simm), ABS((i4)si->simm));
+        else if (si->simm == 0)
+            STRACE(si, "mv x%u, x%u", inst.i.rd, inst.i.rs1);
+        else
+            STRACE(si, "addi x%u, x%u, %s0x%x", inst.i.rd, inst.i.rs1, SIGNSTR((i4)si->simm), ABS((i4)si->simm));
+#else
         STRACE(si, "addi x%u, x%u, %d", inst.i.rd, inst.i.rs1, (i4)si->simm);
+#endif
         break;
 
     case 0b001: // SLLI
@@ -269,7 +286,7 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
     si->d0 = inst.i.rd;
     si->r0 = inst.i.rs1;
-    if (inst.i.rd == 0) set_nop(si);
+    if (si->d0 == 0) set_nop(si);
     return 0;
 }
 
@@ -671,7 +688,11 @@ static int rv_decode_load(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         return rv_slac_undef(c, si);
     }
 
+#if RV_PRETTY_PRINT
+    STRACE(si, "%s x%u, %s0x%x(x%u)", opstr_, inst.i.rd, SIGNSTR(imm), ABS(imm), inst.i.rs1);
+#else
     STRACE(si, "%s x%u, %d(x%u)", opstr_, inst.i.rd, imm, inst.i.rs1);
+#endif
     return 0;
 }
 
@@ -701,7 +722,11 @@ static int rv_decode_store(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     default:
         return rv_slac_undef(c, si);
     }
+#if RV_PRETTY_PRINT
+    STRACE(si, "%s x%u, %s0x%x(x%u)", opstr_, inst.s.rs2, SIGNSTR((i4)si->simm), ABS((i4)si->simm), inst.s.rs1);
+#else
     STRACE(si, "%s x%u, %d(x%u)", opstr_, inst.s.rs2, (i4)si->simm, inst.s.rs1);
+#endif
     return 0;
 }
 
