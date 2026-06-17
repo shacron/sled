@@ -396,6 +396,6 @@ int sl_elf_symbol_list_create(sl_elf_obj_t *obj, sl_sym_list_t **list_out) {
 
 void sl_elf_symbol_list_destroy(sl_sym_list_t *list) {
     if (list != NULL)
-        sl_elf_symbol_list_free(list);
+        sl_symbol_list_free(list);
 }
 

@@ -18,4 +18,4 @@ struct sl_sym_list {
 
 int sl_elf_symbol_list_load(sl_elf_obj_t *obj, sl_sym_list_t *list);
 
-void sl_elf_symbol_list_free(sl_sym_list_t *list);
+void sl_symbol_list_free(sl_sym_list_t *list);

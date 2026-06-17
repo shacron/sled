@@ -2,7 +2,7 @@
 
 #include <core/sym.h>
 
-void sl_elf_symbol_list_free(sl_sym_list_t *list) {
+void sl_symbol_list_free(sl_sym_list_t *list) {
     if (list == NULL) return;
     if (list->name) free(list->name);
     if (list->ent != NULL) {

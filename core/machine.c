@@ -220,7 +220,7 @@ int sl_machine_load_core_symbols(sl_core_t *c, sl_elf_obj_t *o) {
     }
     int err = sl_elf_symbol_list_load(o, sl);
     if (err) {
-        sl_elf_symbol_list_free(sl);
+        sl_symbol_list_free(sl);
         printf("failed to read symbols: %s\n", st_err(err));
         return err;
     }
