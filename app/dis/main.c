@@ -13,26 +13,7 @@
 #include <sled/core.h>
 #include <sled/elf.h>
 #include <sled/error.h>
-
-// hack
-// #include "../core/inc/core/sym.h"
-
-struct sl_sym_entry {
-    u8 addr;
-    u8 size;
-    u4 flags;
-    char *name;
-};
-
-struct sl_sym_list {
-    sl_sym_list_t *next;
-    char *name;
-    u8 num;
-    sl_sym_entry_t *ent;
-};
-
-
-
+#include <sled/sym.h>
 
 typedef struct {
     const char *name;
@@ -40,62 +21,25 @@ typedef struct {
     void *buf;
 } bin_file_t;
 
-typedef struct {
-    sl_sym_list_t *sl;
-    const sl_sym_entry_t *cur;
-    bool changed;
-} sl_sym_iterator_t;
-
-void sl_symbol_iterator_init(sl_sym_iterator_t *it, sl_sym_list_t *sl) {
-    it->sl = sl;
-    it->cur = NULL;
-    it->changed = false;
-
-    for (u4 i = 0; i < it->sl->num; i++) {
-        const sl_sym_entry_t *ent = &it->sl->ent[i];
-        printf("%8llx %8llx (%llu) %s\n", ent->addr, ent->addr + ent->size, ent->size, ent->name);
-    }
-}
-
-int sl_symbol_iterator_find_for_addr(sl_sym_iterator_t *it, u8 addr) {
-    const sl_sym_entry_t *ent = it->cur;
-    if (ent != NULL) {
-        if ((ent->addr <= addr) && ((ent->addr + ent->size) > addr)) {
-            it->changed = false;
-            return 0;
-        }
-        it->cur = NULL;
-    }
-
-    for (u4 i = 0; i < it->sl->num; i++) {
-        ent = &it->sl->ent[i];
-        if ((ent->addr <= addr) && ((ent->addr + ent->size) > addr)) {
-            it->cur = ent;
-            it->changed = true;
-            return 0;
-        }
-    }
-    return SL_ERR_NOT_FOUND;
-}
-
-const char *sl_symbol_iterator_name(sl_sym_iterator_t *it) {
-    const sl_sym_entry_t *ent = it->cur;
-    if (ent == NULL)
-        return "<unknown>";
-    return ent->name;
-}
-
 static int dis_region(sl_core_t *c, u8 base, void *buf, usize length, bool is_long, sl_sym_list_t *sl) {
-    sl_sym_iterator_t iter;
-    sl_symbol_iterator_init(&iter, sl);
-
+    sl_sym_entry_t *cur = NULL;
     for (usize i = 0; i < length; ) {
         char s[128];
 
         const u8 addr = base + i;
-        int err = sl_symbol_iterator_find_for_addr(&iter, addr);
-        if (iter.changed) {
-            printf("<%s>:\n", sl_symbol_iterator_name(&iter));
+        sl_sym_entry_t *ent;
+        int err = sl_sym_entry_for_addr(sl, addr, cur, &ent);
+        if (err == 0) {
+            if (cur != ent) {
+                printf("<%s>:\n", ent->name);
+                cur = ent;
+            }
+        } else {
+            // not found
+            if (cur != NULL) {
+                printf("<unknown>:\n");
+                cur = NULL;
+            }
         }
 
         u4 inst;

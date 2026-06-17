@@ -1,13 +1,6 @@
 #pragma once
 
-#include <core/types.h>
-
-struct sl_sym_entry {
-    u8 addr;
-    u8 size;
-    u4 flags;
-    char *name;
-};
+#include <sled/sym.h>
 
 struct sl_sym_list {
     sl_sym_list_t *next;
@@ -17,5 +10,4 @@ struct sl_sym_list {
 };
 
 int sl_elf_symbol_list_load(sl_elf_obj_t *obj, sl_sym_list_t *list);
-
 void sl_symbol_list_free(sl_sym_list_t *list);
