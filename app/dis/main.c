@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT License
 // Copyright (c) 2026 Shac Ron and The Sled Project
 
+#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -13,6 +14,7 @@
 #include <sled/core.h>
 #include <sled/elf.h>
 #include <sled/error.h>
+#include <sled/riscv.h>
 #include <sled/sym.h>
 
 typedef struct {
@@ -20,6 +22,78 @@ typedef struct {
     size_t size;
     void *buf;
 } bin_file_t;
+
+static const char * rv_reg_name[] = {
+    [RV_ZERO] = "zero",
+    [RV_RA] = "ra", [RV_SP] = "sp",   [RV_GP] = "gp",   [RV_TP] = "tp",
+    [RV_T0] = "t0", [RV_T1] = "t1",   [RV_T2] = "t2",   [RV_S0] = "s0",
+    [RV_S1] = "s1", [RV_A0] = "a0",   [RV_A1] = "a1",   [RV_A2] = "a2",
+    [RV_A3] = "a3", [RV_A4] = "a4",   [RV_A5] = "a5",   [RV_A6] = "a6",
+    [RV_A7] = "a7", [RV_S2] = "s2",   [RV_S3] = "s3",   [RV_S4] = "s4",
+    [RV_S5] = "s5", [RV_S6] = "s6",   [RV_S7] = "s7",   [RV_S8] = "s8",
+    [RV_S9] = "s9", [RV_S10] = "s10", [RV_S11] = "s11", [RV_T3] = "t3",
+    [RV_T4] = "t4", [RV_T5] = "t5",   [RV_T6] = "t6",
+};
+
+static void riscv_reg_name_fix(char *src) {
+    char dst[128];
+    char *s = src;
+    char *d = dst;
+
+    // chomp op
+    for ( ; ; ) {
+        char c = *s;
+        *d = c;
+        d++;
+        s++;
+        if (c == '\0') return;
+        if (c == ' ') break;
+    }
+
+    // copy loop
+    for ( ; ; ) {
+        char c = *s;
+        if (c == '\0') {
+            *d = '\0';
+            goto done;
+        }
+        if (c == 'x') {
+            if ((s[1] < '0') || (s[1] > '9')) {
+                goto direct_copy; // what?
+            }
+            u1 reg = s[1] - '0';
+            if (s[1] < '3') {
+                if (s[2] >= '0' && s[2] <= '9') {
+                    reg = reg * 10 + (s[2] - '0');
+                    s++;
+                }
+            }
+            s += 2;
+            assert(reg < 32);
+            const char *n = rv_reg_name[reg];
+            for ( ; *n != '\0'; n++) {
+                *d = *n;
+                d++;
+            }
+        }
+direct_copy:
+        for ( ; ; ) {
+            c = *s;
+            *d = c;
+            if (c == '\0') goto done;
+            d++;
+            s++;
+            if (c == ' ') break;
+            if (c == '(') break;
+        }
+    }
+
+done:
+    for (int i = 0; ; i++) {
+        src[i] = dst[i];
+        if (dst[i] == '\0') return;
+    }
+}
 
 static int dis_region(sl_core_t *c, u8 base, void *buf, usize length, bool is_long, sl_sym_list_t *sl) {
     sl_sym_entry_t *cur = NULL;
@@ -47,6 +121,9 @@ static int dis_region(sl_core_t *c, u8 base, void *buf, usize length, bool is_lo
         memcpy(&inst, buf + i, 4);
         if ((err = sl_core_disassemble(c, inst, s, 128, &step)))
             return err;
+
+        // riscv register name hack
+        riscv_reg_name_fix(s);
 
         if (is_long)
             printf("%16" PRIx64 ": %s\n", addr, s);
