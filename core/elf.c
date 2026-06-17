@@ -17,6 +17,7 @@
 #include <core/sym.h>
 #include <sled/arch.h>
 #include <sled/elf.h>
+#include <sled/error.h>
 
 /*
 % ./tools/Darwin/bin/llvm-objdump --all-headers test/elf.o
@@ -322,7 +323,7 @@ void *sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index) {
     return obj->image + phoff + (index * phentsize);
 }
 
-int elf_read_symbols(sl_elf_obj_t *obj, sl_sym_list_t *list) {
+int sl_elf_symbol_list_load(sl_elf_obj_t *obj, sl_sym_list_t *list) {
     Elf64_Off offset;
     Elf64_Xword size, entsize;
 
@@ -378,5 +379,23 @@ int elf_read_symbols(sl_elf_obj_t *obj, sl_sym_list_t *list) {
     list->num = n;
     list->ent = syms;
     return 0;
+}
+
+int sl_elf_symbol_list_create(sl_elf_obj_t *obj, sl_sym_list_t **list_out) {
+    sl_sym_list_t *list = calloc(1, sizeof(*list));
+    if (list == NULL)
+        return SL_ERR_MEM;
+
+    int err = sl_elf_symbol_list_load(obj, list);
+    if (err)
+        free(list);
+    else
+        *list_out = list;
+    return err;
+}
+
+void sl_elf_symbol_list_destroy(sl_sym_list_t *list) {
+    if (list != NULL)
+        sl_elf_symbol_list_free(list);
 }
 

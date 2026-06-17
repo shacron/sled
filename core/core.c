@@ -381,7 +381,7 @@ void sl_core_shutdown(sl_core_t *c) {
     sl_sym_list_t *n = NULL;
     for (sl_sym_list_t *s = c->symbols; s != NULL; s = n) {
         n = s->next;
-        sym_free(s);
+        sl_elf_symbol_list_free(s);
     }
 #endif
 }

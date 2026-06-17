@@ -24,6 +24,11 @@ ssize_t sl_elf_symbol_length(sl_elf_obj_t *obj, const char *name);
 ssize_t sl_elf_read_symbol(sl_elf_obj_t *obj, const char *name, void *buf, usize buflen);
 void *sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index);
 void *sl_elf_pointer_for_offset(sl_elf_obj_t *obj, u8 offset);
+
+// returned symbol list remains valid after elf object is closed
+int sl_elf_symbol_list_create(sl_elf_obj_t *obj, sl_sym_list_t **list_out);
+void sl_elf_symbol_list_destroy(sl_sym_list_t *list);
+
 void sl_elf_close(sl_elf_obj_t *obj);
 
 #ifdef __cplusplus

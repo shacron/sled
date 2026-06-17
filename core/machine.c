@@ -218,9 +218,9 @@ int sl_machine_load_core_symbols(sl_core_t *c, sl_elf_obj_t *o) {
         printf("failed to allocate symbol list\n");
         return SL_ERR_MEM;
     }
-    int err = elf_read_symbols(o, sl);
+    int err = sl_elf_symbol_list_load(o, sl);
     if (err) {
-        sym_free(sl);
+        sl_elf_symbol_list_free(sl);
         printf("failed to read symbols: %s\n", st_err(err));
         return err;
     }
