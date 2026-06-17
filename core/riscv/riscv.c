@@ -140,11 +140,11 @@ static int riscv_core_disassemble(sl_core_t *c, u4 inst, char *str, usize len, u
     si.desc.machine_op = inst;
     result4_t result = riscv_core_decode(c, &si);
     if (result.err == 0) {
-        // '[m]          0  '
-        // lazy: cut string preamble
         *step = result.value;
 #if SLAC_TRACE
-        snprintf(str, len, "%s", si.desc.s + 16);
+        // '[m]          0  12345678'
+        // lazy: cut string preamble
+        snprintf(str, len, "%s", si.desc.s + 26);
 #else
         snprintf(str, len, "unavailable");
 #endif

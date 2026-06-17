@@ -31,13 +31,13 @@ static int dis_region(sl_core_t *c, u8 base, void *buf, usize length, bool is_lo
         int err = sl_sym_entry_for_addr(sl, addr, cur, &ent);
         if (err == 0) {
             if (cur != ent) {
-                printf("<%s>:\n", ent->name);
+                printf("\n%08x <%s>:\n", (u4)addr, ent->name);
                 cur = ent;
             }
         } else {
             // not found
             if (cur != NULL) {
-                printf("<unknown>:\n");
+                printf("\n%08x <unknown>:\n", (u4)addr);
                 cur = NULL;
             }
         }
@@ -49,9 +49,9 @@ static int dis_region(sl_core_t *c, u8 base, void *buf, usize length, bool is_lo
             return err;
 
         if (is_long)
-            printf("%#16" PRIx64 ": %s\n", addr, s);
+            printf("%16" PRIx64 ": %s\n", addr, s);
         else
-            printf("%#8x: %s\n", (u4)(addr), s);
+            printf("%8x: %08x      %s\n", (u4)(addr), inst, s);
         i += step;
     }
     return 0;
@@ -93,7 +93,7 @@ static int dis(char *name) {
         if (vph == NULL) break;
 
         Elf64_Word type;
-        Elf64_Xword memsz, filesz;
+        Elf64_Xword memsz /*, filesz */;
         Elf64_Addr vaddr;
         Elf64_Off offset;
         Elf64_Word flags;
@@ -103,7 +103,7 @@ static int dis(char *name) {
             memsz = ph->p_memsz;
             vaddr = ph->p_vaddr;
             offset = ph->p_offset;
-            filesz = ph->p_filesz;
+            // filesz = ph->p_filesz;
             flags = ph->p_flags;
         } else {
             Elf32_Phdr *ph = vph;
@@ -111,7 +111,7 @@ static int dis(char *name) {
             memsz = ph->p_memsz;
             vaddr = ph->p_vaddr;
             offset = ph->p_offset;
-            filesz = ph->p_filesz;
+            // filesz = ph->p_filesz;
             flags = ph->p_flags;
         }
 
@@ -120,8 +120,7 @@ static int dis(char *name) {
         if ((flags & PF_X) == 0) continue;
         if (memsz == 0) continue;
         void *p = sl_elf_pointer_for_offset(elf, offset);
-
-        printf("section %u: vaddr=%#" PRIx64 ", filesz=%#" PRIx64 "\n", i, vaddr, filesz);
+        // printf("section %u: vaddr=%#" PRIx64 ", filesz=%#" PRIx64 "\n", i, vaddr, filesz);
 
         if ((err = dis_region(c, vaddr, p, memsz, is64, sl))) {
             fprintf(stderr, "diassembly failed for %s\n", name);
