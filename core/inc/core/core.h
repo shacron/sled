@@ -109,8 +109,6 @@ void sl_core_shutdown(sl_core_t *c);
 void sl_core_config_get(sl_core_t *c, sl_core_params_t *p);
 int sl_core_config_set(sl_core_t *c, sl_core_params_t *p);
 
-void sl_core_add_symbols(sl_core_t *c, sl_sym_list_t *list);
-
 // ----------------------------------------------------------------------------
 // async functions
 // ----------------------------------------------------------------------------

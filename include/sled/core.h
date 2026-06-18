@@ -106,6 +106,7 @@ int sl_core_set_mapper(sl_core_t *c, sl_dev_t *d);
 void sl_core_dump_state(sl_core_t *c);
 void sl_core_set_mode(sl_core_t *c, u1 mode);
 
+void sl_core_add_symbols(sl_core_t *c, sl_sym_list_t *list);
 void sl_core_print_cache_stats(sl_core_t *c);
 
 // ----------------------------------------------------------------------------
