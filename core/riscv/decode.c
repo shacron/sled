@@ -8,6 +8,7 @@
 #include <core/riscv/rv.h>
 #include <sled/error.h>
 #include <sled/slac.h>
+#include <sled/sym.h>
 #include <sled/types.h>
 
 #define FENCE_W (1u << 0)
@@ -554,6 +555,13 @@ static int rv_decode_jump(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 #if SLAC_TRACE
     // silly to do this twice, slac branch should accept full target address in immediate
     const u8 trace_dest = imm + c->core.pc;
+
+#if RV_PRETTY_PRINT
+    sl_sym_entry_t *sym = sl_core_get_sym_for_addr(&c->core, trace_dest);
+    char *symname = "";
+    if (sym != NULL)
+        symname = sym->name;
+#endif
 #endif
 
     if (inst.j.rd == RV_ZERO) {        // J
@@ -563,7 +571,14 @@ static int rv_decode_jump(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         slac_in(si, SLAC_OP_BL, SLAC_IN_ARG_DI, PR_BL);
         si->r2 = 4; // pc offset to step
         si->d0 = inst.j.rd;
+#if RV_PRETTY_PRINT
+        if (inst.j.rd == RV_RA)
+            STRACE(si, "jal %#" PRIx64 " <%s>", trace_dest, symname);
+        else
+            STRACE(si, "jal x%u, %#" PRIx64 " <%s>", inst.j.rd, trace_dest, symname);
+#else
         STRACE(si, "jal x%u, %#" PRIx64, inst.j.rd, trace_dest);
+#endif
     }
     return 0;
 }
