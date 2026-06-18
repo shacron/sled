@@ -116,6 +116,7 @@ static int dis_region(sl_core_t *c, u8 base, void *buf, usize length, bool is_lo
             }
         }
 
+        sl_core_set_reg(c, SL_CORE_REG_PC, addr);
         u4 inst;
         u4 step;
         memcpy(&inst, buf + i, 4);
