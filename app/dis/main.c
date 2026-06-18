@@ -159,8 +159,11 @@ static int dis(char *name) {
 
     if ((err = sl_core_create(&params, &c))) {
         fprintf(stderr, "core create failed: %s\n", st_err(err));
+        sl_elf_symbol_list_destroy(sl);
         goto out_err;
     }
+
+    sl_core_add_symbols(c, sl);
 
     // iterate elf sections, disassemble in order
     const bool is64 = sl_elf_is_64bit(elf);
@@ -209,7 +212,6 @@ static int dis(char *name) {
 
 out_err:
     sl_core_destroy(c);
-    sl_elf_symbol_list_destroy(sl);
     sl_elf_close(elf);
     return err;
 }
