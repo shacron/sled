@@ -182,27 +182,12 @@ static int dis(char *name) {
 
         if (sh.sh_type != SHT_PROGBITS)
             continue;
-
-        if (strcmp(sname, ".text"))
+        if (strcmp(sname, ".text")) // others?
             continue;
 
         printf("\nDisassembly of section %s:\n", sname);
 
-        // Elf64_Phdr ph = {};
-        // if ((err = sl_elf_get_program_header(elf, i, &ph))) {
-        //     if (err == SL_ERR_RANGE)
-        //         break;
-        //     fprintf(stderr, "failed to read program header %u: %s\n", i, st_err(err));
-        //     goto out_err;
-        // }
-
-        // // load PT_LOAD with X flags
-        // if (ph.p_type != PT_LOAD) continue;
-        // if ((ph.p_flags & PF_X) == 0) continue;
-        // if (ph.p_memsz == 0) continue;
         void *p = sl_elf_pointer_for_offset(elf, sh.sh_offset);
-        // // printf("section %u: vaddr=%#" PRIx64 ", filesz=%#" PRIx64 "\n", i, vaddr, filesz);
-
         if ((err = dis_region(c, sh.sh_addr, p, sh.sh_size, is64, sl))) {
             fprintf(stderr, "diassembly failed for %s\n", name);
             goto out_err;
