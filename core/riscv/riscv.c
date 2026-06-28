@@ -268,7 +268,7 @@ int riscv_decode_attributes(const char *attrib, u4 *arch_options_out) {
     if (at == NULL) return SL_ERR_MEM;
     u4 options = 0;
 
-    printf("RISCV attributes: %s\n", at);
+    // printf("RISCV attributes: %s\n", at);
 
     const char *sep = "_";
     char *lasts;
