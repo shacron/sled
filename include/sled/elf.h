@@ -22,8 +22,11 @@ bool sl_elf_is_64bit(sl_elf_obj_t *obj);
 u8 sl_elf_get_entry(sl_elf_obj_t *obj);
 ssize_t sl_elf_symbol_length(sl_elf_obj_t *obj, const char *name);
 ssize_t sl_elf_read_symbol(sl_elf_obj_t *obj, const char *name, void *buf, usize buflen);
-void *sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index);
+// converts program headers to the 64 bit versions if source is 32-bit
+int sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index, Elf64_Phdr *p);
+
 void *sl_elf_pointer_for_offset(sl_elf_obj_t *obj, u8 offset);
+
 
 // returned symbol list remains valid after elf object is closed
 int sl_elf_symbol_list_create(sl_elf_obj_t *obj, sl_sym_list_t **list_out);

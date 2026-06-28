@@ -240,36 +240,21 @@ int sl_machine_load_core(sl_machine_t *m, u4 id, sl_elf_obj_t *o, bool configure
     const bool is64 = sl_elf_is_64bit(o);
 
     for (u4 i = 0; ; i++) {
-        void *vph = sl_elf_get_program_header(o, i);
-        if (vph == NULL) break;
-
-        Elf64_Word type;
-        Elf64_Xword memsz, filesz;
-        Elf64_Addr vaddr;
-        Elf64_Off offset;
-        if (is64) {
-            Elf64_Phdr *ph = vph;
-            type = ph->p_type;
-            memsz = ph->p_memsz;
-            vaddr = ph->p_vaddr;
-            offset = ph->p_offset;
-            filesz = ph->p_filesz;
-        } else {
-            Elf32_Phdr *ph = vph;
-            type = ph->p_type;
-            memsz = ph->p_memsz;
-            vaddr = ph->p_vaddr;
-            offset = ph->p_offset;
-            filesz = ph->p_filesz;
+        Elf64_Phdr ph = {};
+        if ((err = sl_elf_get_program_header(o, i, &ph))) {
+            if (err == SL_ERR_RANGE)
+                break;
+            fprintf(stderr, "failed to read program header %u: %s\n", i, st_err(err));
+            goto out_err;
         }
 
         // load PT_LOAD with X|W|R flags
-        if (type != PT_LOAD) continue;
-        if (memsz == 0) continue;
-        void *p = sl_elf_pointer_for_offset(o, offset);
-        if ((err = sl_core_mem_write(c, vaddr, 1, filesz, p))) {
+        if (ph.p_type != PT_LOAD) continue;
+        if (ph.p_memsz == 0) continue;
+        void *p = sl_elf_pointer_for_offset(o, ph.p_offset);
+        if ((err = sl_core_mem_write(c, ph.p_vaddr, 1, ph.p_filesz, p))) {
             fprintf(stderr, "failed to load core memory: %s\n", st_err(err));
-            fprintf(stderr, "  vaddr=%#" PRIx64 ", filesz=%#" PRIx64 "\n", vaddr, filesz);
+            fprintf(stderr, "  vaddr=%#" PRIx64 ", filesz=%#" PRIx64 "\n", ph.p_vaddr, ph.p_filesz);
             goto out_err;
         }
     }

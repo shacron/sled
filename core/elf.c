@@ -305,22 +305,28 @@ ssize_t sl_elf_read_symbol(sl_elf_obj_t *obj, const char *name, void *buf, size_
     return size;
 }
 
-void *sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index) {
-    Elf64_Half phnum, phentsize;
-    Elf64_Off phoff;
+int sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index, Elf64_Phdr *p) {
     if (obj->is64) {
         Elf64_Ehdr *h = obj->image;
-        phnum = h->e_phnum;
-        phentsize = h->e_phentsize;
-        phoff = h->e_phoff;
+        if (index >= h->e_phnum)
+            return SL_ERR_RANGE;
+        const Elf64_Phdr *ps = obj->image + h->e_phoff + (index * h->e_phentsize);
+        memcpy(p, ps, sizeof(*p));
     } else {
         Elf32_Ehdr *h = obj->image;
-        phnum = h->e_phnum;
-        phentsize = h->e_phentsize;
-        phoff = h->e_phoff;
+        if (index >= h->e_phnum)
+            return SL_ERR_RANGE;
+        const Elf32_Phdr *ps = obj->image + h->e_phoff + (index * h->e_phentsize);
+        p->p_type = ps->p_type;
+        p->p_flags = ps->p_flags;
+        p->p_offset = ps->p_offset;
+        p->p_vaddr = ps->p_vaddr;
+        p->p_paddr = ps->p_paddr;
+        p->p_filesz = ps->p_filesz;
+        p->p_memsz = ps->p_memsz;
+        p->p_align = ps->p_align;
     }
-    if (index >= phnum) return NULL;
-    return obj->image + phoff + (index * phentsize);
+    return 0;
 }
 
 int sl_elf_symbol_list_load(sl_elf_obj_t *obj, sl_sym_list_t *list) {
