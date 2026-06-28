@@ -70,7 +70,7 @@ void *sl_elf_pointer_for_offset(sl_elf_obj_t *obj, u8 offset) {
     return obj->image + offset;
 }
 
-static char * get_string(sl_elf_obj_t *obj, Elf64_Word offset) {
+const char * sl_elf_get_string(sl_elf_obj_t *obj, Elf64_Word offset) {
     return obj->str + offset;
 }
 
@@ -269,7 +269,7 @@ static void * find_sym_for_name(sl_elf_obj_t *obj, const char *name) {
     for (Elf64_Xword i = 0; i < num_symbols; i++) {
         void *s = symtab + (i * entsize);
         Elf64_Word sym_name = GET_STRUCT_FIELD(obj, s, Sym, st_name);
-        if (!strcmp(name, get_string(obj, sym_name))) return s;
+        if (!strcmp(name, sl_elf_get_string(obj, sym_name))) return s;
     }
     return NULL;
 }
@@ -303,6 +303,36 @@ ssize_t sl_elf_read_symbol(sl_elf_obj_t *obj, const char *name, void *buf, size_
     if (buflen < size) return -1;
     memcpy(buf, obj->image + offset + value, size);
     return size;
+}
+
+int sl_elf_get_section_header(sl_elf_obj_t *obj, u4 index, Elf64_Shdr *s, char **name) {
+    Elf64_Word name_offset;
+    if (obj->is64) {
+        const Elf64_Ehdr *h = obj->image;
+        if (index >= h->e_shnum)
+            return SL_ERR_RANGE;
+        const Elf64_Shdr *sh = get_section_header_base(obj) + (index * h->e_shentsize);
+        memcpy(s, sh, sizeof(*s));
+        name_offset = sh->sh_name;
+    } else {
+        const Elf32_Ehdr *h = obj->image;
+        if (index >= h->e_shnum)
+            return SL_ERR_RANGE;
+        const Elf32_Shdr *sh = get_section_header_base(obj) + (index * h->e_shentsize);
+        s->sh_name = sh->sh_name;
+        s->sh_type = sh->sh_type;
+        s->sh_flags = sh->sh_flags;
+        s->sh_addr = sh->sh_addr;
+        s->sh_offset = sh->sh_offset;
+        s->sh_size = sh->sh_size;
+        s->sh_link = sh->sh_link;
+        s->sh_info = sh->sh_info;
+        s->sh_addralign = sh->sh_addralign;
+        s->sh_entsize = sh->sh_entsize;
+        name_offset = sh->sh_name;
+    }
+    *name = get_sh_string(obj, name_offset);
+    return 0;
 }
 
 int sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index, Elf64_Phdr *p) {
@@ -360,14 +390,14 @@ int sl_elf_symbol_list_load(sl_elf_obj_t *obj, sl_sym_list_t *list) {
 
     u4 n = 0;
     for (Elf64_Xword i = 0; i < num_symbols; i++) {
-        char *name = NULL;
+        const char *name = NULL;
         if (obj->is64) {
             Elf64_Sym *s = symtab + (i * entsize);
             if (ELF64_ST_TYPE(s->st_info) != STT_FUNC) continue;
             syms[n].addr = s->st_value;
             syms[n].size = s->st_size;
             syms[n].flags = 0;
-            name = get_string(obj, s->st_name);
+            name = sl_elf_get_string(obj, s->st_name);
             // printf("%016" PRIx64 " %016" PRIx64 " %s\n", s->st_value, s->st_size, get_string(obj, s->st_name));
         } else {
             Elf32_Sym *s = symtab + (i * entsize);
@@ -375,8 +405,8 @@ int sl_elf_symbol_list_load(sl_elf_obj_t *obj, sl_sym_list_t *list) {
             syms[n].addr = s->st_value;
             syms[n].size = s->st_size;
             syms[n].flags = 0;
-            name = get_string(obj, s->st_name);
-            // printf("%08x %8u %s\n", s->st_value, s->st_size, get_string(obj, s->st_name));
+            name = sl_elf_get_string(obj, s->st_name);
+            // printf("%08x %8u %s\n", s->st_value, s->st_size, sl_elf_get_string(obj, s->st_name));
         }
         if (name == NULL) name = "<unknown>";
         syms[n].name = strdup(name);
