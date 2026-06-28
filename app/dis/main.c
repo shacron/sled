@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <sled/arch.h>
 #include <sled/core.h>
 #include <sled/elf.h>
 #include <sled/error.h>
@@ -165,6 +166,17 @@ static int dis(char *name) {
     }
 
     sl_core_add_symbols(c, sl);
+
+    int arch = sl_elf_arch(elf);
+    int subarch = sl_elf_subarch(elf);
+    const char *as = "elf-unknown";
+    if (arch == SL_ARCH_RISCV) {
+        if (subarch == SL_SUBARCH_RV32)
+            as = "elf32-littleriscv";
+        else
+            as = "elf64-littleriscv";
+    }
+    printf("\n%s: file format %s\n", name, as);
 
     // iterate elf sections, disassemble in order
     const bool is64 = sl_elf_is_64bit(elf);
