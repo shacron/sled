@@ -646,7 +646,14 @@ static int rv_decode_branch(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     // or imm4 with sign extend
     imm |= ((i4)(inst.raw & 0x80000000)) >> (31 - 12);
     si->simm = imm;
+#if RV_PRETTY_PRINT
+    if (inst.b.rs2 == RV_ZERO)
+        STRACE(si, "%sz x%u, %#" PRIx64, opstr_, inst.b.rs1, c->core.pc + imm);
+    else
+        STRACE(si, "%s x%u, x%u, %#" PRIx64, opstr_, inst.b.rs1, inst.b.rs2, c->core.pc + imm);
+#else
     STRACE(si, "%s x%u, x%u, %#" PRIx64, opstr_, inst.b.rs1, inst.b.rs2, c->core.pc + imm);
+#endif
     return 0;
 }
 
