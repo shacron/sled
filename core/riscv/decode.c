@@ -609,7 +609,10 @@ static int rv_decode_jalr(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     si->simm = ((i4)inst.raw) >> 20;
     if (inst.i.rd == RV_ZERO) {
         slac_in(si, SLAC_OP_B, SLAC_IN_ARG_R1, PR_B);
-        STRACE(si, "ret");
+        if (inst.i.rs1 == RV_RA)
+            STRACE(si, "ret");
+        else
+            STRACE(si, "jr x%u", inst.i.rs1);
     } else {
         slac_in(si, SLAC_OP_BL, SLAC_IN_ARG_DRI, PR_BL);
         STRACE(si, "jalr %d(x%u)", (i4)si->simm, inst.i.rs1);
