@@ -558,15 +558,22 @@ static int rv_decode_jump(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
 
 #if RV_PRETTY_PRINT
     sl_sym_entry_t *sym = sl_core_get_sym_for_addr(&c->core, trace_dest);
-    char *symname = "";
-    if (sym != NULL)
+    const char *symname = NULL;
+    u8 dist = 0;
+    if (sym != NULL) {
         symname = sym->name;
+        dist = trace_dest - sym->addr;
+    }
 #endif
 #endif
 
     if (inst.j.rd == RV_ZERO) {        // J
         slac_in(si, SLAC_OP_B, SLAC_IN_ARG_I, PR_B);
+#if RV_PRETTY_PRINT
+        STRACE(si, "j %#" PRIx64 " <%s+%#" PRIx64 ">", trace_dest, symname, dist);
+#else
         STRACE(si, "j %#" PRIx64, trace_dest);
+#endif
     } else {
         slac_in(si, SLAC_OP_BL, SLAC_IN_ARG_DI, PR_BL);
         si->r2 = 4; // pc offset to step
