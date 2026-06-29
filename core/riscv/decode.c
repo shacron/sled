@@ -62,6 +62,7 @@ static const u2 rv_barrier_map[4] = {
 // these defines enable pretty printing for disassembly
 // they make the instructions more conformant to the recommended aliases
 #define RV_PRETTY_PRINT 1
+#define RV_PRETTY_PAGE_SHIFT 12
 
 #if RV_TRACE_EXPAND_C_OPS
 // print C-extension ops the same as the full-length encoding
@@ -94,6 +95,7 @@ static void rv_fence_op_name(u1 op, char *s) {
 
 #define STRACE_EXPAND(...)
 #define STRACE_C(si, ...)
+#define RV_PRETTY_PAGE_SHIFT 0
 
 #endif // SLAC_TRACE
 
@@ -186,6 +188,7 @@ static int rv_decode_u_type(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     u8 print_uimm = si->uimm;
     if (c->core.mode == SL_CORE_MODE_4)
         print_uimm &= 0xffffffff;
+    print_uimm >>= RV_PRETTY_PAGE_SHIFT;
 #endif
 
     if (inst.u.opcode == OP_LUI) {
