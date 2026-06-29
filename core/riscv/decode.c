@@ -233,16 +233,16 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         if (func7 != 0) return rv_slac_undef(c, si);
         slac_in(si, SLAC_OP_SHL, SLAC_IN_ARG_DRI, PR_D);
         si->uimm = shift;
-        STRACE(si, "slli x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
+        STRACE(si, "slli x%u, x%u, %#x", inst.i.rd, inst.i.rs1, shift);
         break;
 
     case 0b101:
         if (func7 == 0) {   // SRLI
             slac_in(si, SLAC_OP_SHR, SLAC_IN_ARG_DRI, PR_D);
-            STRACE(si, "srli x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
+            STRACE(si, "srli x%u, x%u, %#x", inst.i.rd, inst.i.rs1, shift);
         } else if (func7 == 0b0100000) {  //SRAI
             slac_in(si, SLAC_OP_SHRS, SLAC_IN_ARG_DRI, PR_D);
-            STRACE(si, "srai x%u, x%u, %u", inst.i.rd, inst.i.rs1, shift);
+            STRACE(si, "srai x%u, x%u, %#x", inst.i.rd, inst.i.rs1, shift);
         } else {
             return rv_slac_undef(c, si);
         }
@@ -252,7 +252,7 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     case 0b010: // SLTI
         slac_in(si, SLAC_OP_CSELS, SLAC_IN_ARG_DRI, PR_D);
         si->simm = ((i4)inst.raw) >> 20;  // sign extend immediate
-        STRACE(si, "slti x%u, x%u, %u", inst.i.rd, inst.i.rs1, (u4)si->simm);
+        STRACE(si, "slti x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)si->simm);
         break;
 
     case 0b011: // SLTIU
@@ -260,7 +260,7 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
         // docs: the immediate is first sign-extended to XLEN bits then treated as an unsigned number
         if (is_rv32) si->uimm = (u4)(((i4)inst.raw) >> 20);  // sign extend immediate
         else         si->uimm = (u8)(i8)(((i4)inst.raw) >> 20);  // sign extend immediate
-        STRACE(si, "sltiu x%u, x%u, %" PRIu64, inst.i.rd, inst.i.rs1, si->uimm);
+        STRACE(si, "sltiu x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)si->uimm);
         break;
 
     case 0b100: // XORI
