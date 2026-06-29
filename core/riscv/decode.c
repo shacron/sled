@@ -266,7 +266,14 @@ static int rv_decode_alu_imm(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     case 0b100: // XORI
         slac_in(si, SLAC_OP_XOR, SLAC_IN_ARG_DRI, PR_D);
         si->simm = ((i4)inst.raw) >> 20;  // sign extend immediate
+#if RV_PRETTY_PRINT
+        if ((u4)si->simm == 0xffffffff)
+            STRACE(si, "not x%u, x%u", inst.i.rd, inst.i.rs1);
+        else
+            STRACE(si, "xori x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)si->simm);
+#else
         STRACE(si, "xori x%u, x%u, %#x", inst.i.rd, inst.i.rs1, (u4)si->simm);
+#endif
         break;
 
     case 0b110: // ORI
