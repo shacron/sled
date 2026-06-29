@@ -63,7 +63,12 @@ static void riscv_reg_name_fix(char *src) {
                 goto direct_copy; // what?
             }
             u1 reg = s[1] - '0';
-            if (s[1] < '3') {
+            if (s[1] == '3') {
+                if (s[2] == '0' || s[2] == '1') {
+                    reg = reg * 10 + (s[2] - '0');
+                    s++;
+                }
+            } else if (s[1] < '3') {
                 if (s[2] >= '0' && s[2] <= '9') {
                     reg = reg * 10 + (s[2] - '0');
                     s++;
