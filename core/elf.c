@@ -359,6 +359,14 @@ int sl_elf_get_program_header(sl_elf_obj_t *obj, u4 index, Elf64_Phdr *p) {
     return 0;
 }
 
+static int sym_ent_compare(const void *a, const void *b) {
+    const sl_sym_entry_t *sa = a;
+    const sl_sym_entry_t *sb = b;
+    if (sa->addr < sb->addr) return -1;
+    if (sa->addr > sb->addr) return 1;
+    return strcmp(sa->name, sb->name);
+}
+
 int sl_elf_symbol_list_load(sl_elf_obj_t *obj, sl_sym_list_t *list) {
     Elf64_Off offset;
     Elf64_Xword size, entsize;
@@ -391,29 +399,38 @@ int sl_elf_symbol_list_load(sl_elf_obj_t *obj, sl_sym_list_t *list) {
     u4 n = 0;
     for (Elf64_Xword i = 0; i < num_symbols; i++) {
         const char *name = NULL;
+        u4 type;
+        u4 bind;
         if (obj->is64) {
             Elf64_Sym *s = symtab + (i * entsize);
-            if (ELF64_ST_TYPE(s->st_info) != STT_FUNC) continue;
             syms[n].addr = s->st_value;
             syms[n].size = s->st_size;
             syms[n].flags = 0;
             name = sl_elf_get_string(obj, s->st_name);
+            type = ELF64_ST_TYPE(s->st_info);
+            bind = ELF64_ST_BIND(s->st_info);
             // printf("%016" PRIx64 " %016" PRIx64 " %s\n", s->st_value, s->st_size, get_string(obj, s->st_name));
         } else {
             Elf32_Sym *s = symtab + (i * entsize);
-            if (ELF32_ST_TYPE(s->st_info) != STT_FUNC) continue;
             syms[n].addr = s->st_value;
             syms[n].size = s->st_size;
             syms[n].flags = 0;
             name = sl_elf_get_string(obj, s->st_name);
-            // printf("%08x %8u %s\n", s->st_value, s->st_size, sl_elf_get_string(obj, s->st_name));
+            type = ELF32_ST_TYPE(s->st_info);
+            bind = ELF32_ST_BIND(s->st_info);
+            // u4 visibility = ELF32_ST_VISIBILITY(s->st_other);
+            // printf("%08x %8u type=%x bind=%x vis=%x %s\n", s->st_value, s->st_size, type, bind, visibility, name);
         }
+        if ((type != STT_FUNC) &&
+            ((type != STT_NOTYPE) || (bind != STB_GLOBAL)))
+            continue;
         if (name == NULL) name = "<unknown>";
         syms[n].name = strdup(name);
         n++;
     }
     list->num = n;
     list->ent = syms;
+    qsort(syms, n, sizeof(sl_sym_entry_t), sym_ent_compare);
     return 0;
 }
 

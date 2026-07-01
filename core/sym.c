@@ -22,12 +22,20 @@ int sl_sym_entry_for_addr(sl_sym_list_t *sl, u8 addr, sl_sym_entry_t *cached, sl
             return 0;
         }
     }
+    sl_sym_entry_t *unsized = NULL;
     for (u4 i = 0; i < sl->num; i++) {
         sl_sym_entry_t *ent = &sl->ent[i];
-        if ((ent->addr <= addr) && ((ent->addr + ent->size) > addr)) {
+        if (ent->addr > addr) break;
+        if ((ent->addr + ent->size) > addr) {
             *ent_out = ent;
             return 0;
         }
+        if (ent->size == 0) unsized = ent;
+        else unsized = NULL;
+    }
+    if (unsized) {
+        *ent_out = unsized;
+        return 0;
     }
     return SL_ERR_NOT_FOUND;
 }
