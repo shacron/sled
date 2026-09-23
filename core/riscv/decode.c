@@ -666,9 +666,9 @@ static int rv_decode_branch(rv_core_t *c, sl_slac_inst_t *si, rv_inst_t inst) {
     // or imm4 with sign extend
     imm |= ((i4)(inst.raw & 0x80000000)) >> (31 - 12);
     si->simm = imm;
-    const u8 trace_dest = imm + c->core.pc;
 
 #if RV_PRETTY_PRINT
+    const u8 trace_dest = imm + c->core.pc;
     sl_sym_entry_t *sym = sl_core_get_sym_for_addr(&c->core, trace_dest);
     const char *symname = NULL;
     u8 dist = 0;
