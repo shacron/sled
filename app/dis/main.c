@@ -18,6 +18,10 @@
 #include <sled/riscv.h>
 #include <sled/sym.h>
 
+#ifndef SLAC_TRACE
+#error Disassembler building without tracing support. Build with TRACE=1
+#endif
+
 typedef struct {
     const char *name;
     size_t size;
