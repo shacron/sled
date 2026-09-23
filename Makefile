@@ -1,6 +1,6 @@
 SDKDIR ?= ../sdk
 BLD_BASEDIR ?= build
-APPS ?= dis
+APPS ?= sled
 
 BLD_HOST_OBJDIR ?= $(BLD_BASEDIR)/obj
 BLD_HOST_BINDIR ?= $(BLD_BASEDIR)
